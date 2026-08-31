@@ -3,7 +3,7 @@ class AppConfig {
   static const String appName = 'VIT AP Student App';
   static const String appVersion = '1.0.0';
   static const String buildNumber = '1';
-  static const String packageName = 'com.vsync';
+  static const String packageName = 'com.minimallabs.vsync';
 
   // Feature Flags
   static const bool enablePushNotifications = true;

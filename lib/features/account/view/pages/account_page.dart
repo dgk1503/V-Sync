@@ -202,7 +202,6 @@ class _AccountPageState extends ConsumerState<AccountPage> {
                     title: 'Terms of Use',
                     leadingIcon: const Icon(Iconsax.document_text_copy),
                     onTap: () async {
-                      // TODO: Replace with your actual hosted terms URL
                       await directToWeb(
                         'https://v-sync-minimallabs.vercel.app/terms',
                       );
@@ -214,7 +213,6 @@ class _AccountPageState extends ConsumerState<AccountPage> {
                     title: 'Privacy Policy',
                     leadingIcon: const Icon(Iconsax.shield_tick_copy),
                     onTap: () async {
-                      // TODO: Replace with your actual hosted privacy policy URL
                       await directToWeb(
                         'https://v-sync-minimallabs.vercel.app/privacypolicy',
                       );

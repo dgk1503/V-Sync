@@ -10,7 +10,7 @@ Future<void> initDependencies() async {
   // Dotenv
   await dotenv.load(fileName: '.env');
 
-  await HomeWidget.setAppGroupId('group.com.vsync');
+  await HomeWidget.setAppGroupId('group.com.minimallabs.vsync');
 
   // Block Landscape View
   await SystemChrome.setPreferredOrientations([
