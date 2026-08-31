@@ -10,7 +10,7 @@
   <img src="https://img.shields.io/badge/Flutter-Dart-blue?logo=flutter" alt="Flutter" />
   <img src="https://img.shields.io/badge/core-Rust-orange?logo=rust" alt="Rust" />
   <img src="https://img.shields.io/badge/platform-Android-black" alt="Platform" />
-  <img src="https://img.shields.io/badge/theme-monochrome-black" alt="Monochrome" />
+  <img src="https://img.shields.io/badge/theme-customizable-black" alt="Themes" />
 </p>
 
 ---
@@ -19,18 +19,18 @@
 
 V-Sync is a lightweight, unopinionated way to access VTOP — the essentials, without
 everything else it comes bundled with. Marks, attendance, timetable, mess menu, and exam
-countdowns, in one focused black-and-white interface.
+countdowns, in one focused interface.
 
-No custom themes, no clutter, no screens you don't need — just a simplified read on what
-VTOP already has, kept fast and out of your way.
 
 ## Features
 
 - **Marks & Grades** — a clean per-course breakdown
 - **Attendance** — synced automatically, no manual logging
+- **Attendance Calculator** — plan your bunks and see how they affect your attendance, helping you stay above the 75% requirement
 - **Timetable** — Morning / Afternoon layout, Lab vs Theory auto-detected, empty days hidden entirely
 - **Mess Menu** — upload the month's sheet once, step through it day by day
 - **Countdowns** — track upcoming CATs, FATs, and other key dates
+- **Themes** — choose the look that suits you
 - **Automatic VTOP sync** — handled by an embedded Rust core, isolated from the UI
 
 ## Tech Stack
