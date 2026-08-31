@@ -1,4 +1,4 @@
-package com.vsync
+package com.minimallabs.vsync
 
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager

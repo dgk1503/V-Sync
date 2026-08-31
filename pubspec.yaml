@@ -11,8 +11,8 @@ dependencies:
   animations: ^2.0.11
 
   archive: ^4.0.0
+  crypto: ^3.0.0
   cupertino_icons: ^1.0.6
-  xml: ^7.0.1
   device_info_plus: ^13.2.0
   file_picker: ^12.0.0-beta.7
   flutter:
@@ -36,12 +36,14 @@ dependencies:
   json_annotation: ^4.9.0
   lib_vtop:
     path: rust_builder
+  meta: any
   objectbox: ^5.3.2
   objectbox_flutter_libs: ^5.3.2
   open_file: ^4.0.0
   package_info_plus: ^10.2.1
   path_provider: ^2.1.5
   permission_handler: ^12.0.3
+  pinput: ^6.0.2
   riverpod_annotation: ^4.0.2
   share_plus: ^13.2.1
   shared_preferences: ^2.5.3
@@ -50,9 +52,7 @@ dependencies:
   timezone: ^0.11.1
   url_launcher: ^6.3.1
   webview_flutter: ^4.13.0
-
-  meta: any
-  pinput: ^6.0.2
+  xml: ^7.0.1
 dev_dependencies:
   build_runner: ^2.11.1
   flutter_launcher_icons: ^0.14.3

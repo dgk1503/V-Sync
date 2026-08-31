@@ -93,80 +93,79 @@ class _VtopWebViewPageState extends ConsumerState<VtopWebViewPage> {
       final userAgent = await getDeviceUserAgent();
 
       // Create and configure the WebView controller
-      _controller = WebViewController()
-        ..setJavaScriptMode(JavaScriptMode.unrestricted)
-        ..setNavigationDelegate(
-          NavigationDelegate(
-            onProgress: (int progress) {
-              setState(() {
-                _loadingProgress = progress / 100;
-              });
-            },
-            onPageStarted: (String url) {
-              setState(() {
-                _isLoading = true;
-                _currentUrl = url;
-              });
-              debugPrint('Page started: $url');
-            },
-            onPageFinished: (String url) async {
-              setState(() {
-                _isLoading = false;
-                _currentUrl = url;
-              });
-              debugPrint('Page finished: $url');
+      _controller = WebViewController();
+      await _controller!.setJavaScriptMode(JavaScriptMode.unrestricted);
+      await _controller!.setNavigationDelegate(
+        NavigationDelegate(
+          onProgress: (int progress) {
+            setState(() {
+              _loadingProgress = progress / 100;
+            });
+          },
+          onPageStarted: (String url) {
+            setState(() {
+              _isLoading = true;
+              _currentUrl = url;
+            });
+            debugPrint('Page started: $url');
+          },
+          onPageFinished: (String url) async {
+            setState(() {
+              _isLoading = false;
+              _currentUrl = url;
+            });
+            debugPrint('Page finished: $url');
 
-              // Extract CSRF token from the page for potential future use
-              await _extractCsrfToken();
+            // Extract CSRF token from the page for potential future use
+            await _extractCsrfToken();
 
-              // If we're on the open/page, auto-navigate to content page
-              if (url.contains(ServerConstants.vtopOpenPage) &&
-                  _csrfToken != null) {
-                debugPrint('On open page with CSRF, navigating to content...');
-                await Future<void>.delayed(const Duration(milliseconds: 300));
-                await _navigateWithPost(ServerConstants.vtopContentPage);
-              }
-              // Content page loaded - reveal the WebView!
-              else if (url.contains(ServerConstants.vtopContentPage)) {
-                debugPrint('Content page loaded - showing WebView');
-                setState(() {
-                  _isContentLoaded = true;
-                });
-              }
-              // Check if redirected to login page (session expired)
-              else if (url.contains(ServerConstants.vtopLoginPage) ||
-                  url.contains(ServerConstants.vtopPreLoginPage)) {
-                debugPrint(
-                    'Detected login/prelogin page - session may have expired');
-                setState(() {
-                  _errorMessage =
-                      'Session expired. Please go back and try again.';
-                });
-              }
-            },
-            onWebResourceError: (WebResourceError error) {
-              debugPrint('WebView error: ${error.description}');
-              // Only show error if it's a main frame error
-              if (error.isForMainFrame ?? false) {
-                setState(() {
-                  _errorMessage = 'Failed to load page: ${error.description}';
-                });
-              }
-            },
-            onNavigationRequest: (NavigationRequest request) {
-              debugPrint('Navigation request: ${request.url}');
-              // Allow all VTOP navigation
-              if (request.url.startsWith(ServerConstants.vtopBaseUrl)) {
-                return NavigationDecision.navigate;
-              }
-              // Block external links
-              debugPrint('Blocked external navigation: ${request.url}');
-              return NavigationDecision.prevent;
-            },
-       
-          ),
-        )
-        .. setUserAgent(userAgent);
+            // If we're on the open/page, auto-navigate to content page
+            if (url.contains(ServerConstants.vtopOpenPage) &&
+                _csrfToken != null) {
+              debugPrint('On open page with CSRF, navigating to content...');
+              await Future<void>.delayed(const Duration(milliseconds: 300));
+              await _navigateWithPost(ServerConstants.vtopContentPage);
+            }
+            // Content page loaded - reveal the WebView!
+            else if (url.contains(ServerConstants.vtopContentPage)) {
+              debugPrint('Content page loaded - showing WebView');
+              setState(() {
+                _isContentLoaded = true;
+              });
+            }
+            // Check if redirected to login page (session expired)
+            else if (url.contains(ServerConstants.vtopLoginPage) ||
+                url.contains(ServerConstants.vtopPreLoginPage)) {
+              debugPrint(
+                  'Detected login/prelogin page - session may have expired');
+              setState(() {
+                _errorMessage =
+                    'Session expired. Please go back and try again.';
+              });
+            }
+          },
+          onWebResourceError: (WebResourceError error) {
+            debugPrint('WebView error: ${error.description}');
+            // Only show error if it's a main frame error
+            if (error.isForMainFrame ?? false) {
+              setState(() {
+                _errorMessage = 'Failed to load page: ${error.description}';
+              });
+            }
+          },
+          onNavigationRequest: (NavigationRequest request) {
+            debugPrint('Navigation request: ${request.url}');
+            // Allow all VTOP navigation
+            if (request.url.startsWith(ServerConstants.vtopBaseUrl)) {
+              return NavigationDecision.navigate;
+            }
+            // Block external links
+            debugPrint('Blocked external navigation: ${request.url}');
+            return NavigationDecision.prevent;
+          },
+        ),
+      );
+      await _controller!.setUserAgent(userAgent);
 
       // Load the VTOP open page to establish cookie context
       // The authenticated cookies + CSRF from Rust will be used for POST navigation

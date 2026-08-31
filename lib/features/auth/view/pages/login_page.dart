@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:internet_connection_checker_plus/internet_connection_checker_plus.dart';
@@ -9,6 +10,7 @@ import 'package:vit_ap_student_app/core/network/connection_checker.dart';
 import 'package:vit_ap_student_app/core/services/demo_service.dart';
 import 'package:vit_ap_student_app/core/utils/show_snackbar.dart';
 import 'package:vit_ap_student_app/features/auth/view/pages/semester_selection_page.dart';
+import 'package:vit_ap_student_app/features/auth/view/pages/terms_preview_page.dart';
 import 'package:vit_ap_student_app/features/auth/viewmodel/auth_viewmodel.dart';
 import 'package:vit_ap_student_app/features/auth/viewmodel/semester_viewmodel.dart';
 
@@ -23,9 +25,24 @@ class LoginPageState extends ConsumerState<LoginPage> {
   final TextEditingController usernameController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+  final TapGestureRecognizer _termsRecognizer = TapGestureRecognizer();
+
+  @override
+  void initState() {
+    super.initState();
+    _termsRecognizer.onTap = () {
+      Navigator.push(
+        context,
+        MaterialPageRoute<void>(
+          builder: (context) => const TermsPreviewPage(),
+        ),
+      );
+    };
+  }
 
   @override
   void dispose() {
+    _termsRecognizer.dispose();
     usernameController.dispose();
     passwordController.dispose();
     super.dispose();
@@ -66,6 +83,7 @@ class LoginPageState extends ConsumerState<LoginPage> {
     final connectivityResult = await ConnectionCheckerImpl(
       InternetConnection(),
     ).isConnected;
+    if (!mounted) return;
     if (!connectivityResult) {
       showSnackBar(
         context,
@@ -139,7 +157,7 @@ class LoginPageState extends ConsumerState<LoginPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const SizedBox(height: 48),
-                        AccentGradientText(
+                        const AccentGradientText(
                           'welcome back',
                           style: TextStyle(
                             fontFamily: 'Outfit',
@@ -206,6 +224,38 @@ class LoginPageState extends ConsumerState<LoginPage> {
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        Center(
+                          child: Text.rich(
+                            TextSpan(
+                              text: 'by continuing, you agree to our ',
+                              style: TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 12,
+                                fontWeight: FontWeight.w400,
+                                letterSpacing: 0.2,
+                                height: 1.5,
+                                color: colorScheme.onSurfaceVariant,
+                              ),
+                              children: [
+                                TextSpan(
+                                  text: 'terms & privacy policy',
+                                  style: TextStyle(
+                                    fontFamily: 'Inter',
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    letterSpacing: 0.2,
+                                    color: colorScheme.onSurface,
+                                    decoration: TextDecoration.underline,
+                                    decorationColor: colorScheme.onSurface,
+                                  ),
+                                  recognizer: _termsRecognizer,
+                                ),
+                              ],
+                            ),
+                            textAlign: TextAlign.center,
                           ),
                         ),
                       ],

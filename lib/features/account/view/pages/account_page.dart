@@ -198,6 +198,30 @@ class _AccountPageState extends ConsumerState<AccountPage> {
                   ),
                   SettingTile(
                     isFirst: false,
+                    isLast: false,
+                    title: 'Terms of Use',
+                    leadingIcon: const Icon(Iconsax.document_text_copy),
+                    onTap: () async {
+                      // TODO: Replace with your actual hosted terms URL
+                      await directToWeb(
+                        'https://v-sync-minimallabs.vercel.app/terms',
+                      );
+                    },
+                  ),
+                  SettingTile(
+                    isFirst: false,
+                    isLast: false,
+                    title: 'Privacy Policy',
+                    leadingIcon: const Icon(Iconsax.shield_tick_copy),
+                    onTap: () async {
+                      // TODO: Replace with your actual hosted privacy policy URL
+                      await directToWeb(
+                        'https://v-sync-minimallabs.vercel.app/privacypolicy',
+                      );
+                    },
+                  ),
+                  SettingTile(
+                    isFirst: false,
                     isLast: true,
                     title: 'Logout',
                     leadingIcon: const Icon(Iconsax.logout),

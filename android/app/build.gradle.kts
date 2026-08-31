@@ -14,7 +14,7 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
-    namespace = "com.vsync"
+    namespace = "com.minimallabs.vsync"
     compileSdk = 36
     ndkVersion = "29.0.13113456"
 
@@ -35,7 +35,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.vsync"
+        applicationId = "com.minimallabs.vsync"
         minSdk = flutter.minSdkVersion
         targetSdk = 36
         compileSdk = 36

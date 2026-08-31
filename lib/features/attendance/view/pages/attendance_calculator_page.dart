@@ -263,7 +263,7 @@ class _AttendanceCalculatorPageState extends ConsumerState<AttendanceCalculatorP
                       ),
                     ),
                     Text(
-                      '${attended} / ${total}',
+                      '$attended / $total',
                       style: TextStyle(
                         fontFamily: 'Inter',
                         fontSize: 12,

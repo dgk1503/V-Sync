@@ -46,11 +46,11 @@ class _OnboardingPageState extends State<OnboardingPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Align(
+            const Align(
               alignment: Alignment.topRight,
               child: Padding(
-                padding: const EdgeInsets.only(right: 8.0),
-                child: const ThemeSwitchButton(),
+                padding: EdgeInsets.only(right: 8.0),
+                child: ThemeSwitchButton(),
               ),
             ),
             Expanded(

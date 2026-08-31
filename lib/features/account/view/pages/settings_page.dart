@@ -8,6 +8,7 @@ import 'package:vit_ap_student_app/core/providers/user_preferences_notifier.dart
 import 'package:vit_ap_student_app/core/theme/app_theme.dart';
 import 'package:vit_ap_student_app/features/account/view/widgets/developer_mode_tiles.dart';
 
+
 class SettingsPage extends ConsumerStatefulWidget {
   final bool isDeveloperModeEnabled;
 

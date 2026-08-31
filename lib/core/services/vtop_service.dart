@@ -135,23 +135,6 @@ class VtopClientService {
     }
   }
 
-  /// Get reason for client creation (for debugging)
-  String _getClientCreationReason(String username, String password) {
-    if (_client == null) return 'No existing client';
-    if (!_isInitialized) return 'Not initialized';
-    if (_currentUsername != username ||
-        _currentPasswordDigest != _digestOf(password)) {
-      return 'Different credentials';
-    }
-    if (_isSessionExpired()) {
-      return 'Session expired (${_getSessionAge()})';
-    }
-    if (_isSessionNearExpiry()) {
-      return 'Session near expiry (${_getSessionAge()})';
-    }
-    return 'Unknown reason';
-  }
-
   /// Initialize the VTOP client and login
   /// When OTP is required, pauses and waits for the user to verify via the
   /// global OTP bottom sheet. The operation that triggered this call

@@ -76,7 +76,7 @@ class _PaymentReceiptsPageState extends ConsumerState<PaymentReceiptsPage> {
                     )
                   : RefreshIndicator(
                       onRefresh: () async {
-                        ref
+                        await ref
                             .read(paymentReceiptsViewModelProvider.notifier)
                             .fetchPendingPayments();
                       },

@@ -85,7 +85,6 @@ ThemeData getThemeData({
   // Red exists in BOTH modes: white + red in light, deep dark red in dark.
   final isRed = colorTheme == AppColorTheme.red;
   final isRedDark = isRed && isDarkMode;
-  final isLightAccent = isGoldLight || isPink || (isRed && !isDarkMode);
 
   final outlineColor = isGold
       ? (isDarkMode ? const Color(0xFF9C8434) : const Color(0xFFB08D26))

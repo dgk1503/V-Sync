@@ -74,7 +74,7 @@ class AttendanceCourseCard extends StatelessWidget {
       ),
       onTap: () {
         Navigator.of(context).push(
-          MaterialPageRoute(
+          MaterialPageRoute<void>(
             builder: (_) => AttendanceCalculatorPage(attendance: attendance),
           ),
         );

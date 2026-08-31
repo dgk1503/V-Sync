@@ -220,7 +220,7 @@ class _LoginOtpSheetState extends ConsumerState<_LoginOtpSheet>
                 ),
                 child: Row(
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.check_circle_outline_rounded,
                       size: 17,
                       color: Colors.green,
@@ -260,7 +260,7 @@ class _LoginOtpSheetState extends ConsumerState<_LoginOtpSheet>
                     padding: const EdgeInsets.only(top: 10),
                     child: Text(
                       errorText,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontFamily: 'Inter',
                         fontSize: 12.5,
                         fontWeight: FontWeight.w500,
@@ -317,7 +317,7 @@ class _LoginOtpSheetState extends ConsumerState<_LoginOtpSheet>
                       isOnCooldown
                           ? 'Resend (${_remainingSeconds}s)'
                           : 'Resend OTP',
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontFamily: 'Outfit',
                         fontSize: 14.5,
                         fontWeight: FontWeight.w500,

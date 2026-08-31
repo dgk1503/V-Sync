@@ -148,8 +148,8 @@ class _SemesterSelectionPageState extends ConsumerState<SemesterSelectionPage> {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(24, 48, 24, 0),
+                      const Padding(
+                        padding: EdgeInsets.fromLTRB(24, 48, 24, 0),
                         child: AccentGradientText(
                           'pick your semester',
                           style: TextStyle(

@@ -175,8 +175,8 @@ class ForYouRepository {
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body) as List<dynamic>;
         final types = data
-            .where((item) => item['is_approved'] == true)
-            .map((json) => json['type'] as String)
+            .where((item) => (item as Map<String, dynamic>)['is_approved'] == true)
+            .map((json) => (json as Map<String, dynamic>)['type'] as String)
             .toSet()
             .toList();
 

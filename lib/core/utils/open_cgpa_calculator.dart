@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:vit_ap_student_app/core/constants/server_constants.dart';
 import 'package:vit_ap_student_app/core/models/grade_history.dart';
-import 'package:vit_ap_student_app/init_dependencies.dart';
 
 import 'launch_web.dart';
 

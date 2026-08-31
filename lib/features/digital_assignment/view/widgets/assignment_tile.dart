@@ -301,6 +301,7 @@ class _AssignmentTileState extends ConsumerState<AssignmentTile> {
             fileName: '${widget.courseCode} - $fileLabel',
             filePath: savedPath,
           );
+          if (!context.mounted) return;
           showSnackBar(
             context,
             'File saved successfully',

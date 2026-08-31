@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:vit_ap_student_app/core/utils/launch_web.dart';
-import 'package:vit_ap_student_app/init_dependencies.dart';
 
 class TileDetailPage extends StatefulWidget {
   final String title;
