@@ -227,9 +227,9 @@ class _MarksPageState extends ConsumerState<MarksPage>
     }).toList();
 
     if (filteredMarks.isEmpty) {
-      return EmptyContentView(
-        primaryText: 'No $courseTypeFilter Courses found',
-        secondaryText: 'Keep calm and come back later! 🕒😌',
+      return const EmptyContentView(
+        primaryText: 'No courses found.',
+        secondaryText: '',
       );
     }
 

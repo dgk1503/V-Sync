@@ -154,12 +154,13 @@ class _ScheduleListState extends ConsumerState<ScheduleList> {
 
     if (classes.isEmpty) return const SizedBox.shrink();
 
-    // Morning: before 12:00, everything else (including late classes)
-    // falls under Afternoon.
+    // Morning: the last morning slot is the 12:00-12:50 theory class
+    // (labs start no later than 11:45), so anything starting before
+    // 1:00 PM is morning. Afternoon classes begin at 2:00 PM.
     final morning =
-        classes.where((c) => _parseMinutes(c.startTime) < 720).toList();
+        classes.where((c) => _parseMinutes(c.startTime) < 780).toList();
     final afternoon =
-        classes.where((c) => _parseMinutes(c.startTime) >= 720).toList();
+        classes.where((c) => _parseMinutes(c.startTime) >= 780).toList();
 
     return RefreshIndicator(
       onRefresh: () async {
@@ -296,12 +297,16 @@ class _ClassRow extends StatelessWidget {
                 ),
                 const SizedBox(width: 5),
                 Flexible(
-                  child: Text(
-                    formatTimeRange(classInfo.startTime, classInfo.endTime),
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 12.5,
-                      color: _neutralMuted(context),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      formatTimeRange(classInfo.startTime, classInfo.endTime),
+                      maxLines: 1,
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 12.5,
+                        color: _neutralMuted(context),
+                      ),
                     ),
                   ),
                 ),

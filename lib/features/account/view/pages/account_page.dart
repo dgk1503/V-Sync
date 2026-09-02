@@ -159,17 +159,6 @@ class _AccountPageState extends ConsumerState<AccountPage> {
                     ),
                   SettingTile(
                     isFirst: !DemoService.isDemoMode,
-                    isLast: false,
-                    title: 'Sync',
-                    infoText:
-                        'When synced, latest data will be fetched from VTOP.',
-                    leadingIcon: const Icon(Iconsax.repeat),
-                    onTap: () async {
-                      await ref.read(accountViewModelProvider.notifier).sync();
-                    },
-                  ),
-                  SettingTile(
-                    isFirst: false,
                     isLast: true,
                     title: 'Appearance',
                     leadingIcon: const Icon(Iconsax.moon_copy),
@@ -200,7 +189,7 @@ class _AccountPageState extends ConsumerState<AccountPage> {
                     isFirst: false,
                     isLast: false,
                     title: 'Terms of Use',
-                    leadingIcon: const Icon(Iconsax.document_text_copy),
+                    leadingIcon: const Icon(Iconsax.document_code_copy),
                     onTap: () async {
                       await directToWeb(
                         'https://v-sync-minimallabs.vercel.app/terms',
@@ -211,7 +200,7 @@ class _AccountPageState extends ConsumerState<AccountPage> {
                     isFirst: false,
                     isLast: false,
                     title: 'Privacy Policy',
-                    leadingIcon: const Icon(Iconsax.shield_tick_copy),
+                    leadingIcon: const Icon(Iconsax.security_copy),
                     onTap: () async {
                       await directToWeb(
                         'https://v-sync-minimallabs.vercel.app/privacypolicy',

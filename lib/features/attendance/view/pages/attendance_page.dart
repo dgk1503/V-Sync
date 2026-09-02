@@ -191,6 +191,14 @@ class AttendancePageState extends ConsumerState<AttendancePage>
   }
 
   Widget _buildBody(User? user, String courseTypeFilter) {
+    // Pull-to-refresh works in every state (list, empty view, error view).
+    return RefreshIndicator(
+      onRefresh: () => refreshAttendanceData(silentRefresh: true),
+      child: _buildBodyContent(user, courseTypeFilter),
+    );
+  }
+
+  Widget _buildBodyContent(User? user, String courseTypeFilter) {
     if (user == null) {
       return const ErrorContentView(error: 'User not found!');
     }
@@ -202,13 +210,22 @@ class AttendancePageState extends ConsumerState<AttendancePage>
     }).toList();
 
     if (filteredAttendances.isEmpty) {
-      return EmptyContentView(
-        primaryText: 'No $courseTypeFilter Courses found',
-        secondaryText: 'Feels so empty',
+      return ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: [
+          SizedBox(
+            height: MediaQuery.of(context).size.height * 0.5,
+            child: EmptyContentView(
+              primaryText: 'No $courseTypeFilter Courses found',
+              secondaryText: 'Feels so empty',
+            ),
+          ),
+        ],
       );
     }
 
     return ListView.builder(
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.only(top: 8),
       itemCount: filteredAttendances.length,
       itemBuilder: (context, index) {

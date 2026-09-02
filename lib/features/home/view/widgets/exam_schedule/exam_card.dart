@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:vit_ap_student_app/core/models/exam_schedule.dart';
 
-enum _ExamStatus { today, upcoming, completed, unknown }
+enum _ExamStatus { today, upcoming, completed, debarred, unknown }
 
 class ExamCard extends StatelessWidget {
   final Subject exam;
@@ -17,172 +17,155 @@ class ExamCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final status = _statusForExam(exam.date);
-    final isToday = status == _ExamStatus.today;
-    final isCompleted = status == _ExamStatus.completed;
-    final statusColor = _statusColor(status, colorScheme);
+    final isDark = colorScheme.brightness == Brightness.dark;
+    final status = _statusForExam(exam);
+    final statusColor = _statusColor(status);
     final statusLabel = _statusLabel(status);
 
-    return Card(
-      elevation: 2,
-      shadowColor: colorScheme.shadow.withValues(alpha: 0.1),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            border: isToday
-                ? Border.all(color: colorScheme.primary, width: 2)
-                : null,
-            gradient: isToday
-                ? LinearGradient(
-                    colors: [
-                      colorScheme.primaryContainer.withValues(alpha: 0.1),
-                      colorScheme.surface,
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  )
-                : null,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header with date and status
-              Row(
-                children: [
-                  Expanded(
-                    child: _DateTimeChip(
-                      date: exam.date,
-                      session: exam.session,
-                      isToday: isToday,
-                      isCompleted: isCompleted,
-                      colorScheme: colorScheme,
+    // Sub-text greys tuned per mode for readability (brighter in dark).
+    final subTextColor = isDark
+        ? const Color(0xFFB8C0CC)
+        : const Color(0xFF6B7280);
+
+    // Compact formatted date: "17-Aug-2026" -> "17 Aug 2026"
+    final formattedDate = exam.date.replaceAll('-', ' ');
+
+    // Combine seat location + number as "R6C3(27)"
+    final seatLoc = exam.seatLocation.trim();
+    final seatNo = exam.seatNumber.trim();
+    final seatCombined = seatLoc.isEmpty && seatNo.isEmpty
+        ? '—'
+        : seatNo.isEmpty
+            ? seatLoc
+            : seatLoc.isEmpty
+                ? seatNo
+                : '$seatLoc($seatNo)';
+
+    final venueText =
+        exam.venue.trim().isEmpty ? '—' : exam.venue.trim();
+    final timeText =
+        exam.examTime.trim().isEmpty ? '—' : exam.examTime.trim();
+
+    return Container(
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: colorScheme.outlineVariant,
+          width: 0.75,
+        ),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(18),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(18),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Top row: date • status
+                Row(
+                  children: [
+                    Text(
+                      formattedDate,
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        letterSpacing: 0.2,
+                        color: subTextColor,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  _StatusBadge(label: statusLabel, color: statusColor),
-                ],
-              ),
-
-              const SizedBox(height: 16),
-
-              // Course information
-              Text(
-                exam.courseTitle,
-                style: theme.textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: colorScheme.onSurface,
+                    const Spacer(),
+                    _StatusDot(label: statusLabel, color: statusColor),
+                  ],
                 ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
 
-              const SizedBox(height: 4),
+                const SizedBox(height: 10),
 
-              Text(
-                exam.courseCode,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: colorScheme.tertiary,
-                  fontWeight: FontWeight.w500,
+                // Course title
+                Text(
+                  exam.courseTitle,
+                  style: TextStyle(
+                    fontFamily: 'Outfit',
+                    fontSize: 17,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.3,
+                    height: 1.2,
+                    color: colorScheme.onSurface,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
-              ),
 
-              const SizedBox(height: 16),
+                const SizedBox(height: 3),
 
-              // Exam details in organized sections
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: _DetailSection(
-                      icon: Icons.access_time,
-                      title: 'Time',
-                      content: exam.examTime,
-                      colorScheme: colorScheme,
-                    ),
+                // Course code
+                Text(
+                  exam.courseCode,
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: 0.4,
+                    color: subTextColor,
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _DetailSection(
-                      icon: Icons.location_on,
-                      title: 'Venue',
-                      content: exam.venue,
-                      colorScheme: colorScheme,
-                    ),
-                  ),
-                ],
-              ),
+                ),
 
-              const SizedBox(height: 12),
-
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: _DetailSection(
-                      icon: Icons.event_seat,
-                      title: 'Seat Location',
-                      content: exam.seatLocation.trim(),
-                      colorScheme: colorScheme,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _DetailSection(
-                      icon: Icons.numbers,
-                      title: 'Seat Number',
-                      content: exam.seatNumber.trim(),
-                      colorScheme: colorScheme,
-                    ),
-                  ),
-                ],
-              ),
-
-              if (exam.reportingTime.isNotEmpty) ...[
                 const SizedBox(height: 12),
+
+                // Divider
                 Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: colorScheme.secondaryContainer.withValues(alpha: 0.3),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.schedule,
-                        size: 16,
-                        color: colorScheme.onSecondaryContainer,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Reporting: ${exam.reportingTime}',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: colorScheme.onSecondaryContainer,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
+                  height: 1,
+                  color: colorScheme.outlineVariant,
+                ),
+
+                const SizedBox(height: 12),
+
+                // Bottom stats — labels removed so time can stretch.
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      flex: 24,
+                      child: _StatCell(value: timeText),
+                    ),
+                    _VerticalDivider(color: colorScheme.outlineVariant),
+                    Expanded(
+                      flex: 10,
+                      child: _StatCell(value: venueText),
+                    ),
+                    _VerticalDivider(color: colorScheme.outlineVariant),
+                    Expanded(
+                      flex: 11,
+                      child: _StatCell(value: seatCombined),
+                    ),
+                  ],
                 ),
               ],
-            ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  _ExamStatus _statusForExam(String dateStr) {
-    final examDate = _parseExamDate(dateStr);
+  _ExamStatus _statusForExam(Subject exam) {
+    // Debarred check: if venue/seat hints at debarred, prioritize red.
+    final combined =
+        '${exam.venue} ${exam.seatLocation} ${exam.seatNumber}'.toLowerCase();
+    if (combined.contains('debar')) return _ExamStatus.debarred;
+
+    final examDate = _parseExamDate(exam.date);
     if (examDate == null) return _ExamStatus.unknown;
 
     final today = _stripTime(DateTime.now());
     final examDay = _stripTime(examDate);
 
-    if (examDay.isAtSameMomentAs(today)) return _ExamStatus.today;
+    if (examDay.isAtSameMomentAs(today)) return _ExamStatus.upcoming;
     if (examDay.isAfter(today)) return _ExamStatus.upcoming;
     return _ExamStatus.completed;
   }
@@ -195,36 +178,33 @@ class ExamCard extends StatelessWidget {
         return 'Upcoming';
       case _ExamStatus.completed:
         return 'Completed';
+      case _ExamStatus.debarred:
+        return 'Debarred';
       case _ExamStatus.unknown:
         return 'Scheduled';
     }
   }
 
-  Color _statusColor(_ExamStatus status, ColorScheme colorScheme) {
+  Color _statusColor(_ExamStatus status) {
     switch (status) {
-      case _ExamStatus.today:
-        return Colors.red;
-      case _ExamStatus.upcoming:
-        return const Color(0xFFF9A825); // amber
       case _ExamStatus.completed:
-        return Colors.green;
+        return const Color(0xFF22C55E); // green
+      case _ExamStatus.upcoming:
+      case _ExamStatus.today:
+        return const Color(0xFFF59E0B); // orange / amber
+      case _ExamStatus.debarred:
+        return const Color(0xFFEF4444); // red
       case _ExamStatus.unknown:
-        return colorScheme.onSurfaceVariant;
+        return const Color(0xFF9CA3AF);
     }
   }
 
-  /// Parses exam date string into DateTime.
-  ///
-  /// Expected format: DD-MMM-YYYY (e.g., "18-Aug-2025")
-  /// - DD: Two-digit day (01-31)
-  /// - MMM: Three-letter month abbreviation (Jan, Feb, Mar, etc.)
-  /// - YYYY: Four-digit year
   DateTime? _parseExamDate(String dateStr) {
     try {
       final dateParts = dateStr.split('-');
       if (dateParts.length != 3) return null;
 
-      final months = {
+      const months = {
         'Jan': 1,
         'Feb': 2,
         'Mar': 3,
@@ -254,135 +234,34 @@ class ExamCard extends StatelessWidget {
       DateTime(date.year, date.month, date.day);
 }
 
-class _DateTimeChip extends StatelessWidget {
-  final String date;
-  final String session;
-  final bool isToday;
-  final bool isCompleted;
-  final ColorScheme colorScheme;
-
-  const _DateTimeChip({
-    required this.date,
-    required this.session,
-    required this.isToday,
-    required this.isCompleted,
-    required this.colorScheme,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: isToday
-            ? colorScheme.primary.withValues(alpha: 0.1)
-            : isCompleted
-                ? colorScheme.surfaceContainerHighest
-                : colorScheme.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        '$date • $session',
-        style: TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
-          color: isToday ? colorScheme.primary : colorScheme.onSurfaceVariant,
-        ),
-      ),
-    );
-  }
-}
-
-class _StatusBadge extends StatelessWidget {
+class _StatusDot extends StatelessWidget {
   final String label;
   final Color color;
 
-  const _StatusBadge({
-    required this.label,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.16),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 6,
-            height: 6,
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
-            ),
-          ),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              color: color,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _DetailSection extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String content;
-  final ColorScheme colorScheme;
-
-  const _DetailSection({
-    required this.icon,
-    required this.title,
-    required this.content,
-    required this.colorScheme,
-  });
+  const _StatusDot({required this.label, required this.color});
 
   @override
   Widget build(BuildContext context) {
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(
-          icon,
-          size: 16,
-          color: colorScheme.onSurfaceVariant,
+        Container(
+          width: 6,
+          height: 6,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+          ),
         ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: colorScheme.onSurfaceVariant,
-                ),
-              ),
-              Text(
-                content,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: colorScheme.onSurface,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
+        const SizedBox(width: 6),
+        Text(
+          label,
+          style: TextStyle(
+            fontFamily: 'Inter',
+            fontSize: 11.5,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.2,
+            color: color,
           ),
         ),
       ],
@@ -390,3 +269,43 @@ class _DetailSection extends StatelessWidget {
   }
 }
 
+class _StatCell extends StatelessWidget {
+  final String value;
+
+  const _StatCell({required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 2),
+      child: Text(
+        value,
+        style: TextStyle(
+          fontFamily: 'Outfit',
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+          letterSpacing: -0.2,
+          color: colorScheme.onSurface,
+        ),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+    );
+  }
+}
+
+class _VerticalDivider extends StatelessWidget {
+  final Color color;
+  const _VerticalDivider({required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 1,
+      height: 30,
+      margin: const EdgeInsets.symmetric(horizontal: 3),
+      color: color,
+    );
+  }
+}
