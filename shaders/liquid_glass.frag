@@ -83,17 +83,15 @@ void main() {
 
   // Glass interior: keep it clear, just soften very slightly with a
   // 5-tap cross blur.
+  // True-color reflection: R, G and B are sampled from the SAME position
+  // (no chromatic aberration) so underlying content keeps its real colors —
+  // white text reflects as white, not pink/green.
   vec2 refracted = fragCoord - normal * (edge * uEdge * 0.42);
   vec4 col = texture(uBackdrop, sampleUv(refracted)) * 0.36 +
              (texture(uBackdrop, sampleUv(refracted + vec2(uBlur, 0.0))) +
               texture(uBackdrop, sampleUv(refracted - vec2(uBlur, 0.0))) +
               texture(uBackdrop, sampleUv(refracted + vec2(0.0, uBlur))) +
               texture(uBackdrop, sampleUv(refracted - vec2(0.0, uBlur)))) * 0.16;
-
-  // Chromatic aberration: split channels slightly along the normal.
-  float ca = edge * 1.4;
-  col.r = texture(uBackdrop, sampleUv(refracted + normal * ca)).r;
-  col.b = texture(uBackdrop, sampleUv(refracted - normal * ca)).b;
 
   // Specular rim, strongest where the normal faces the top-left light.
   float rim = smoothstep(0.0, 2.5, -d) * (1.0 - smoothstep(2.5, 6.0, -d));
