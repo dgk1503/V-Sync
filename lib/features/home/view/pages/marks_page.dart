@@ -5,6 +5,7 @@ import 'package:vit_ap_student_app/core/common/widget/app_card.dart';
 import 'package:vit_ap_student_app/core/common/widget/empty_content_view.dart';
 import 'package:vit_ap_student_app/core/common/widget/error_content_view.dart';
 import 'package:vit_ap_student_app/core/common/widget/loader.dart';
+import 'package:vit_ap_student_app/core/common/widget/segmented_tab_switcher.dart';
 import 'package:vit_ap_student_app/core/models/user.dart';
 import 'package:vit_ap_student_app/core/providers/current_user.dart';
 import 'package:vit_ap_student_app/core/providers/user_preferences_notifier.dart';
@@ -127,70 +128,9 @@ class _MarksPageState extends ConsumerState<MarksPage>
                       ),
                     const SizedBox(height: 12),
                     if (hasTabs)
-                      AnimatedBuilder(
-                        animation: _tabController!,
-                        builder: (context, _) {
-                          // Track the swipe live instead of waiting for the
-                          // page to settle.
-                          final liveIndex =
-                              (_tabController!.animation?.value ?? 0).round();
-                          return Padding(
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 16.0),
-                            child: Container(
-                              padding: const EdgeInsets.all(5),
-                              decoration: BoxDecoration(
-                                color: colorScheme.surfaceContainerLow,
-                                borderRadius: BorderRadius.circular(30),
-                              ),
-                              child: Row(
-                                children: [
-                                  for (var i = 0;
-                                      i < _courseCategories.length;
-                                      i++)
-                                    Expanded(
-                                      child: GestureDetector(
-                                        behavior: HitTestBehavior.opaque,
-                                        onTap: () =>
-                                            _tabController!.animateTo(i),
-                                        child: AnimatedContainer(
-                                          duration: const Duration(
-                                              milliseconds: 200),
-                                          curve: Curves.easeOutCubic,
-                                          padding: const EdgeInsets.symmetric(
-                                            vertical: 11,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: liveIndex == i
-                                                ? colorScheme.primary
-                                                : Colors.transparent,
-                                            borderRadius:
-                                                BorderRadius.circular(30),
-                                          ),
-                                          child: Center(
-                                            child: Text(
-                                              _courseCategories[i],
-                                              style: TextStyle(
-                                                fontFamily: 'Outfit',
-                                                fontSize: 14.5,
-                                                fontWeight: liveIndex == i
-                                                    ? FontWeight.w600
-                                                    : FontWeight.w500,
-                                                color: liveIndex == i
-                                                    ? colorScheme.onPrimary
-                                                    : colorScheme
-                                                        .onSurfaceVariant,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
+                      SegmentedTabSwitcher(
+                        controller: _tabController!,
+                        labels: _courseCategories,
                       ),
                     const SizedBox(height: 8),
                     Expanded(

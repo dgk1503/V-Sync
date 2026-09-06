@@ -10,12 +10,19 @@ part 'theme_mode_notifier.g.dart';
 class ThemeModeNotifier extends _$ThemeModeNotifier {
   @override
   ThemeData build() {
-    // Get user preferences to determine initial theme
+    // Get user preferences to determine initial theme. Dark monochrome is
+    // the app's identity: rows that never saw an explicit user toggle
+    // (legacy installs and fresh users) resolve to dark regardless of the
+    // stored flag or OS setting.
     final userPreferences = ref.read(userPreferencesProvider);
     final colorTheme = ref.watch(colorThemeProvider);
 
+    final isDark = userPreferences.hasUserChosenTheme
+        ? userPreferences.isDarkModeEnabled
+        : true;
+
     return getThemeData(
-      isDarkMode: userPreferences.isDarkModeEnabled,
+      isDarkMode: isDark,
       isAmoled: userPreferences.isAmoledEnabled,
       colorTheme: colorTheme,
     );
@@ -27,6 +34,8 @@ class ThemeModeNotifier extends _$ThemeModeNotifier {
 
     final updatedPreferences = currentPreferences.copyWith(
       isDarkModeEnabled: newThemeMode,
+      // From this point on, respect whatever the user picked.
+      hasUserChosenTheme: true,
     );
     await ref
         .read(userPreferencesProvider.notifier)

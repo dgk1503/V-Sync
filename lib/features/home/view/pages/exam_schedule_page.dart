@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import 'package:vit_ap_student_app/core/common/widget/error_content_view.dart';
 import 'package:vit_ap_student_app/core/common/widget/loader.dart';
+import 'package:vit_ap_student_app/core/common/widget/segmented_tab_switcher.dart';
 import 'package:vit_ap_student_app/core/models/exam_schedule.dart';
 import 'package:vit_ap_student_app/core/providers/current_user.dart';
 import 'package:vit_ap_student_app/core/providers/user_preferences_notifier.dart';
@@ -135,78 +136,9 @@ class _MyExamScheduleState extends ConsumerState<ExamSchedulePage>
                           ),
                         const SizedBox(height: 12),
                         // Capsule segmented control for CAT-1 / CAT-2 / FAT.
-                        AnimatedBuilder(
-                          animation: _tabController,
-                          builder: (context, _) {
-                            // Track the swipe live instead of waiting for the
-                            // page to settle.
-                            final liveIndex =
-                                (_tabController.animation?.value ?? 0).round();
-                            return Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 16.0),
-                              child: Container(
-                                padding: const EdgeInsets.all(5),
-                                decoration: BoxDecoration(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .surfaceContainerLow,
-                                  borderRadius: BorderRadius.circular(30),
-                                ),
-                                child: Row(
-                                  children: [
-                                    for (var i = 0; i < 3; i++)
-                                      Expanded(
-                                        child: GestureDetector(
-                                          behavior: HitTestBehavior.opaque,
-                                          onTap: () =>
-                                              _tabController.animateTo(i),
-                                          child: AnimatedContainer(
-                                            duration: const Duration(
-                                                milliseconds: 200),
-                                            curve: Curves.easeOutCubic,
-                                            padding: const EdgeInsets
-                                                .symmetric(vertical: 11),
-                                            decoration: BoxDecoration(
-                                              color: liveIndex == i
-                                                  ? Theme.of(context)
-                                                      .colorScheme
-                                                      .primary
-                                                  : Colors.transparent,
-                                              borderRadius:
-                                                  BorderRadius.circular(30),
-                                            ),
-                                            child: Center(
-                                              child: Text(
-                                                const [
-                                                  'CAT - 1',
-                                                  'CAT - 2',
-                                                  'FAT',
-                                                ][i],
-                                                style: TextStyle(
-                                                  fontFamily: 'Outfit',
-                                                  fontSize: 14.5,
-                                                  fontWeight: liveIndex == i
-                                                      ? FontWeight.w600
-                                                      : FontWeight.w500,
-                                                  color: liveIndex == i
-                                                      ? Theme.of(context)
-                                                          .colorScheme
-                                                          .onPrimary
-                                                      : Theme.of(context)
-                                                          .colorScheme
-                                                          .onSurfaceVariant,
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          },
+                        SegmentedTabSwitcher(
+                          controller: _tabController,
+                          labels: const ['CAT - 1', 'CAT - 2', 'FAT'],
                         ),
                         const SizedBox(height: 8),
                         Expanded(

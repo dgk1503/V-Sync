@@ -151,7 +151,7 @@ class _WelcomeScreen extends StatelessWidget {
               ),
               children: [
                 TextSpan(
-                  text: 'vsync is your new academic companion.',
+                  text: 'vsync',
                   style: TextStyle(
                     color: colorScheme.onSurface,
                     fontWeight: FontWeight.w600,
@@ -159,9 +159,8 @@ class _WelcomeScreen extends StatelessWidget {
                 ),
                 const TextSpan(
                   text:
-                      ' it helps you track your marks, attendance, and grades '
-                  'all in one place — all in a beautiful and focused '
-                  'interface.',
+                      ' is a minimal, lightweight, unopinionated, highly '
+                  'customizable app built to browse VTOP.',
                 ),
               ],
             ),

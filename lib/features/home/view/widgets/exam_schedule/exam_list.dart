@@ -28,7 +28,12 @@ class ExamList extends StatelessWidget {
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: EdgeInsets.fromLTRB(
+        16,
+        8,
+        16,
+        MediaQuery.paddingOf(context).bottom + 24,
+      ),
       itemCount: filteredSchedules.length,
       itemBuilder: (context, index) {
         final exam = filteredSchedules[index];

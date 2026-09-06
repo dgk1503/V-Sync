@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:vit_ap_student_app/core/constants/server_constants.dart';
+import 'package:vit_ap_student_app/core/services/demo_service.dart';
 import 'package:vit_ap_student_app/core/services/secure_store_service.dart';
 import 'package:vit_ap_student_app/core/services/vtop_service.dart';
 import 'package:vit_ap_student_app/core/utils/device_user_agent.dart';
@@ -45,6 +47,16 @@ class _VtopWebViewPageState extends ConsumerState<VtopWebViewPage> {
         _isContentLoaded = false;
         _errorMessage = null;
       });
+
+      // The demo account has no real VTOP session to hand over.
+      if (DemoService.isDemoMode) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage =
+              'Open VTOP is unavailable in demo mode. Login with your own credentials to use it.';
+        });
+        return;
+      }
 
       // Get credentials from secure storage
       final credentials =
@@ -287,7 +299,7 @@ class _VtopWebViewPageState extends ConsumerState<VtopWebViewPage> {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          icon: const Icon(Icons.close),
+          icon: const Icon(Iconsax.close_circle),
           onPressed: () => Navigator.of(context).pop(),
           tooltip: 'Close',
         ),
@@ -299,7 +311,7 @@ class _VtopWebViewPageState extends ConsumerState<VtopWebViewPage> {
         centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(Iconsax.refresh_copy),
             onPressed: _controller?.reload,
             tooltip: 'Refresh Page',
           ),
@@ -394,7 +406,7 @@ class _VtopWebViewPageState extends ConsumerState<VtopWebViewPage> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              Icons.error_outline,
+              Iconsax.warning_2,
               size: 64,
               color: Theme.of(context).colorScheme.error,
             ),
@@ -414,7 +426,7 @@ class _VtopWebViewPageState extends ConsumerState<VtopWebViewPage> {
             const SizedBox(height: 24),
             FilledButton.icon(
               onPressed: _refreshSession,
-              icon: const Icon(Icons.refresh),
+              icon: const Icon(Iconsax.refresh_copy),
               label: const Text('Retry'),
             ),
           ],

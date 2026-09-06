@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:vit_ap_student_app/core/common/widget/loader.dart';
 import 'package:vit_ap_student_app/core/common/widgets/common_date_picker.dart';
@@ -102,6 +103,9 @@ class _GeneralOutingTabState extends ConsumerState<GeneralOutingTab> {
     );
 
     return SingleChildScrollView(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.paddingOf(context).bottom + 16,
+      ),
       child: Form(
         key: _formKey,
         child: Column(
@@ -214,10 +218,20 @@ class _GeneralOutingTabState extends ConsumerState<GeneralOutingTab> {
                         ),
                       );
                     },
-                    child: const Text(
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    child: Text(
                       'View outing history',
                       style: TextStyle(
-                        color: Colors.blue,
+                        fontFamily: 'Inter',
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w500,
+                        color: Theme.of(context).colorScheme.primary,
+                        decoration: TextDecoration.underline,
+                        decorationColor: Theme.of(context).colorScheme.primary,
                       ),
                     ),
                   ),
@@ -230,19 +244,14 @@ class _GeneralOutingTabState extends ConsumerState<GeneralOutingTab> {
                     alignment: Alignment.centerRight,
                     child: isLoading
                         ? const Loader()
-                        : TextButton.icon(
+                        : FilledButton.icon(
                             icon: const Icon(
-                              Icons.arrow_forward_sharp,
-                              color: Colors.blue,
+                              Iconsax.arrow_right_3,
+                              size: 18,
                             ),
                             iconAlignment: IconAlignment.end,
                             onPressed: _submitForm,
-                            label: const Text(
-                              'Apply',
-                              style: TextStyle(
-                                color: Colors.blue,
-                              ),
-                            ),
+                            label: const Text('Apply'),
                           ),
                   ),
               ],

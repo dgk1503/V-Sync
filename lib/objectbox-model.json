@@ -606,7 +606,7 @@
     },
     {
       "id": "12:8803805611900482677",
-      "lastPropertyId": "18:7577332749877002715",
+      "lastPropertyId": "25:4923396874467733992",
       "name": "UserPreferences",
       "properties": [
         {
@@ -696,8 +696,38 @@
           "type": 1
         },
         {
-          "id": "18:7577332749877002715",
-          "name": "isAnalyticsEnabled",
+          "id": "19:4363238885152353921",
+          "name": "hideGrades",
+          "type": 1
+        },
+        {
+          "id": "20:2996688182158513071",
+          "name": "hideDigitalAssignments",
+          "type": 1
+        },
+        {
+          "id": "21:6140088876407554841",
+          "name": "hideOuting",
+          "type": 1
+        },
+        {
+          "id": "22:182507628883417759",
+          "name": "hideFacultyInfo",
+          "type": 1
+        },
+        {
+          "id": "23:7795791436591459918",
+          "name": "hideOpenVtop",
+          "type": 1
+        },
+        {
+          "id": "24:9047104847442369801",
+          "name": "liquidGlassNavbar",
+          "type": 1
+        },
+        {
+          "id": "25:4923396874467733992",
+          "name": "hasUserChosenTheme",
           "type": 1
         }
       ],
@@ -957,7 +987,8 @@
     3949331561146989652,
     4549602527033181311,
     5953351526892332308,
-    8130406564169076586
+    8130406564169076586,
+    7577332749877002715
   ],
   "retiredRelationUids": [],
   "version": 1

@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:vit_ap_student_app/core/providers/bottom_nav_provider.dart';
+import 'package:vit_ap_student_app/core/providers/liquid_glass_provider.dart';
+import 'package:vit_ap_student_app/core/providers/user_preferences_notifier.dart';
 import 'package:vit_ap_student_app/features/account/view/pages/account_page.dart';
 import 'package:vit_ap_student_app/features/attendance/view/pages/academics_hub_page.dart';
 import 'package:vit_ap_student_app/features/home/view/pages/home_page.dart';
@@ -60,14 +62,59 @@ class BottomNavBarState extends ConsumerState<BottomNavBar> {
   }
 }
 
-class _FloatingCapsuleNavBar extends ConsumerWidget {
+class _FloatingCapsuleNavBar extends ConsumerStatefulWidget {
   const _FloatingCapsuleNavBar();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  _FloatingCapsuleNavBarState createState() => _FloatingCapsuleNavBarState();
+}
+
+class _FloatingCapsuleNavBarState extends ConsumerState<_FloatingCapsuleNavBar> {
+  final GlobalKey _capsuleKey = GlobalKey();
+
+  // The Liquid Glass shader needs the capsule's real bounds AND position in
+  // screen pixels (physical): the engine's BackdropFilter texture covers the
+  // whole screen, so the shader locates the capsule via uniforms. Defaults
+  // are only placeholders until the first post-layout measurement lands.
+  Offset _capsuleOrigin = Offset.zero;
+  Size _capsuleSize = const Size(274, 74);
+
+  void _measureCapsule() {
+    final context = _capsuleKey.currentContext;
+    if (context == null) return;
+    final box = context.findRenderObject();
+    if (box is! RenderBox || !box.hasSize) return;
+    final dpr = MediaQuery.devicePixelRatioOf(context);
+    final origin = box.localToGlobal(Offset.zero) * dpr;
+    final size = box.size * dpr;
+    if (origin != _capsuleOrigin || size != _capsuleSize) {
+      setState(() {
+        _capsuleOrigin = origin;
+        _capsuleSize = size;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final currentIndex = ref.watch(bottomNavIndexProvider);
     final colorScheme = Theme.of(context).colorScheme;
     final isDark = colorScheme.brightness == Brightness.dark;
+
+    // Liquid Glass is opt-in (Settings > Customization) and only renders
+    // when the shader loads on an Impeller backend; otherwise the navbar
+    // falls back to the classic frosted blur.
+    final liquidGlassEnabled = ref.watch(
+      userPreferencesProvider.select((prefs) => prefs.liquidGlassNavbar),
+    );
+    // .value is null while loading or on error (Riverpod 3 semantics).
+    final shaderProgram =
+        liquidGlassEnabled ? ref.watch(liquidGlassProgramProvider).value : null;
+    final glassActive =
+        shaderProgram != null && ImageFilter.isShaderFilterSupported;
+
+    // Measure after layout so the shader gets the real capsule bounds.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _measureCapsule());
 
     return SafeArea(
       top: false,
@@ -77,6 +124,7 @@ class _FloatingCapsuleNavBar extends ConsumerWidget {
         child: Padding(
           padding: const EdgeInsets.only(bottom: 14, left: 24, right: 24),
           child: Container(
+            key: _capsuleKey,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(34),
               boxShadow: [
@@ -91,17 +139,49 @@ class _FloatingCapsuleNavBar extends ConsumerWidget {
               borderRadius: BorderRadius.circular(34),
               // Blurs whatever scrolls behind the capsule.
               child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+                // IMPORTANT: the engine owns uniform indices 0-1 (it stamps
+                // the backdrop texture size there) and FlutterFragCoord()
+                // is in SCREEN physical pixels — so the shader is told where
+                // the capsule sits on screen. All lengths are physical px.
+                // The Y-flip is handled INSIDE the shader with
+                // #ifdef IMPELLER_TARGET_OPENGLES (the shader ships as raw
+                // GLSL and is compiled on-device per backend): GLES needs
+                // the inversion, Vulkan does not. Never hard-code the flip
+                // per platform — this device runs GLES while many Play
+                // testers' devices run Vulkan.
+                filter: glassActive
+                    ? ImageFilter.shader(
+                        () {
+                          final dpr =
+                              MediaQuery.devicePixelRatioOf(context);
+                          final shader = shaderProgram.fragmentShader();
+                          // 0-1: engine-owned backdrop texture size.
+                          shader.setFloat(2, _capsuleOrigin.dx);
+                          shader.setFloat(3, _capsuleOrigin.dy);
+                          shader.setFloat(4, _capsuleSize.width);
+                          shader.setFloat(5, _capsuleSize.height);
+                          shader.setFloat(6, 34.0 * dpr); // corner radius
+                          shader.setFloat(7, 14.0 * dpr); // refraction band
+                          shader.setFloat(8, 3.0 * dpr); // blur (see-through)
+                          return shader;
+                        }(),
+                      )
+                    : ImageFilter.blur(sigmaX: 24, sigmaY: 24),
                 child: Container(
                   padding: const EdgeInsets.symmetric(
                       horizontal: 18, vertical: 12),
                   decoration: BoxDecoration(
+                    // A thinner fill than the frosted look so the glass
+                    // refraction stays visible through the capsule.
                     color: isDark
-                        ? Colors.black.withValues(alpha: 0.5)
-                        : Colors.white.withValues(alpha: 0.6),
+                        ? Colors.black
+                            .withValues(alpha: glassActive ? 0.35 : 0.5)
+                        : Colors.white
+                            .withValues(alpha: glassActive ? 0.35 : 0.6),
                     borderRadius: BorderRadius.circular(34),
                     border: Border.all(
-                      color: colorScheme.outlineVariant.withValues(alpha: 0.9),
+                      color:
+                          colorScheme.outlineVariant.withValues(alpha: 0.9),
                       width: 1,
                     ),
                   ),

@@ -161,10 +161,12 @@ class _TimetablePageState extends ConsumerState<TimetablePage>
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 24.0),
                     child: AnimatedBuilder(
-                      animation: controller,
+                      // Listen to the animation itself: TabController only
+                      // notifies on animation start/end, while the underlying
+                      // AnimationController notifies every frame — this keeps
+                      // the selected day chip in sync while swiping.
+                      animation: controller.animation ?? controller,
                       builder: (context, _) {
-                        // Track the swipe live instead of waiting for the
-                        // page to settle.
                         final liveIndex = (controller.animation?.value ??
                                 controller.index.toDouble())
                             .round()

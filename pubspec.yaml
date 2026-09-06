@@ -1,7 +1,7 @@
 name: vit_ap_student_app
-description: "VITAP Student"
+description: "vsync"
 publish_to: "none"
-version: 1.0.6+2
+version: 1.1.0+3
 
 environment:
   sdk: ">=3.8.0 <4.0.0"
@@ -71,6 +71,8 @@ dependency_overrides:
 
 flutter:
   uses-material-design: true
+  shaders:
+    - shaders/liquid_glass.frag
   assets:
     - .env
     - assets/

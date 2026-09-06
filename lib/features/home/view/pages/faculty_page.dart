@@ -56,7 +56,7 @@ class _FacultiesPageState extends ConsumerState<FacultiesPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Faculties',
+          'Faculty Info',
           style: Theme.of(
             context,
           ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w500),

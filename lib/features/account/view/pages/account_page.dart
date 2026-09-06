@@ -7,6 +7,7 @@ import 'package:vit_ap_student_app/core/providers/current_user.dart';
 import 'package:vit_ap_student_app/core/services/demo_service.dart';
 import 'package:vit_ap_student_app/core/utils/launch_web.dart';
 import 'package:vit_ap_student_app/core/utils/show_snackbar.dart';
+import 'package:vit_ap_student_app/features/account/view/pages/customization_page.dart';
 import 'package:vit_ap_student_app/features/account/view/pages/manage_credentials_page.dart';
 import 'package:vit_ap_student_app/features/account/view/pages/settings_page.dart';
 import 'package:vit_ap_student_app/features/account/view/widgets/settings_tile.dart';
@@ -79,8 +80,17 @@ class _AccountPageState extends ConsumerState<AccountPage> {
 
     return Scaffold(
       body: SafeArea(
+        // bottom: false lets content scroll underneath the floating capsule
+        // nav bar; the scroll padding below keeps the last tile clear of it
+        // when fully scrolled.
+        bottom: false,
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          padding: EdgeInsets.fromLTRB(
+            16,
+            0,
+            16,
+            MediaQuery.paddingOf(context).bottom + 12,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -114,6 +124,8 @@ class _AccountPageState extends ConsumerState<AccountPage> {
                             style: const TextStyle(
                               fontFamily: 'Inter',
                               fontSize: 14,
+                              // Blue on purpose: it reads as an interactive
+                              // link, unlike the monochrome body text.
                               color: Colors.blue,
                             ),
                           );
@@ -159,11 +171,22 @@ class _AccountPageState extends ConsumerState<AccountPage> {
                     ),
                   SettingTile(
                     isFirst: !DemoService.isDemoMode,
-                    isLast: true,
+                    isLast: false,
                     title: 'Appearance',
                     leadingIcon: const Icon(Iconsax.moon_copy),
                     onTap: () => _navigateTo(
                       (builder) => const SettingsPage(),
+                    ),
+                  ),
+                  SettingTile(
+                    isFirst: false,
+                    isLast: true,
+                    title: 'Customization',
+                    // Iconsax has no wrench glyph (setting_4 is sliders —
+                    // verified against the font), so use Material's wrench.
+                    leadingIcon: const Icon(Icons.build_rounded),
+                    onTap: () => _navigateTo(
+                      (builder) => const CustomizationPage(),
                     ),
                   ),
                 ],

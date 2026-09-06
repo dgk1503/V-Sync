@@ -12,8 +12,15 @@ class HomePage extends ConsumerWidget {
 
     return Scaffold(
       body: SafeArea(
+        // bottom: false lets content scroll underneath the floating capsule
+        // nav bar; the scroll padding below keeps the last section clear of
+        // it when fully scrolled.
+        bottom: false,
         child: SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.paddingOf(context).bottom + 12,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

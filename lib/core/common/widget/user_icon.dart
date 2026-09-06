@@ -1,59 +1,40 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 
-class UserIcon extends StatefulWidget {
+/// Monochrome initial avatar used for faculty entries: the first letter
+/// of the name on a neutral surface chip. Colors follow the active theme
+/// so it stays black & white (or theme-accented) across all palettes.
+class UserIcon extends StatelessWidget {
   final String name;
   const UserIcon({super.key, required this.name});
 
   @override
-  State<UserIcon> createState() => _LeadingIconState();
-}
-
-class _LeadingIconState extends State<UserIcon> {
-  @override
   Widget build(BuildContext context) {
-    final Random randomObj = Random();
-    final List<Color> colors = [
-      Colors.red.shade100,
-      Colors.amber.shade100,
-      Colors.blue.shade100,
-      Colors.pink.shade100,
-      Colors.purple.shade100,
-      Colors.indigo.shade100,
-      Colors.blueGrey.shade100,
-      Colors.brown.shade100,
-      Colors.cyan.shade100,
-      Colors.deepOrange.shade100,
-      Colors.lime.shade100,
-    ];
-    final String facultyName = widget.name.trim();
-    if (facultyName.isNotEmpty) {
-      final String firstLetter = facultyName.characters.first;
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(8),
-        child: Container(
-          height: 50,
-          width: 50,
-          decoration: BoxDecoration(
-            color: colors[randomObj.nextInt(11)],
-          ),
-          child: Center(
-            child: Text(
-              firstLetter,
-              style: const TextStyle(
-                color: Colors.black87,
-                fontSize: 20,
-                fontWeight: FontWeight.w400,
-              ),
+    final colorScheme = Theme.of(context).colorScheme;
+    final facultyName = name.trim();
+
+    if (facultyName.isEmpty) {
+      return const CircleAvatar(child: Text('N/A'));
+    }
+
+    final String firstLetter = facultyName.characters.first;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        height: 50,
+        width: 50,
+        color: colorScheme.surfaceContainerHighest,
+        child: Center(
+          child: Text(
+            firstLetter,
+            style: TextStyle(
+              color: colorScheme.onSurface,
+              fontSize: 20,
+              fontWeight: FontWeight.w500,
+              fontFamily: 'Outfit',
             ),
           ),
         ),
-      );
-    } else {
-      return const CircleAvatar(
-        child: Text('N/A'),
-      );
-    }
+      ),
+    );
   }
 }

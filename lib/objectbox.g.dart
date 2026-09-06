@@ -729,7 +729,7 @@ final _entities = <obx_int.ModelEntity>[
   obx_int.ModelEntity(
     id: const obx_int.IdUid(12, 8803805611900482677),
     name: 'UserPreferences',
-    lastPropertyId: const obx_int.IdUid(18, 7577332749877002715),
+    lastPropertyId: const obx_int.IdUid(25, 4923396874467733992),
     flags: 0,
     properties: <obx_int.ModelProperty>[
       obx_int.ModelProperty(
@@ -835,8 +835,44 @@ final _entities = <obx_int.ModelEntity>[
         flags: 0,
       ),
       obx_int.ModelProperty(
-        id: const obx_int.IdUid(18, 7577332749877002715),
-        name: 'isAnalyticsEnabled',
+        id: const obx_int.IdUid(19, 4363238885152353921),
+        name: 'hideGrades',
+        type: 1,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(20, 2996688182158513071),
+        name: 'hideDigitalAssignments',
+        type: 1,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(21, 6140088876407554841),
+        name: 'hideOuting',
+        type: 1,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(22, 182507628883417759),
+        name: 'hideFacultyInfo',
+        type: 1,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(23, 7795791436591459918),
+        name: 'hideOpenVtop',
+        type: 1,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(24, 9047104847442369801),
+        name: 'liquidGlassNavbar',
+        type: 1,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(25, 4923396874467733992),
+        name: 'hasUserChosenTheme',
         type: 1,
         flags: 0,
       ),
@@ -1181,6 +1217,7 @@ obx_int.ModelDefinition getObjectBoxModel() {
       4549602527033181311,
       5953351526892332308,
       8130406564169076586,
+      7577332749877002715,
     ],
     retiredRelationUids: const [],
     modelVersion: 5,
@@ -2099,7 +2136,7 @@ obx_int.ModelDefinition getObjectBoxModel() {
         final appThemeOffset = object.appTheme == null
             ? null
             : fbb.writeString(object.appTheme!);
-        fbb.startTable(19);
+        fbb.startTable(26);
         fbb.addInt64(0, object.id ?? 0);
         fbb.addOffset(1, pfpPathOffset);
         fbb.addBool(2, object.isTimetableNotificationsEnabled);
@@ -2117,7 +2154,13 @@ obx_int.ModelDefinition getObjectBoxModel() {
         fbb.addOffset(14, appThemeOffset);
         fbb.addFloat64(15, object.fontScale);
         fbb.addBool(16, object.isAmoledEnabled);
-
+        fbb.addBool(18, object.hideGrades);
+        fbb.addBool(19, object.hideDigitalAssignments);
+        fbb.addBool(20, object.hideOuting);
+        fbb.addBool(21, object.hideFacultyInfo);
+        fbb.addBool(22, object.hideOpenVtop);
+        fbb.addBool(23, object.liquidGlassNavbar);
+        fbb.addBool(24, object.hasUserChosenTheme);
         fbb.finish(fbb.endTable());
         return object.id ?? 0;
       },
@@ -2166,6 +2209,12 @@ obx_int.ModelDefinition getObjectBoxModel() {
           18,
           false,
         );
+        final hasUserChosenThemeParam = const fb.BoolReader().vTableGet(
+          buffer,
+          rootOffset,
+          52,
+          false,
+        );
         final isAmoledEnabledParam = const fb.BoolReader().vTableGet(
           buffer,
           rootOffset,
@@ -2174,11 +2223,6 @@ obx_int.ModelDefinition getObjectBoxModel() {
         );
         final bypassWeekendOutingRestrictionParam = const fb.BoolReader()
             .vTableGet(buffer, rootOffset, 30, false);
-        final isAnalyticsEnabledParam = const fb.BoolReader().vTableGetNullable(
-          buffer,
-          rootOffset,
-          38,
-        );
         final appThemeParam = const fb.StringReader(
           asciiOptimization: true,
         ).vTableGetNullable(buffer, rootOffset, 32);
@@ -2205,6 +2249,42 @@ obx_int.ModelDefinition getObjectBoxModel() {
           28,
           false,
         );
+        final hideGradesParam = const fb.BoolReader().vTableGet(
+          buffer,
+          rootOffset,
+          40,
+          false,
+        );
+        final hideDigitalAssignmentsParam = const fb.BoolReader().vTableGet(
+          buffer,
+          rootOffset,
+          42,
+          false,
+        );
+        final hideOutingParam = const fb.BoolReader().vTableGet(
+          buffer,
+          rootOffset,
+          44,
+          false,
+        );
+        final hideFacultyInfoParam = const fb.BoolReader().vTableGet(
+          buffer,
+          rootOffset,
+          46,
+          false,
+        );
+        final hideOpenVtopParam = const fb.BoolReader().vTableGet(
+          buffer,
+          rootOffset,
+          48,
+          false,
+        );
+        final liquidGlassNavbarParam = const fb.BoolReader().vTableGet(
+          buffer,
+          rootOffset,
+          50,
+          false,
+        );
         final object = UserPreferences(
           id: idParam,
           pfpPath: pfpPathParam,
@@ -2215,9 +2295,9 @@ obx_int.ModelDefinition getObjectBoxModel() {
           examScheduleNotificationDelay: examScheduleNotificationDelayParam,
           isPrivacyEnabled: isPrivacyEnabledParam,
           isDarkModeEnabled: isDarkModeEnabledParam,
+          hasUserChosenTheme: hasUserChosenThemeParam,
           isAmoledEnabled: isAmoledEnabledParam,
           bypassWeekendOutingRestriction: bypassWeekendOutingRestrictionParam,
-
           appTheme: appThemeParam,
           fontScale: fontScaleParam,
           lastSync: lastSyncParam,
@@ -2225,6 +2305,12 @@ obx_int.ModelDefinition getObjectBoxModel() {
           marksLastSync: marksLastSyncParam,
           examScheduleLastSync: examScheduleLastSyncParam,
           isFirstLaunch: isFirstLaunchParam,
+          hideGrades: hideGradesParam,
+          hideDigitalAssignments: hideDigitalAssignmentsParam,
+          hideOuting: hideOutingParam,
+          hideFacultyInfo: hideFacultyInfoParam,
+          hideOpenVtop: hideOpenVtopParam,
+          liquidGlassNavbar: liquidGlassNavbarParam,
         );
 
         return object;
@@ -3163,9 +3249,38 @@ class UserPreferences_ {
     _entities[11].properties[16],
   );
 
-  /// See [UserPreferences.isAnalyticsEnabled].
-  static final isAnalyticsEnabled = obx.QueryBooleanProperty<UserPreferences>(
+  /// See [UserPreferences.hideGrades].
+  static final hideGrades = obx.QueryBooleanProperty<UserPreferences>(
     _entities[11].properties[17],
+  );
+
+  /// See [UserPreferences.hideDigitalAssignments].
+  static final hideDigitalAssignments =
+      obx.QueryBooleanProperty<UserPreferences>(_entities[11].properties[18]);
+
+  /// See [UserPreferences.hideOuting].
+  static final hideOuting = obx.QueryBooleanProperty<UserPreferences>(
+    _entities[11].properties[19],
+  );
+
+  /// See [UserPreferences.hideFacultyInfo].
+  static final hideFacultyInfo = obx.QueryBooleanProperty<UserPreferences>(
+    _entities[11].properties[20],
+  );
+
+  /// See [UserPreferences.hideOpenVtop].
+  static final hideOpenVtop = obx.QueryBooleanProperty<UserPreferences>(
+    _entities[11].properties[21],
+  );
+
+  /// See [UserPreferences.liquidGlassNavbar].
+  static final liquidGlassNavbar = obx.QueryBooleanProperty<UserPreferences>(
+    _entities[11].properties[22],
+  );
+
+  /// See [UserPreferences.hasUserChosenTheme].
+  static final hasUserChosenTheme = obx.QueryBooleanProperty<UserPreferences>(
+    _entities[11].properties[23],
   );
 }
 

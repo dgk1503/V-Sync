@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:vit_ap_student_app/core/common/widget/app_tab_bar.dart';
+import 'package:vit_ap_student_app/core/common/widget/segmented_tab_switcher.dart';
 import 'package:vit_ap_student_app/features/home/view/pages/outing/general_outing_tab.dart';
 import 'package:vit_ap_student_app/features/home/view/pages/outing/weekend_outing_tab.dart';
 
@@ -41,13 +41,15 @@ class _OutingPageState extends ConsumerState<OutingPage>
       ),
       body: Column(
         children: [
-          AppTabBar(
+          const SizedBox(height: 12),
+          SegmentedTabSwitcher(
             controller: _tabController,
-            tabs: const ['Weekend', 'General'],
+            labels: const ['Weekend', 'General'],
           ),
+          const SizedBox(height: 12),
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: TabBarView(
                 controller: _tabController,
                 children: const [WeekendOutingTab(), GeneralOutingTab()],

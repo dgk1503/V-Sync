@@ -59,7 +59,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 borderRadius: BorderRadius.circular(16),
               ),
               leading: Icon(
-                userPreferences.isDarkModeEnabled
+                userPreferences.isDarkModeEnabled || !userPreferences.hasUserChosenTheme
                     ? Iconsax.moon_copy
                     : Iconsax.sun_1_copy,
                 color: colorScheme.onSurface,
@@ -75,7 +75,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               trailing: Transform.scale(
                 scale: 0.85,
                 child: Switch.adaptive(
-                  value: userPreferences.isDarkModeEnabled,
+                  value: userPreferences.isDarkModeEnabled || !userPreferences.hasUserChosenTheme,
                   onChanged: (value) {
                     ref.read(themeModeProvider.notifier).toggleTheme();
                   },

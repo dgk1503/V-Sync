@@ -163,8 +163,8 @@ class FacultyDetailsBody extends StatelessWidget {
           },
           child: Text(
             details.email,
-            style: const TextStyle(
-              color: Colors.blue,
+            style: TextStyle(
+              color: colorScheme.primary,
               fontSize: 14,
               fontWeight: FontWeight.w400,
             ),

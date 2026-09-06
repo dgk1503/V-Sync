@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:iconsax_flutter/iconsax_flutter.dart';
 
 /// A browser-style URL bar that displays the current route.
 class UrlBar extends StatelessWidget {
@@ -30,7 +31,7 @@ class UrlBar extends StatelessWidget {
         children: [
           // Security indicator
           Icon(
-            isSecure ? Icons.lock_rounded : Icons.lock_open_rounded,
+            isSecure ? Iconsax.lock_1 : Iconsax.lock_slash,
             size: 14,
             color: isSecure ? colorScheme.primary : colorScheme.error,
           ),

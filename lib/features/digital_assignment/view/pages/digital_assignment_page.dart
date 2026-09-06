@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import 'package:vit_ap_student_app/core/common/widget/empty_content_view.dart';
+import 'package:vit_ap_student_app/core/common/widget/error_content_view.dart';
 import 'package:vit_ap_student_app/core/common/widget/loader.dart';
 import 'package:vit_ap_student_app/core/utils/show_snackbar.dart';
 import 'package:vit_ap_student_app/features/digital_assignment/model/digital_assignment_model.dart';
@@ -111,8 +111,9 @@ class _DigitalAssignmentPageState extends ConsumerState<DigitalAssignmentPage>
             ),
             if (lastSynced != null)
               Text(
-                'Last Synced: ${timeago.format(lastSynced!)} 💾',
+                'Last synced ${timeago.format(lastSynced!)}',
                 style: TextStyle(
+                  fontFamily: 'Inter',
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                   fontSize: 13,
                   fontWeight: FontWeight.w400,
@@ -120,18 +121,7 @@ class _DigitalAssignmentPageState extends ConsumerState<DigitalAssignmentPage>
               ),
           ],
         ),
-        actions: [
-          IconButton(
-            icon: Icon(
-              Iconsax.refresh_copy,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-            onPressed: () {
-              _refreshData();
-            },
-            tooltip: 'Refresh',
-          ),
-        ],
+        actions: const [],
         bottom: _tabController != null && _courseCategories.isNotEmpty
             ? DynamicCourseTypeTabBar(
                 controller: _tabController!,
@@ -141,14 +131,25 @@ class _DigitalAssignmentPageState extends ConsumerState<DigitalAssignmentPage>
       ),
       body: isLoading
           ? const Loader()
-          : _tabController != null && _courseCategories.isNotEmpty
-              ? TabBarView(
-                  controller: _tabController,
-                  children: _courseCategories
-                      .map((category) => _buildBody(asyncAssignments, category))
-                      .toList(),
-                )
-              : _buildBody(asyncAssignments, ''),
+          : RefreshIndicator(
+              onRefresh: _refreshData,
+              // Inside the TabBarView the per-tab scrollables report depth 1
+              // (notifications bubble through the horizontal page view);
+              // without tabs the single scrollable reports depth 0.
+              notificationPredicate: (notification) => notification.depth ==
+                  ((_tabController != null && _courseCategories.isNotEmpty)
+                      ? 1
+                      : 0),
+              child: _tabController != null && _courseCategories.isNotEmpty
+                  ? TabBarView(
+                      controller: _tabController,
+                      children: _courseCategories
+                          .map((category) =>
+                              _buildBody(asyncAssignments, category))
+                          .toList(),
+                    )
+                  : _buildBody(asyncAssignments, ''),
+            ),
     );
   }
 
@@ -157,9 +158,17 @@ class _DigitalAssignmentPageState extends ConsumerState<DigitalAssignmentPage>
     String courseTypeFilter,
   ) {
     if (asyncAssignments == null) {
-      return const EmptyContentView(
-        primaryText: 'No Assignments loaded',
-        secondaryText: 'Pull to refresh or tap refresh button',
+      return ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: [
+          SizedBox(
+            height: MediaQuery.of(context).size.height * 0.5,
+            child: const EmptyContentView(
+              primaryText: 'No Assignments loaded',
+              secondaryText: 'Pull down to refresh',
+            ),
+          ),
+        ],
       );
     }
 
@@ -173,15 +182,30 @@ class _DigitalAssignmentPageState extends ConsumerState<DigitalAssignmentPage>
         }).toList();
 
         if (filtered.isEmpty) {
-          return EmptyContentView(
-            primaryText: courseTypeFilter.isEmpty
-                ? 'No Digital Assignments'
-                : 'No $courseTypeFilter Assignments',
-            secondaryText: 'No assignments found for this semester 🎉',
+          return ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            children: [
+              SizedBox(
+                height: MediaQuery.of(context).size.height * 0.5,
+                child: EmptyContentView(
+                  primaryText: courseTypeFilter.isEmpty
+                      ? 'No Digital Assignments'
+                      : 'No $courseTypeFilter Assignments',
+                  secondaryText: 'No assignments found for this semester 🎉',
+                ),
+              ),
+            ],
           );
         }
 
         return ListView.builder(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: EdgeInsets.fromLTRB(
+            8,
+            4,
+            8,
+            MediaQuery.paddingOf(context).bottom + 24,
+          ),
           itemCount: filtered.length,
           itemBuilder: (context, index) {
             final assignment = filtered[index];
@@ -193,9 +217,14 @@ class _DigitalAssignmentPageState extends ConsumerState<DigitalAssignmentPage>
         );
       },
       loading: () => const Loader(),
-      error: (error, _) => EmptyContentView(
-        primaryText: 'Failed to load assignments',
-        secondaryText: error.toString(),
+      error: (error, _) => ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: [
+          SizedBox(
+            height: MediaQuery.of(context).size.height * 0.5,
+            child: ErrorContentView(error: error.toString()),
+          ),
+        ],
       ),
     );
   }

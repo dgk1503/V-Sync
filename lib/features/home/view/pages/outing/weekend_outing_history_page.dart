@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:vit_ap_student_app/core/common/widget/empty_content_view.dart';
+import 'package:vit_ap_student_app/core/common/widget/error_content_view.dart';
 import 'package:vit_ap_student_app/core/common/widget/loader.dart';
 import 'package:vit_ap_student_app/features/home/model/weekend_outing_report.dart';
 import 'package:vit_ap_student_app/features/home/view/widgets/outing/weekend_outing_card.dart';
@@ -125,12 +127,23 @@ class _WeekendOutingHistoryPageState
                           Expanded(
                             child: TextField(
                               controller: _searchController,
+                              style: TextStyle(
+                                fontFamily: 'Outfit',
+                                fontSize: 14,
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
                               decoration: InputDecoration(
                                 hintText: 'Search outings...',
-                                prefixIcon: const Icon(Icons.search),
+                                hintStyle: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontSize: 13,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant,
+                                ),
                                 suffixIcon: searchQuery.isNotEmpty
                                     ? IconButton(
-                                        icon: const Icon(Icons.clear),
+                                        icon: const Icon(Iconsax.close_circle),
                                         onPressed: () {
                                           _searchController.clear();
                                           setState(() {
@@ -139,28 +152,25 @@ class _WeekendOutingHistoryPageState
                                         },
                                       )
                                     : null,
+                                isDense: true,
+                                filled: true,
+                                fillColor: Theme.of(context)
+                                    .colorScheme
+                                    .surfaceContainerLow,
                                 border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide: BorderSide(
-                                    color:
-                                        Theme.of(context).colorScheme.outline,
-                                  ),
+                                  borderRadius: BorderRadius.circular(14),
+                                  borderSide: BorderSide.none,
                                 ),
                                 enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius: BorderRadius.circular(14),
+                                  borderSide: BorderSide.none,
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(14),
                                   borderSide: BorderSide(
                                     color: Theme.of(context)
                                         .colorScheme
-                                        .outline
-                                        .withValues(alpha: 0.5),
-                                  ),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide: BorderSide(
-                                    color:
-                                        Theme.of(context).colorScheme.primary,
-                                    width: 2,
+                                        .outlineVariant,
                                   ),
                                 ),
                                 contentPadding: const EdgeInsets.symmetric(
@@ -185,8 +195,8 @@ class _WeekendOutingHistoryPageState
                                 : 'Oldest on top',
                             icon: Icon(
                               isRecentFirst
-                                  ? Icons.vertical_align_top_rounded
-                                  : Icons.vertical_align_bottom_rounded,
+                                  ? Iconsax.arrow_up_2
+                                  : Iconsax.arrow_down_2,
                               color: Theme.of(context)
                                   .colorScheme
                                   .onSurfaceVariant,
@@ -204,7 +214,7 @@ class _WeekendOutingHistoryPageState
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Icon(
-                                    Icons.search_off,
+                                    Iconsax.search_status,
                                     size: 48,
                                     color: Theme.of(context)
                                         .colorScheme
@@ -239,11 +249,20 @@ class _WeekendOutingHistoryPageState
                               ),
                             )
                           : ListView.builder(
-                              padding: const EdgeInsets.all(8.0),
+                              padding: EdgeInsets.fromLTRB(
+                                16,
+                                8,
+                                16,
+                                MediaQuery.paddingOf(context).bottom + 24,
+                              ),
                               itemCount: filteredReports.length,
                               itemBuilder: (context, index) {
-                                return WeekendOutingCard(
-                                  outing: filteredReports[index],
+                                return Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      vertical: 5),
+                                  child: WeekendOutingCard(
+                                    outing: filteredReports[index],
+                                  ),
                                 );
                               },
                             ),
@@ -256,18 +275,9 @@ class _WeekendOutingHistoryPageState
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(
-                      Icons.error_outline,
-                      size: 48,
-                      color: Colors.red,
-                    ),
+                    ErrorContentView(error: error.toString()),
                     const SizedBox(height: 16),
-                    Text(
-                      'Error: $error',
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
+                    FilledButton(
                       onPressed: _fetchData,
                       child: const Text('Retry'),
                     ),

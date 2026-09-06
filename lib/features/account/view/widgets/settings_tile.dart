@@ -35,14 +35,21 @@ class SettingTile extends StatelessWidget {
     return Column(
       children: [
         if (!isFirst)
-          Divider(
-            color: Theme.of(context).colorScheme.secondaryContainer,
-            indent: 18,
-            endIndent: 28,
-            thickness: 0.8,
+          Padding(
+            // Breathing room around the divider so grouped tiles don't
+            // read as one cramped block.
+            padding: const EdgeInsets.symmetric(vertical: 5),
+            child: Divider(
+              height: 1,
+              color: Theme.of(context).colorScheme.secondaryContainer,
+              indent: 18,
+              endIndent: 28,
+              thickness: 0.8,
+            ),
           ),
         Material(
           child: ListTile(
+            minVerticalPadding: 10,
             tileColor:
                 tileColor ?? Theme.of(context).colorScheme.surfaceContainerLow,
             titleTextStyle: Theme.of(

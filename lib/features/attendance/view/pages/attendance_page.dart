@@ -4,6 +4,7 @@ import 'package:timeago/timeago.dart' as timeago;
 import 'package:vit_ap_student_app/core/common/widget/empty_content_view.dart';
 import 'package:vit_ap_student_app/core/common/widget/error_content_view.dart';
 import 'package:vit_ap_student_app/core/common/widget/loader.dart';
+import 'package:vit_ap_student_app/core/common/widget/segmented_tab_switcher.dart';
 import 'package:vit_ap_student_app/core/models/user.dart';
 import 'package:vit_ap_student_app/core/providers/current_user.dart';
 import 'package:vit_ap_student_app/core/providers/user_preferences_notifier.dart';
@@ -114,65 +115,9 @@ class AttendancePageState extends ConsumerState<AttendancePage>
                     ),
                   const SizedBox(height: 12),
                   // Capsule segmented control for Theory / Lab.
-                  AnimatedBuilder(
-                    animation: _tabController,
-                    builder: (context, _) {
-                      final liveIndex =
-                          (_tabController.animation?.value ?? 0).round();
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                        child: Container(
-                          padding: const EdgeInsets.all(5),
-                          decoration: BoxDecoration(
-                            color: colorScheme.surfaceContainerLow,
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                          child: Row(
-                            children: [
-                              for (var i = 0; i < 2; i++)
-                                Expanded(
-                                  child: GestureDetector(
-                                    behavior: HitTestBehavior.opaque,
-                                    onTap: () =>
-                                        _tabController.animateTo(i),
-                                    child: AnimatedContainer(
-                                      duration:
-                                          const Duration(milliseconds: 200),
-                                      curve: Curves.easeOutCubic,
-                                      padding: const EdgeInsets.symmetric(
-                                        vertical: 11,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: liveIndex == i
-                                            ? colorScheme.primary
-                                            : Colors.transparent,
-                                        borderRadius:
-                                            BorderRadius.circular(30),
-                                      ),
-                                      child: Center(
-                                        child: Text(
-                                          i == 0 ? 'Theory' : 'Lab',
-                                          style: TextStyle(
-                                            fontFamily: 'Outfit',
-                                            fontSize: 14.5,
-                                            fontWeight: liveIndex == i
-                                                ? FontWeight.w600
-                                                : FontWeight.w500,
-                                            color: liveIndex == i
-                                                ? colorScheme.onPrimary
-                                                : colorScheme
-                                                    .onSurfaceVariant,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
+                  SegmentedTabSwitcher(
+                    controller: _tabController,
+                    labels: const ['Theory', 'Lab'],
                   ),
                   const SizedBox(height: 8),
                   Expanded(
@@ -226,7 +171,10 @@ class AttendancePageState extends ConsumerState<AttendancePage>
 
     return ListView.builder(
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.only(top: 8),
+      padding: EdgeInsets.only(
+        top: 8,
+        bottom: MediaQuery.paddingOf(context).bottom + 16,
+      ),
       itemCount: filteredAttendances.length,
       itemBuilder: (context, index) {
         final attendance = filteredAttendances[index];

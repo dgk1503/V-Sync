@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -7,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:vit_ap_student_app/core/common/widget/accent_gradient_text.dart';
+import 'package:vit_ap_student_app/core/common/widget/segmented_tab_switcher.dart';
 import 'package:vit_ap_student_app/core/utils/show_toast.dart';
 import 'package:vit_ap_student_app/features/home/model/mess_menu.dart';
 import 'package:vit_ap_student_app/features/home/viewmodel/mess_menu_viewmodel.dart';
@@ -18,19 +20,48 @@ class MessMenuSection extends ConsumerStatefulWidget {
   ConsumerState<MessMenuSection> createState() => _MessMenuSectionState();
 }
 
-class _MessMenuSectionState extends ConsumerState<MessMenuSection> {
+class _MessMenuSectionState extends ConsumerState<MessMenuSection>
+    with SingleTickerProviderStateMixin {
   static const _mealNames = ['Breakfast', 'Lunch', 'Snacks', 'Dinner'];
 
+  late final TabController _mealTabController;
   late DateTime _selectedDate;
-  int _selectedMeal = 1;
   bool _mealTouchedManually = false;
+  bool _autoSyncingMeal = false;
+  Timer? _clockTicker;
 
   @override
   void initState() {
     super.initState();
     final now = DateTime.now();
     _selectedDate = DateTime(now.year, now.month, now.day);
-    _selectedMeal = _mealForTime(now);
+    _mealTabController = TabController(
+      length: _mealNames.length,
+      vsync: this,
+      initialIndex: _mealForTime(now),
+    );
+    _mealTabController.addListener(() {
+      if (_mealTabController.indexIsChanging) return;
+      if (!_autoSyncingMeal) _mealTouchedManually = true;
+      setState(() {});
+    });
+    // Follow the time of day until the user picks a meal themselves.
+    _clockTicker = Timer.periodic(const Duration(minutes: 1), (_) {
+      if (!mounted || _mealTouchedManually) return;
+      final meal = _mealForTime(DateTime.now());
+      if (meal != _mealTabController.index) {
+        _autoSyncingMeal = true;
+        _mealTabController.index = meal;
+        _autoSyncingMeal = false;
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _clockTicker?.cancel();
+    _mealTabController.dispose();
+    super.dispose();
   }
 
   int _mealForTime(DateTime now) {
@@ -59,8 +90,8 @@ class _MessMenuSectionState extends ConsumerState<MessMenuSection> {
     // today when viewing the current month, otherwise to the first day
     // that has data.
     if (menu != null) {
-      final inMenuMonth = _selectedDate.year == menu.year &&
-          _selectedDate.month == menu.month;
+      final inMenuMonth =
+          _selectedDate.year == menu.year && _selectedDate.month == menu.month;
       if (!inMenuMonth) {
         final now = DateTime.now();
         if (menu.month == now.month && menu.year == now.year) {
@@ -81,9 +112,9 @@ class _MessMenuSectionState extends ConsumerState<MessMenuSection> {
               AccentGradientText(
                 'Mess Menu',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 22,
-                    ),
+                  fontWeight: FontWeight.w600,
+                  fontSize: 22,
+                ),
               ),
               const Spacer(),
               GestureDetector(
@@ -163,9 +194,10 @@ class _MessMenuSectionState extends ConsumerState<MessMenuSection> {
         IconButton(
           onPressed: canGoBack
               ? () => setState(() {
-                    _selectedDate =
-                        _selectedDate.subtract(const Duration(days: 1));
-                  })
+                  _selectedDate = _selectedDate.subtract(
+                    const Duration(days: 1),
+                  );
+                })
               : null,
           icon: Icon(
             Iconsax.arrow_left_2_copy,
@@ -190,9 +222,8 @@ class _MessMenuSectionState extends ConsumerState<MessMenuSection> {
         IconButton(
           onPressed: canGoForward
               ? () => setState(() {
-                    _selectedDate =
-                        _selectedDate.add(const Duration(days: 1));
-                  })
+                  _selectedDate = _selectedDate.add(const Duration(days: 1));
+                })
               : null,
           icon: Icon(
             Iconsax.arrow_right_3_copy,
@@ -207,124 +238,112 @@ class _MessMenuSectionState extends ConsumerState<MessMenuSection> {
   }
 
   Widget _buildMealSwitcher(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return SizedBox(
-      height: 44,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: _mealNames.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
-        itemBuilder: (context, index) {
-          final isSelected = _selectedMeal == index;
-          final isDark = colorScheme.brightness == Brightness.dark;
-          // Meal tabs stay monochrome regardless of the accent theme.
-          final fill = isSelected
-              ? (isDark ? Colors.white : Colors.black)
-              : colorScheme.surfaceContainerLow;
-          final label = isSelected
-              ? (isDark ? Colors.black : Colors.white)
-              : colorScheme.onSurfaceVariant;
-          return GestureDetector(
-            onTap: () {
-              setState(() {
-                _selectedMeal = index;
-                _mealTouchedManually = true;
-              });
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: fill,
-                borderRadius: BorderRadius.circular(30),
-              ),
-              child: Text(
-                _mealNames[index],
-                style: TextStyle(
-                  fontFamily: 'Outfit',
-                  fontSize: 13.5,
-                  fontWeight:
-                      isSelected ? FontWeight.w600 : FontWeight.w500,
-                  color: label,
-                ),
-              ),
-            ),
-          );
-        },
-      ),
+    // Same capsule segmented control as attendance/marks/exam: all four
+    // meals fit on screen, the pill slides with taps and swipes.
+    return SegmentedTabSwitcher(
+      controller: _mealTabController,
+      labels: _mealNames,
     );
   }
 
   Widget _buildMenuItems(BuildContext context, MessMenu menu) {
     final colorScheme = Theme.of(context).colorScheme;
-
-    // Keep the meal in sync with the time of day until the user picks one.
-    if (!_mealTouchedManually) {
-      final nowMeal = _mealForTime(DateTime.now());
-      if (nowMeal != _selectedMeal) _selectedMeal = nowMeal;
-    }
+    final selectedMeal = _mealTabController.index;
 
     final dayMenu = menu.menuFor(_selectedDate.day);
-    final items = dayMenu?.forMeal(_selectedMeal) ?? const [];
+    final items = dayMenu?.forMeal(selectedMeal) ?? const [];
 
-    if (items.isEmpty) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-        child: Center(
-          child: Text(
-            dayMenu == null
-                ? 'No menu for this day'
-                : 'No ${_mealNames[_selectedMeal].toLowerCase()} listed',
-            style: TextStyle(
-              fontFamily: 'Inter',
-              fontSize: 13,
-              color: colorScheme.onSurfaceVariant,
-            ),
+    // Swipe left/right on the menu area to move between meals; the capsule
+    // pill follows the controller's animation.
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onHorizontalDragEnd: (details) {
+        final velocity = details.primaryVelocity ?? 0;
+        const threshold = 120.0;
+        if (velocity < -threshold &&
+            _mealTabController.index < _mealNames.length - 1) {
+          _mealTabController.animateTo(_mealTabController.index + 1);
+        } else if (velocity > threshold && _mealTabController.index > 0) {
+          _mealTabController.animateTo(_mealTabController.index - 1);
+        }
+      },
+      child: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 180),
+        switchInCurve: Curves.easeOut,
+        switchOutCurve: Curves.easeIn,
+        transitionBuilder: (child, animation) => FadeTransition(
+          opacity: animation,
+          child: SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(0, 0.04),
+              end: Offset.zero,
+            ).animate(animation),
+            child: child,
           ),
         ),
-      );
-    }
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        children: [
-          for (var i = 0; i < items.length; i++) ...[
-            if (i > 0)
-              Container(
-                height: 1,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      colorScheme.outlineVariant.withValues(alpha: 0),
-                      colorScheme.outlineVariant.withValues(alpha: 0.5),
-                      colorScheme.outlineVariant.withValues(alpha: 0),
-                    ],
-                  ),
+        child: items.isEmpty
+            ? Padding(
+                key: ValueKey('empty-$selectedMeal-${_selectedDate.day}'),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 24,
                 ),
-              ),
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 13),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      items[i],
-                      style: TextStyle(
-                        fontFamily: 'Outfit',
-                        fontSize: 15,
-                        fontWeight: FontWeight.w500,
-                        color: colorScheme.onSurface,
-                      ),
+                child: Center(
+                  child: Text(
+                    dayMenu == null
+                        ? 'No menu for this day'
+                        : 'No ${_mealNames[selectedMeal].toLowerCase()} listed',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 13,
+                      color: colorScheme.onSurfaceVariant,
                     ),
                   ),
-                ],
+                ),
+              )
+            : Padding(
+                key: ValueKey('items-$selectedMeal-${_selectedDate.day}'),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  children: [
+                    for (var i = 0; i < items.length; i++) ...[
+                      if (i > 0)
+                        Container(
+                          height: 1,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                colorScheme.outlineVariant.withValues(alpha: 0),
+                                colorScheme.outlineVariant.withValues(
+                                  alpha: 0.5,
+                                ),
+                                colorScheme.outlineVariant.withValues(alpha: 0),
+                              ],
+                            ),
+                          ),
+                        ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 13),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                items[i],
+                                style: TextStyle(
+                                  fontFamily: 'Outfit',
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w500,
+                                  color: colorScheme.onSurface,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
               ),
-            ),
-          ],
-        ],
       ),
     );
   }
@@ -373,9 +392,7 @@ class _MessMenuManageSheet extends ConsumerWidget {
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
           decoration: BoxDecoration(
             color: colorScheme.surface,
-            borderRadius: const BorderRadius.vertical(
-              top: Radius.circular(24),
-            ),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -393,17 +410,16 @@ class _MessMenuManageSheet extends ConsumerWidget {
               const SizedBox(height: 16),
               Text(
                 'Mess menu',
-                style: Theme.of(context)
-                    .textTheme
-                    .titleLarge
-                    ?.copyWith(fontWeight: FontWeight.w600),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 4),
               Text(
                 menu == null
                     ? 'No menu uploaded yet'
                     : '${menu.monthName} ${menu.year} · '
-                        '${menu.days.length} days',
+                          '${menu.days.length} days',
                 style: TextStyle(
                   fontFamily: 'Inter',
                   fontSize: 13,
@@ -432,7 +448,7 @@ class _MessMenuManageSheet extends ConsumerWidget {
             ],
           ),
         );
-      }
+      },
     );
   }
 }

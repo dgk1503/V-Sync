@@ -44,6 +44,23 @@ IconData getStatusIcon(String status) {
   }
 }
 
+/// Compact display label for outing application statuses; unknown
+/// statuses are shown as-is rather than mislabelled.
+String getOutingStatusLabel(String status) {
+  switch (normalizeStatus(status)) {
+    case 'leave request accepted':
+    case 'outing request accepted':
+      return 'Approved';
+    case "waiting for warden's approval":
+    case "waiting for mentor's approval":
+      return 'Pending';
+    case 'rejected':
+      return 'Rejected';
+    default:
+      return status;
+  }
+}
+
 String formatOutingDate(String date) {
   try {
     final dateString = DateTime.parse(date);
