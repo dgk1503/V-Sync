@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:vit_ap_student_app/core/services/notification_service.dart';
 import 'package:vit_ap_student_app/features/home/model/milestone.dart';
 
 final milestonesProvider =
@@ -30,6 +32,9 @@ class MilestonesNotifier extends Notifier<List<Milestone>> {
           .toList();
       list.sort((a, b) => a.targetDate.compareTo(b.targetDate));
       state = list;
+      // Re-align pending reminders with the freshly loaded list (covers
+      // device reboots and any scheduling missed while the app was closed).
+      unawaited(NotificationService.syncMilestoneReminders(list));
     } catch (e) {
       debugPrint('Failed to load milestones: $e');
     }
@@ -51,6 +56,8 @@ class MilestonesNotifier extends Notifier<List<Milestone>> {
     required String title,
     String? info,
     required DateTime targetDate,
+    bool reminderEnabled = false,
+    int reminderMinutesBefore = 30,
   }) async {
     final normalizedInfo = info?.trim();
     final milestone = Milestone(
@@ -60,17 +67,25 @@ class MilestonesNotifier extends Notifier<List<Milestone>> {
           ? null
           : normalizedInfo,
       targetDate: targetDate,
+      reminderEnabled: reminderEnabled,
+      reminderMinutesBefore: reminderMinutesBefore,
     );
 
     final updated = [...state, milestone]
       ..sort((a, b) => a.targetDate.compareTo(b.targetDate));
     state = updated;
     await _persist();
+
+    // Opt-in reminder for this countdown (a no-op when disabled or when
+    // the trigger moment already passed).
+    await NotificationService.scheduleMilestoneReminder(milestone);
   }
 
   Future<void> removeMilestone(String id) async {
     state = state.where((m) => m.id != id).toList();
     await _persist();
+    // Drop the pending reminder together with the countdown.
+    await NotificationService.cancelMilestoneReminder(id);
   }
 
   /// Drops countdowns that finished more than 10 minutes ago.

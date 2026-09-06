@@ -17,6 +17,14 @@ import 'package:vit_ap_student_app/features/auth/viewmodel/auth_viewmodel.dart';
 import 'package:vit_ap_student_app/features/auth/viewmodel/semester_viewmodel.dart';
 import 'package:vit_ap_student_app/src/rust/api/vtop/types/semester.dart';
 
+/// Website opened by the "Website" tile in the Actions group below.
+///
+/// >>> PLACE YOUR WEBSITE LINK HERE <<<
+/// Replace the placeholder URL with your real site (keep the https://
+/// scheme). This single constant feeds the account-page tile; the Terms
+/// of Use / Privacy Policy tiles below point at their own URLs.
+const String kWebsiteUrl = 'https://v-sync-minimallabs.vercel.app';
+
 class AccountPage extends ConsumerStatefulWidget {
   const AccountPage({super.key});
 
@@ -200,12 +208,10 @@ class _AccountPageState extends ConsumerState<AccountPage> {
                   SettingTile(
                     isFirst: true,
                     isLast: false,
-                    title: 'Source code',
-                    leadingIcon: const Icon(Iconsax.code_copy),
+                    title: 'Website',
+                    leadingIcon: const Icon(Iconsax.global_copy),
                     onTap: () async {
-                      await directToWeb(
-                        'https://github.com/dgk1503/V-Sync',
-                      );
+                      await directToWeb(kWebsiteUrl);
                     },
                   ),
                   SettingTile(

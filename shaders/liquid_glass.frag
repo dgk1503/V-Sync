@@ -81,17 +81,27 @@ void main() {
   float band = clamp(-d / uEdge, 0.0, 1.0);
   float edge = (1.0 - band) * (1.0 - band);
 
-  // Glass interior: keep it clear, just soften very slightly with a
-  // 5-tap cross blur.
   // True-color reflection: R, G and B are sampled from the SAME position
   // (no chromatic aberration) so underlying content keeps its real colors —
-  // white text reflects as white, not pink/green.
-  vec2 refracted = fragCoord - normal * (edge * uEdge * 0.42);
-  vec4 col = texture(uBackdrop, sampleUv(refracted)) * 0.36 +
-             (texture(uBackdrop, sampleUv(refracted + vec2(uBlur, 0.0))) +
-              texture(uBackdrop, sampleUv(refracted - vec2(uBlur, 0.0))) +
-              texture(uBackdrop, sampleUv(refracted + vec2(0.0, uBlur))) +
-              texture(uBackdrop, sampleUv(refracted - vec2(0.0, uBlur)))) * 0.16;
+  // white text reflects as white, not pink/green. The bend is a touch
+  // stronger than before so the rim reads as real curvature.
+  vec2 refracted = fragCoord - normal * (edge * uEdge * 0.48);
+
+  // Glass interior: real liquid glass is OPTICALLY CLEAR in the middle —
+  // text scrolling behind it stays crisp — and only the curved rim
+  // diffuses light. The single refracted tap is therefore the whole
+  // interior; the 4 cross taps form a faint halo whose weight fades out
+  // towards the capsule's centre, so sharpness and shimmer coexist
+  // without blurring content across the whole capsule.
+  vec4 clear = texture(uBackdrop, sampleUv(refracted));
+  vec4 soft = clear * 0.4 +
+              (texture(uBackdrop, sampleUv(refracted + vec2(uBlur, 0.0))) +
+               texture(uBackdrop, sampleUv(refracted - vec2(uBlur, 0.0))) +
+               texture(uBackdrop, sampleUv(refracted + vec2(0.0, uBlur))) +
+               texture(uBackdrop, sampleUv(refracted - vec2(0.0, uBlur)))) * 0.15;
+  // 1 in the capsule middle, 0 inside the refraction band.
+  float interior = smoothstep(0.0, uEdge * 0.9, d);
+  vec4 col = mix(soft, clear, interior);
 
   // Specular rim, strongest where the normal faces the top-left light.
   float rim = smoothstep(0.0, 2.5, -d) * (1.0 - smoothstep(2.5, 6.0, -d));

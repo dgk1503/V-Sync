@@ -10,6 +10,7 @@ import 'package:vit_ap_student_app/core/models/timetable.dart' as td;
 import 'package:vit_ap_student_app/core/models/user.dart';
 import 'package:vit_ap_student_app/core/models/user_preferences.dart';
 import 'package:vit_ap_student_app/core/utils/request_notification_permission.dart';
+import 'package:vit_ap_student_app/features/home/model/milestone.dart';
 
 /// Type of file download for notification display
 enum DownloadType {
@@ -41,6 +42,10 @@ const _groupKeyClassReminders = 'com.vitap.class_reminders';
 /// Group key for exam reminder notifications
 const _groupKeyExamReminders = 'com.vitap.exam_reminders';
 
+/// Group key for countdown (milestone) reminder notifications
+const _groupKeyMilestoneReminders = 'com.vitap.countdown_reminders';
+
+
 /// Fixed notification IDs for group summaries (must not collide with content IDs)
 const _downloadGroupSummaryId = 0x7F000001;
 // ignore: unused_element
@@ -55,19 +60,25 @@ class NotificationService {
   static const _openFileActionId = 'open_file';
 
   static Future<void> initialize() async {
-    tz.initializeTimeZones();
-    await requestNotificationPermission();
-    const android = AndroidInitializationSettings('app_icon');
+    // Never let notification setup take the app down (a failure here used
+    // to block main() before runApp and stuck the app on the splash screen).
+    try {
+      tz.initializeTimeZones();
+      await requestNotificationPermission();
+      const android = AndroidInitializationSettings('app_icon');
 
-    // Request iOS to show "Configure in App" button in system notification settings
-    const ios = DarwinInitializationSettings(
-      requestProvidesAppNotificationSettings: true,
-    );
+      // Request iOS to show "Configure in App" button in system notification settings
+      const ios = DarwinInitializationSettings(
+        requestProvidesAppNotificationSettings: true,
+      );
 
-    await _notifications.initialize(
-      settings: const InitializationSettings(android: android, iOS: ios),
-      onDidReceiveNotificationResponse: _onNotificationTap,
-    );
+      await _notifications.initialize(
+        settings: const InitializationSettings(android: android, iOS: ios),
+        onDidReceiveNotificationResponse: _onNotificationTap,
+      );
+    } catch (e) {
+      debugPrint('NotificationService.initialize failed: $e');
+    }
   }
 
   /// Handle notification tap and action button presses.
@@ -555,6 +566,142 @@ class NotificationService {
       }
     }
   }
+
+  // ---------------------------------------------------------------------------
+  // Countdown (Milestone) Reminders
+  // ---------------------------------------------------------------------------
+
+  /// Payload stamped on every countdown reminder so pending ones can be
+  /// identified (titles are user-provided, so they can't be filtered on).
+  static const _milestonePayload = 'vsync_milestone_reminder';
+
+  /// Stable notification id for a milestone's reminder. Deterministic so
+  /// rescheduling overwrites instead of stacking duplicates.
+  static int _milestoneNotificationId(String milestoneId) =>
+      'milestone_$milestoneId'.hashCode;
+
+  /// Schedules (or reschedules) the opt-in reminder for a countdown.
+  ///
+  /// Fires [Milestone.reminderMinutesBefore] minutes before the countdown's
+  /// target moment. Never schedules when the trigger instant is already in
+  /// the past. Always cancels any previously scheduled reminder for the
+  /// same milestone first, so edits stay in sync. Never throws — scheduling
+  /// problems are logged and swallowed so the countdown itself still saves.
+  static Future<void> scheduleMilestoneReminder(Milestone milestone) async {
+    try {
+      await cancelMilestoneReminder(milestone.id);
+      if (!milestone.reminderEnabled) return;
+
+      // Convert the device-local target instant to the timezone database's
+      // local zone (Asia/Kolkata, set during app init).
+      final reminderTime = tz.TZDateTime.from(
+        milestone.targetDate.subtract(
+          Duration(minutes: milestone.reminderMinutesBefore),
+        ),
+        tz.local,
+      );
+      if (!reminderTime.isAfter(tz.TZDateTime.now(tz.local))) {
+        debugPrint(
+          'Milestone reminder skipped: trigger instant already passed '
+          '(${milestone.title})',
+        );
+        return;
+      }
+
+      final body =
+          'Your task is due in ${_formatLeadTime(milestone.reminderMinutesBefore)}';
+
+      final androidDetails = AndroidNotificationDetails(
+        'countdown_reminders',
+        'Countdown Reminders',
+        channelDescription: 'Reminders before your countdowns hit zero',
+        importance: Importance.high,
+        playSound: true,
+        enableVibration: true,
+        category: AndroidNotificationCategory.reminder,
+        groupKey: _groupKeyMilestoneReminders,
+        styleInformation: BigTextStyleInformation(
+          body,
+          contentTitle: milestone.title,
+        ),
+      );
+
+      // Android 12+ can deny exact-alarm permission (it's opt-in from 14).
+      // Fall back to the inexact window so the reminder still fires.
+      final android = _notifications.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
+      final exactAllowed = await android?.canScheduleExactNotifications();
+      final scheduleMode = exactAllowed == false
+          ? AndroidScheduleMode.inexactAllowWhileIdle
+          : AndroidScheduleMode.exactAllowWhileIdle;
+
+      await _notifications.zonedSchedule(
+        id: _milestoneNotificationId(milestone.id),
+        title: milestone.title,
+        body: body,
+        scheduledDate: reminderTime,
+        notificationDetails: NotificationDetails(
+          android: androidDetails,
+          iOS: const DarwinNotificationDetails(
+            threadIdentifier: _groupKeyMilestoneReminders,
+          ),
+        ),
+        payload: _milestonePayload,
+        androidScheduleMode: scheduleMode,
+      );
+    } catch (e) {
+      debugPrint('Failed to schedule milestone reminder: $e');
+    }
+  }
+
+  /// Cancels a milestone's pending reminder (if any).
+  static Future<void> cancelMilestoneReminder(String milestoneId) async {
+    await _notifications.cancel(id: _milestoneNotificationId(milestoneId));
+  }
+
+  /// Re-aligns every pending countdown reminder with [milestones]:
+  /// schedules reminders for the opt-in countdowns and drops any pending
+  /// reminder whose countdown was removed elsewhere. Called on app start
+  /// after the stored list loads.
+  static Future<void> syncMilestoneReminders(List<Milestone> milestones) async {
+    try {
+      final activeIds = milestones.map((m) => m.id).toSet();
+
+      final pending = await _notifications.pendingNotificationRequests();
+      for (final notification in pending) {
+        final isMilestone =
+            notification.payload == _milestonePayload ||
+                (notification.title?.startsWith('⏳ Countdown:') ?? false);
+        if (isMilestone) {
+          await _notifications.cancel(id: notification.id);
+        }
+      }
+
+      for (final milestone in milestones) {
+        // Guard: never resurrect reminders for countdowns deleted mid-flight.
+        if (activeIds.contains(milestone.id) && milestone.reminderEnabled) {
+          await scheduleMilestoneReminder(milestone);
+        }
+      }
+    } catch (e) {
+      debugPrint('Failed to sync milestone reminders: $e');
+    }
+  }
+
+  /// Human-readable lead time in words, e.g. 30 -> "30 minutes",
+  /// 90 -> "1 hour 30 minutes", 1500 -> "1 day 1 hour".
+  static String _formatLeadTime(int minutes) {
+    final days = minutes ~/ (60 * 24);
+    final hours = (minutes % (60 * 24)) ~/ 60;
+    final mins = minutes % 60;
+
+    final parts = <String>[];
+    if (days > 0) parts.add('$days day${days == 1 ? '' : 's'}');
+    if (hours > 0) parts.add('$hours hour${hours == 1 ? '' : 's'}');
+    if (mins > 0) parts.add('$mins minute${mins == 1 ? '' : 's'}');
+    return parts.isEmpty ? '0 minutes' : parts.join(' ');
+  }
+
 
   static Future<void> cancelAllNotifications() async {
     await _notifications.cancelAll();

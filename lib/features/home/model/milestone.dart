@@ -4,11 +4,21 @@ class Milestone {
   final String? info;
   final DateTime targetDate;
 
+  /// Whether a local notification should fire before [targetDate].
+  /// Defaults to false — reminders are strictly opt-in per countdown.
+  final bool reminderEnabled;
+
+  /// How many minutes before [targetDate] the reminder fires.
+  /// Ignored unless [reminderEnabled] is true.
+  final int reminderMinutesBefore;
+
   const Milestone({
     required this.id,
     required this.title,
     this.info,
     required this.targetDate,
+    this.reminderEnabled = false,
+    this.reminderMinutesBefore = 30,
   });
 
   Map<String, dynamic> toJson() => {
@@ -16,6 +26,8 @@ class Milestone {
         'title': title,
         'info': info,
         'targetDate': targetDate.toIso8601String(),
+        'reminderEnabled': reminderEnabled,
+        'reminderMinutesBefore': reminderMinutesBefore,
       };
 
   factory Milestone.fromJson(Map<String, dynamic> json) => Milestone(
@@ -23,6 +35,10 @@ class Milestone {
         title: json['title'] as String,
         info: json['info'] as String?,
         targetDate: DateTime.parse(json['targetDate'] as String),
+        // Fields are optional in the stored JSON so countdowns saved before
+        // reminders existed keep loading (they default to "no reminder").
+        reminderEnabled: json['reminderEnabled'] as bool? ?? false,
+        reminderMinutesBefore: json['reminderMinutesBefore'] as int? ?? 30,
       );
 
   /// Whole days between today and the target date (negative once passed).

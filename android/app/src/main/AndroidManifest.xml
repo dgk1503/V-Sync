@@ -39,11 +39,59 @@
             <meta-data
                 android:name="io.flutter.embedding.android.NormalTheme"
                 android:resource="@style/NormalTheme" />
+        </activity>
+
+        <!-- Launcher icon variants. Exactly ONE alias may stay enabled at a
+             time; MainActivity.kt flips them via PackageManager when the
+             user picks an icon in Account > Customization. -->
+        <activity-alias
+            android:name=".MainActivityDefault"
+            android:enabled="true"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher"
+            android:label="VSync"
+            android:targetActivity=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-        </activity>
+        </activity-alias>
+        <activity-alias
+            android:name=".MainActivityClassy"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_classy"
+            android:label="VSync"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".MainActivityGlassy"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_glassy"
+            android:label="VSync"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".MainActivityRainbow"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_rainbow"
+            android:label="VSync"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
 
         <receiver
             android:name=".UpcomingClassWidget"

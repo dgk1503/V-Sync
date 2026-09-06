@@ -7,6 +7,7 @@ import 'package:vit_ap_student_app/core/providers/current_user.dart';
 import 'package:vit_ap_student_app/core/providers/schedule_home_widget_notifier.dart';
 import 'package:vit_ap_student_app/core/providers/theme_mode_notifier.dart';
 import 'package:vit_ap_student_app/core/providers/user_preferences_notifier.dart';
+import 'package:vit_ap_student_app/core/services/notification_service.dart';
 import 'package:vit_ap_student_app/core/services/vtop_service.dart';
 import 'package:vit_ap_student_app/features/auth/view/widgets/auth_failure_bottom_sheet.dart';
 import 'package:vit_ap_student_app/features/auth/view/widgets/login_otp_bottom_sheet.dart';
@@ -16,6 +17,11 @@ import 'package:vit_ap_student_app/init_dependencies.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initDependencies();
+
+  // The local-notifications plugin must be initialized before anything can
+  // be shown or scheduled (countdown reminders, download notifications).
+  // Also triggers the POST_NOTIFICATIONS permission prompt.
+  await NotificationService.initialize();
 
   runApp(const ProviderScope(child: MyApp()));
 }

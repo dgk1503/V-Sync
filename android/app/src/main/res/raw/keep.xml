@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The resource shrinker (R8, enabled for release by the Flutter Gradle
+  plugin) strips resources that are never referenced statically.
+  @drawable/app_icon is the local-notification small icon, referenced only
+  by name from Dart (AndroidInitializationSettings('app_icon')), so it must
+  be kept explicitly or notifications throw invalid_icon at runtime.
+-->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@drawable/app_icon" />

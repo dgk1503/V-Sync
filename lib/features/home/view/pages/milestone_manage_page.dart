@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:vit_ap_student_app/core/common/widget/accent_gradient_text.dart';
+import 'package:vit_ap_student_app/core/utils/request_notification_permission.dart';
 import 'package:vit_ap_student_app/features/home/viewmodel/milestones_viewmodel.dart';
 
 class MilestoneManagePage extends ConsumerWidget {
@@ -182,6 +183,21 @@ class _AddMilestoneSheetState extends ConsumerState<_AddMilestoneSheet> {
   DateTime? _selectedDate;
   TimeOfDay? _selectedTime;
 
+  // Opt-in reminder. Off by default — the user explicitly enables it per
+  // countdown and picks how long before the target moment it should fire.
+  bool _remindMe = false;
+  int _reminderMinutesBefore = 30;
+
+  /// Trigger-time choices: minutes before the countdown -> label.
+  static const Map<int, String> _reminderChoices = {
+    10: '10 min',
+    30: '30 min',
+    60: '1 hour',
+    360: '6 hours',
+    1440: '1 day',
+    10080: '1 week',
+  };
+
   @override
   void initState() {
     super.initState();
@@ -234,6 +250,8 @@ class _AddMilestoneSheetState extends ConsumerState<_AddMilestoneSheet> {
           title: title,
           info: _infoController.text,
           targetDate: target,
+          reminderEnabled: _remindMe,
+          reminderMinutesBefore: _reminderMinutesBefore,
         );
     if (mounted) Navigator.of(context).pop();
   }
@@ -402,6 +420,83 @@ class _AddMilestoneSheetState extends ConsumerState<_AddMilestoneSheet> {
                 ),
               ),
             ),
+            const SizedBox(height: 16),
+            // Opt-in reminder: default OFF. Toggling it on requests the
+            // notification permission right here (user-gesture context).
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              decoration: BoxDecoration(
+                color: colorScheme.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Iconsax.notification_bing_copy,
+                    size: 17,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Remind me before',
+                      style: TextStyle(
+                        fontFamily: 'Outfit',
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                        color: colorScheme.onSurface,
+                      ),
+                    ),
+                  ),
+                  Transform.scale(
+                    scale: 0.85,
+                    child: Switch.adaptive(
+                      value: _remindMe,
+                      onChanged: (value) async {
+                        if (value) await requestNotificationPermission();
+                        if (!mounted) return;
+                        setState(() => _remindMe = value);
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (_remindMe) ...[
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: _reminderChoices.entries.map((choice) {
+                  final selected = _reminderMinutesBefore == choice.key;
+                  return ChoiceChip(
+                    label: Text(choice.value),
+                    selected: selected,
+                    onSelected: (_) =>
+                        setState(() => _reminderMinutesBefore = choice.key),
+                    labelStyle: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 12.5,
+                      fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                      color: selected
+                          ? colorScheme.onPrimary
+                          : colorScheme.onSurfaceVariant,
+                    ),
+                    selectedColor: colorScheme.primary,
+                    showCheckmark: false,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      side: BorderSide(
+                        color: selected
+                            ? colorScheme.primary
+                            : colorScheme.outlineVariant,
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ],
             const SizedBox(height: 22),
             SizedBox(
               width: double.infinity,
