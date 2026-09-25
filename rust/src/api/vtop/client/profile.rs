@@ -1,10 +1,6 @@
+use crate::api::vtop::client::auth::read_body;
 use crate::api::vtop::{
-    parser,
-    types::*,
-    vtop_client::VtopClient,
-    vtop_errors::VtopError,
-    vtop_errors::VtopResult,
-    vtop_errors::{map_reqwest_error, map_response_read_error},
+    parser, types::*, vtop_client::VtopClient, vtop_errors::VtopError, vtop_errors::VtopResult,
 };
 
 impl VtopClient {
@@ -102,18 +98,9 @@ impl VtopClient {
             self.username
         );
 
-        let res = self
-            .client
-            .post(url)
-            .body(body)
-            .send()
-            .await
-            .map_err(map_reqwest_error)?;
+        let res = self.post_form_with_session_retry(url, body).await?;
 
-        // Check for session expiration and auto re-authenticate if needed
-        self.handle_session_check(&res).await?;
-
-        let text = res.text().await.map_err(map_response_read_error)?;
+        let text = read_body(res).await?;
         let grade_history = parser::grade_history_parser::parse_grade_history(text);
         Ok(grade_history)
     }
@@ -228,18 +215,9 @@ impl VtopClient {
             self.username
         );
 
-        let res = self
-            .client
-            .post(url)
-            .body(body)
-            .send()
-            .await
-            .map_err(map_reqwest_error)?;
+        let res = self.post_form_with_session_retry(url, body).await?;
 
-        // Check for session expiration and auto re-authenticate if needed
-        self.handle_session_check(&res).await?;
-
-        let text = res.text().await.map_err(map_response_read_error)?;
+        let text = read_body(res).await?;
         let mut profile = crate::api::vtop::parser::profile_parser::parse_student_profile(text);
 
         // The profile page does not expose the registration number, but `get_regno`

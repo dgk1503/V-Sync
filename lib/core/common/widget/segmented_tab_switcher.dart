@@ -59,7 +59,7 @@ class SegmentedTabSwitcher extends StatelessWidget {
                       width: segmentWidth,
                       child: Container(
                         decoration: BoxDecoration(
-                          color: colorScheme.primary,
+                          color: colorScheme.tertiary,
                           borderRadius: BorderRadius.circular(30),
                         ),
                       ),
@@ -81,13 +81,13 @@ class SegmentedTabSwitcher extends StatelessWidget {
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: TextStyle(
-                                      fontFamily: 'Outfit',
+                                      fontFamily: 'Instrument Sans',
                                       fontSize: 14.5,
                                       fontWeight: selectedIndex == i
-                                          ? FontWeight.w600
+                                          ? FontWeight.w500
                                           : FontWeight.w500,
                                       color: selectedIndex == i
-                                          ? colorScheme.onPrimary
+                                          ? colorScheme.onTertiary
                                           : colorScheme.onSurfaceVariant,
                                     ),
                                   ),

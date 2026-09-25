@@ -35,7 +35,7 @@ class PdfDownloadExample extends ConsumerWidget {
                       'General Outing Report',
                       style: TextStyle(
                         fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -119,7 +119,7 @@ class PdfDownloadExample extends ConsumerWidget {
                       'Weekend Outing Report',
                       style: TextStyle(
                         fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                     const SizedBox(height: 16),

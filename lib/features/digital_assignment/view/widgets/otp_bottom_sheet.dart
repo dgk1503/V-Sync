@@ -97,7 +97,7 @@ class _OtpBottomSheetState extends ConsumerState<OtpBottomSheet> {
           Text(
             'OTP Verification',
             style: theme.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w500,
             ),
           ),
           const SizedBox(height: 12),
@@ -243,7 +243,7 @@ class _OtpBottomSheetState extends ConsumerState<OtpBottomSheet> {
             child: Text(
               label,
               style: theme.textTheme.bodySmall?.copyWith(
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w500,
                 color: theme.colorScheme.onSurfaceVariant,
               ),
             ),

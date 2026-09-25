@@ -88,7 +88,7 @@ class MyGradesTileState extends ConsumerState<GradeHistoryCarousel> {
             style: TextStyle(
               color: Theme.of(context).colorScheme.primary,
               fontSize: 44,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w500,
             ),
           ),
           const SizedBox(height: 8),

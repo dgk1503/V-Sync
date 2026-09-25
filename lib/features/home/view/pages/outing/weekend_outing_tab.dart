@@ -169,7 +169,7 @@ class _WeekendOutingTabState extends ConsumerState<WeekendOutingTab> {
               style: TextStyle(
                 fontSize: 16,
                 color: Theme.of(context).colorScheme.primary,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w500,
               ),
             ),
             const SizedBox(height: 8),
@@ -225,7 +225,7 @@ class _WeekendOutingTabState extends ConsumerState<WeekendOutingTab> {
               style: TextStyle(
                 fontSize: 16,
                 color: Theme.of(context).colorScheme.primary,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w500,
               ),
             ),
             const SizedBox(height: 8),
@@ -314,7 +314,7 @@ class _WeekendOutingTabState extends ConsumerState<WeekendOutingTab> {
               style: TextStyle(
                 fontSize: 16,
                 color: Theme.of(context).colorScheme.primary,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w500,
               ),
             ),
             TextFormField(
@@ -344,7 +344,7 @@ class _WeekendOutingTabState extends ConsumerState<WeekendOutingTab> {
               style: TextStyle(
                 fontSize: 16,
                 color: Theme.of(context).colorScheme.primary,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w500,
               ),
             ),
             TextFormField(
@@ -393,7 +393,7 @@ class _WeekendOutingTabState extends ConsumerState<WeekendOutingTab> {
                     child: Text(
                       'View outing history',
                       style: TextStyle(
-                        fontFamily: 'Inter',
+                        fontFamily: 'Instrument Sans',
                         fontSize: 13.5,
                         fontWeight: FontWeight.w500,
                         color: Theme.of(context).colorScheme.primary,

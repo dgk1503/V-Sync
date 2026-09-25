@@ -5,16 +5,17 @@ import 'package:vit_ap_student_app/core/providers/theme_mode_notifier.dart';
 import 'package:vit_ap_student_app/core/providers/user_preferences_notifier.dart';
 import 'package:vit_ap_student_app/core/theme/app_theme.dart';
 
-final colorThemeProvider =
-    NotifierProvider<ColorThemeNotifier, String>(ColorThemeNotifier.new);
+final colorThemeProvider = NotifierProvider<ColorThemeNotifier, String>(
+  ColorThemeNotifier.new,
+);
 
 /// Persists the selected accent theme and keeps the Android launcher icon
 /// in sync with it.
 ///
-/// The choice is remembered SEPARATELY for light and dark mode: toggling
+/// The choice is remembered separately for light and dark mode: toggling
 /// dark mode restores whichever accent was last used in that mode
-/// (defaulting to monochrome). Gold/Emerald are dark-only; Pink/Gold/Red
-/// are light-only; invalid combinations fall back to monochrome.
+/// (defaulting to monochrome). Gold and red have matching light/dark
+/// palettes; emerald is dark-only; pink is light-only.
 class ColorThemeNotifier extends Notifier<String> {
   static const _legacyKey = 'color_theme';
   static const _darkKey = 'color_theme_dark';
@@ -22,10 +23,9 @@ class ColorThemeNotifier extends Notifier<String> {
   static const _appliedKey = 'launcher_icon_applied';
   static const _channel = MethodChannel('vsync/launcher_icon');
 
-  String get _bucketKey =>
-      ref.read(userPreferencesProvider).isDarkModeEnabled
-          ? _darkKey
-          : _lightKey;
+  String get _bucketKey => ref.read(userPreferencesProvider).isDarkModeEnabled
+      ? _darkKey
+      : _lightKey;
 
   @override
   String build() {
@@ -38,14 +38,15 @@ class ColorThemeNotifier extends Notifier<String> {
   String get effectiveTheme {
     switch (state) {
       case AppColorTheme.gold:
+      case AppColorTheme.red:
+        return state;
       case AppColorTheme.emerald:
         final dark = ref.read(userPreferencesProvider).isDarkModeEnabled;
         return dark ? state : AppColorTheme.mono;
       case AppColorTheme.pink:
         final dark = ref.read(userPreferencesProvider).isDarkModeEnabled;
         return dark ? AppColorTheme.mono : state;
-      case AppColorTheme.red:
-        // Red exists in both modes (dark red + light red).
+      case AppColorTheme.custom:
         return state;
       default:
         return AppColorTheme.mono;
@@ -55,7 +56,8 @@ class ColorThemeNotifier extends Notifier<String> {
   Future<void> _load() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final saved = prefs.getString(_bucketKey) ??
+      final saved =
+          prefs.getString(_bucketKey) ??
           prefs.getString(_legacyKey) ??
           AppColorTheme.mono;
       state = saved;
@@ -82,10 +84,9 @@ class ColorThemeNotifier extends Notifier<String> {
     if (applied == effective) return; // already in sync
 
     try {
-      await _channel.invokeMethod(
-        'setGold',
-        {'gold': effective == AppColorTheme.gold},
-      );
+      await _channel.invokeMethod('setGold', {
+        'gold': effective == AppColorTheme.gold,
+      });
       await prefs.setString(_appliedKey, effective);
     } catch (_) {
       // Native side unavailable — ignore.

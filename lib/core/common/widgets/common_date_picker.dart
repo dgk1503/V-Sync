@@ -95,16 +95,6 @@ class CommonDatePicker extends StatelessWidget {
       firstDate: start,
       lastDate: end,
       selectableDayPredicate: selectableDayPredicate,
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
-              primary: Theme.of(context).primaryColor,
-            ),
-          ),
-          child: child!,
-        );
-      },
     );
 
     if (pickedDate != null) {
@@ -123,7 +113,7 @@ class CommonDatePicker extends StatelessWidget {
           style: TextStyle(
             fontSize: 16,
             color: Theme.of(context).colorScheme.primary,
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w500,
           ),
         ),
         GestureDetector(
@@ -132,11 +122,11 @@ class CommonDatePicker extends StatelessWidget {
             child: TextFormField(
               decoration: InputDecoration(
                 suffixIcon: const Icon(Icons.calendar_month_outlined),
-                contentPadding:
-                    const EdgeInsets.symmetric(vertical: 0.0, horizontal: 0.0),
-                labelStyle: const TextStyle(
-                  fontSize: 14,
+                contentPadding: const EdgeInsets.symmetric(
+                  vertical: 0.0,
+                  horizontal: 0.0,
                 ),
+                labelStyle: const TextStyle(fontSize: 14),
                 labelText: selectedDate == null
                     ? 'Select date'
                     : DateFormat('dd-MMM-yyyy').format(selectedDate!),

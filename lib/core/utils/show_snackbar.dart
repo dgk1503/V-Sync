@@ -43,7 +43,7 @@ void showSnackBar(BuildContext context, String content, SnackBarType type) {
               child: Text(
                 content,
                 style: TextStyle(
-                  fontFamily: 'Outfit',
+                  fontFamily: 'Instrument Sans',
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
                   color: foreground,

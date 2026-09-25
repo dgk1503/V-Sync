@@ -91,13 +91,13 @@ class _MilestonesSectionState extends ConsumerState<MilestonesSection> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 4, 8, 12),
+          padding: const EdgeInsets.fromLTRB(16, 0, 8, 12),
           child: Row(
             children: [
               AccentGradientText(
                 'Countdowns',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w500,
                       fontSize: 22,
                     ),
               ),
@@ -111,7 +111,7 @@ class _MilestonesSectionState extends ConsumerState<MilestonesSection> {
                 child: Text(
                   'Manage',
                   style: TextStyle(
-                    fontFamily: 'Inter',
+                    fontFamily: 'Instrument Sans',
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
                     color: colorScheme.onSurfaceVariant,
@@ -215,7 +215,7 @@ class _EmptyHint extends StatelessWidget {
             Text(
               'Track your first countdown',
               style: TextStyle(
-                fontFamily: 'Inter',
+                fontFamily: 'Instrument Sans',
                 fontSize: 13,
                 color: colorScheme.onSurfaceVariant,
               ),

@@ -1,14 +1,25 @@
 use crate::api::vtop::{
     types::{
-        ComprehensiveDataResponse, FacultyDetails, GetFaculty, GradeHistory, Marks, SemesterData,
+        AttendanceRecord, CapstoneAttendance, ComprehensiveDataResponse, FacultyDetails,
+        GetFaculty, GradeHistory, Marks, SemesterData,
     },
     vtop_client::{VtopClient, VtopError},
     vtop_config::VtopClientBuilder,
 };
 
+/// Build a client for one VTOP session.
+///
+/// `user_agent` is the browser identity every request on this session carries.
+/// VTOP binds the session to it, so the caller supplies the real device's
+/// User-Agent and hands the same string to anything else that reuses the
+/// session — notably the in-app VTOP WebView, which the portal rejects
+/// outright if it presents a different one. Pass an empty string to accept
+/// `DEFAULT_USER_AGENT`.
 #[flutter_rust_bridge::frb(sync)]
-pub fn get_vtop_client(username: String, password: String) -> VtopClient {
-    VtopClientBuilder::new().build(username, password)
+pub fn get_vtop_client(username: String, password: String, user_agent: String) -> VtopClient {
+    VtopClientBuilder::new()
+        .user_agent(user_agent)
+        .build(username, password)
 }
 
 #[flutter_rust_bridge::frb()]
@@ -61,6 +72,62 @@ pub async fn fetch_attendance(
     let attendance_records = client.get_attendance(&semester_id).await?;
     serde_json::to_string(&attendance_records)
         .map_err(|e| VtopError::ParseError(format!("Failed to serialize attendance data: {}", e)))
+}
+
+/// The attendance page and, for the students who have one, their capstone/SDP
+/// attendance — serialized together because a single page load determines both.
+#[derive(serde::Serialize)]
+struct AttendanceWithCapstone<'a> {
+    records: &'a [AttendanceRecord],
+    /// `null` for the majority of students, who have no capstone registration.
+    capstone: &'a Option<CapstoneAttendance>,
+}
+
+/// Fetches course attendance together with capstone/SDP attendance.
+///
+/// The capstone request is only made when the attendance page offers the
+/// CAPSTONE/SDP button, so students without a registration pay nothing for it.
+#[flutter_rust_bridge::frb()]
+pub async fn fetch_attendance_with_capstone(
+    client: &mut VtopClient,
+    semester_id: String,
+) -> Result<String, VtopError> {
+    let (records, capstone) = client.get_attendance_with_capstone(&semester_id).await?;
+    serde_json::to_string(&AttendanceWithCapstone {
+        records: &records,
+        capstone: &capstone,
+    })
+    .map_err(|e| VtopError::ParseError(format!("Failed to serialize attendance data: {}", e)))
+}
+
+/// Fetches a semester's whole academic calendar: the month list and every
+/// dated day, flattened into one date-ordered list.
+///
+/// This is one request per month, so it is meant to be called on an explicit
+/// refresh and the result cached — not on page open.
+#[flutter_rust_bridge::frb()]
+pub async fn fetch_academic_calendar(
+    client: &mut VtopClient,
+    semester_id: String,
+    class_group_id: String,
+) -> Result<String, VtopError> {
+    let calendar = client
+        .get_academic_calendar(&semester_id, &class_group_id)
+        .await?;
+    serde_json::to_string(&calendar)
+        .map_err(|e| VtopError::ParseError(format!("Failed to serialize academic calendar: {}", e)))
+}
+
+/// Fetches the class groups a semester's calendar can be viewed for.
+#[flutter_rust_bridge::frb()]
+pub async fn fetch_calendar_class_groups(
+    client: &mut VtopClient,
+    semester_id: String,
+) -> Result<String, VtopError> {
+    let groups = client.get_calendar_class_groups(&semester_id).await?;
+    serde_json::to_string(&groups).map_err(|e| {
+        VtopError::ParseError(format!("Failed to serialize calendar class groups: {}", e))
+    })
 }
 
 #[flutter_rust_bridge::frb()]
@@ -125,6 +192,17 @@ pub fn fetch_csrf_token(client: &VtopClient) -> Option<String> {
 #[flutter_rust_bridge::frb()]
 pub fn fetch_username(client: &VtopClient) -> String {
     client.username.clone()
+}
+
+/// The User-Agent this session was established with.
+///
+/// `VtopConfig` picks a random browser UA per session, so anything that reuses
+/// the session out of process — the in-app VTOP WebView — must send the same
+/// one rather than inventing its own. Read-only on purpose: what the client
+/// sends is unchanged, the caller just gets to match it.
+#[flutter_rust_bridge::frb()]
+pub fn fetch_user_agent(client: &VtopClient) -> String {
+    client.config.user_agent.clone()
 }
 
 #[flutter_rust_bridge::frb()]
@@ -308,15 +386,81 @@ pub async fn fetch_grade_history(client: &mut VtopClient) -> Result<GradeHistory
     client.get_grade_history().await
 }
 
+/// Retrieves the graded courses for a semester from the grade view page.
+///
+/// Grades appear only once a semester has ended; the current semester returns
+/// an empty list until results are published. Each course carries a
+/// `course_id` for `fetch_grade_view_detail`.
+///
+/// # Examples
+///
+/// ```no_run
+/// # use lib_vtop::api::vtop::vtop_client::VtopClient;
+/// # use lib_vtop::api::vtop_get_client::fetch_grade_view;
+/// # async fn example(client: &mut VtopClient) -> Result<(), Box<dyn std::error::Error>> {
+/// let courses = fetch_grade_view(client, "AP2025264".to_string()).await?;
+/// for course in &courses {
+///     println!("{} - {}", course.course_code, course.grade);
+/// }
+/// # Ok(())
+/// # }
+/// ```
+#[flutter_rust_bridge::frb()]
+pub async fn fetch_grade_view(
+    client: &mut VtopClient,
+    semester_id: String,
+) -> Result<String, VtopError> {
+    let courses = client.get_grade_view(&semester_id).await?;
+    serde_json::to_string(&courses)
+        .map_err(|e| VtopError::ParseError(format!("Failed to serialize grade view data: {}", e)))
+}
+
+/// Retrieves the mark breakdown and class statistics for a single course.
+///
+/// # Examples
+///
+/// ```no_run
+/// # use lib_vtop::api::vtop::vtop_client::VtopClient;
+/// # use lib_vtop::api::vtop_get_client::fetch_grade_view_detail;
+/// # async fn example(client: &mut VtopClient) -> Result<(), Box<dyn std::error::Error>> {
+/// let detail = fetch_grade_view_detail(
+///     client,
+///     "AP2025264".to_string(),
+///     "AM_CSE1008_00200".to_string(),
+/// ).await?;
+/// println!("total: {}", detail.total);
+/// # Ok(())
+/// # }
+/// ```
+#[flutter_rust_bridge::frb()]
+pub async fn fetch_grade_view_detail(
+    client: &mut VtopClient,
+    semester_id: String,
+    course_id: String,
+) -> Result<String, VtopError> {
+    let detail = client
+        .get_grade_view_detail(&semester_id, &course_id)
+        .await?;
+    serde_json::to_string(&detail).map_err(|e| {
+        VtopError::ParseError(format!("Failed to serialize grade view detail data: {}", e))
+    })
+}
+
 /// Retrieves a list of pending payments for the student.
 ///
 /// Returns a vector of `PendingPaymentReceipt` records on success, or a `VtopError` if the operation fails.
 ///
 /// # Examples
 ///
-/// ```
-/// let payments = student_pending_payments(&mut client).await?;
-/// assert!(!payments.is_empty() || payments.is_empty());
+/// ```no_run
+/// # use lib_vtop::api::vtop::vtop_client::VtopClient;
+/// # use lib_vtop::api::vtop_get_client::fetch_pending_payments;
+/// # async fn example(client: &mut VtopClient) -> Result<(), Box<dyn std::error::Error>> {
+/// // Returns the pending payments serialized as a JSON string.
+/// let payments_json = fetch_pending_payments(client).await?;
+/// println!("{}", payments_json);
+/// # Ok(())
+/// # }
 /// ```
 #[flutter_rust_bridge::frb()]
 pub async fn fetch_pending_payments(client: &mut VtopClient) -> Result<String, VtopError> {

@@ -21,7 +21,7 @@ class MilestoneManagePage extends ConsumerWidget {
           style: Theme.of(context)
               .textTheme
               .headlineSmall
-              ?.copyWith(fontWeight: FontWeight.w600),
+              ?.copyWith(fontWeight: FontWeight.w500),
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
@@ -36,7 +36,7 @@ class MilestoneManagePage extends ConsumerWidget {
         label: const Text(
           'New countdown',
           style: TextStyle(
-            fontFamily: 'Outfit',
+            fontFamily: 'Instrument Sans',
             fontSize: 14,
             fontWeight: FontWeight.w500,
           ),
@@ -62,7 +62,7 @@ class MilestoneManagePage extends ConsumerWidget {
                     'Create a countdown for exams, quizzes\nor assignment deadlines.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontFamily: 'Inter',
+                      fontFamily: 'Instrument Sans',
                       fontSize: 13,
                       color: colorScheme.onSurfaceVariant,
                     ),
@@ -108,9 +108,9 @@ class MilestoneManagePage extends ConsumerWidget {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
-                                fontFamily: 'Outfit',
+                                fontFamily: 'Instrument Sans',
                                 fontSize: 15.5,
-                                fontWeight: FontWeight.w600,
+                                fontWeight: FontWeight.w500,
                                 color: colorScheme.onSurface,
                               ),
                             ),
@@ -122,7 +122,7 @@ class MilestoneManagePage extends ConsumerWidget {
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
-                                  fontFamily: 'Inter',
+                                  fontFamily: 'Instrument Sans',
                                   fontSize: 12,
                                   color: colorScheme.onSurfaceVariant,
                                 ),
@@ -132,7 +132,7 @@ class MilestoneManagePage extends ConsumerWidget {
                             Text(
                               '${DateFormat('d MMM yyyy, h:mm a').format(milestone.targetDate)}  •  $daysText',
                               style: TextStyle(
-                                fontFamily: 'Inter',
+                                fontFamily: 'Instrument Sans',
                                 fontSize: 11.5,
                                 color: colorScheme.onSurfaceVariant,
                               ),
@@ -291,13 +291,13 @@ class _AddMilestoneSheetState extends ConsumerState<_AddMilestoneSheet> {
               style: Theme.of(context)
                   .textTheme
                   .titleLarge
-                  ?.copyWith(fontWeight: FontWeight.w600),
+                  ?.copyWith(fontWeight: FontWeight.w500),
             ),
             const SizedBox(height: 18),
             Text(
               'TITLE',
               style: TextStyle(
-                fontFamily: 'Inter',
+                fontFamily: 'Instrument Sans',
                 fontSize: 10.5,
                 fontWeight: FontWeight.w500,
                 letterSpacing: 0.8,
@@ -310,7 +310,7 @@ class _AddMilestoneSheetState extends ConsumerState<_AddMilestoneSheet> {
               textCapitalization: TextCapitalization.words,
               autofocus: true,
               style: TextStyle(
-                fontFamily: 'Outfit',
+                fontFamily: 'Instrument Sans',
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
                 color: colorScheme.onSurface,
@@ -318,7 +318,7 @@ class _AddMilestoneSheetState extends ConsumerState<_AddMilestoneSheet> {
               decoration: InputDecoration(
                 hintText: 'e.g. CAT-1',
                 hintStyle: TextStyle(
-                  fontFamily: 'Inter',
+                  fontFamily: 'Instrument Sans',
                   fontSize: 14,
                   color: colorScheme.onSurfaceVariant,
                 ),
@@ -336,7 +336,7 @@ class _AddMilestoneSheetState extends ConsumerState<_AddMilestoneSheet> {
             Text(
               'NOTES (OPTIONAL)',
               style: TextStyle(
-                fontFamily: 'Inter',
+                fontFamily: 'Instrument Sans',
                 fontSize: 10.5,
                 fontWeight: FontWeight.w500,
                 letterSpacing: 0.8,
@@ -348,14 +348,14 @@ class _AddMilestoneSheetState extends ConsumerState<_AddMilestoneSheet> {
               controller: _infoController,
               textCapitalization: TextCapitalization.sentences,
               style: TextStyle(
-                fontFamily: 'Outfit',
+                fontFamily: 'Instrument Sans',
                 fontSize: 15,
                 color: colorScheme.onSurface,
               ),
               decoration: InputDecoration(
                 hintText: 'e.g. Covers modules 1-3',
                 hintStyle: TextStyle(
-                  fontFamily: 'Inter',
+                  fontFamily: 'Instrument Sans',
                   fontSize: 13.5,
                   color: colorScheme.onSurfaceVariant,
                 ),
@@ -373,7 +373,7 @@ class _AddMilestoneSheetState extends ConsumerState<_AddMilestoneSheet> {
             Text(
               'DATE',
               style: TextStyle(
-                fontFamily: 'Inter',
+                fontFamily: 'Instrument Sans',
                 fontSize: 10.5,
                 fontWeight: FontWeight.w500,
                 letterSpacing: 0.8,
@@ -408,7 +408,7 @@ class _AddMilestoneSheetState extends ConsumerState<_AddMilestoneSheet> {
                                   ? ''
                                   : ', ${_selectedTime!.format(context)}'),
                       style: TextStyle(
-                        fontFamily: 'Outfit',
+                        fontFamily: 'Instrument Sans',
                         fontSize: 15,
                         fontWeight: FontWeight.w500,
                         color: _selectedDate == null
@@ -442,7 +442,7 @@ class _AddMilestoneSheetState extends ConsumerState<_AddMilestoneSheet> {
                     child: Text(
                       'Remind me before',
                       style: TextStyle(
-                        fontFamily: 'Outfit',
+                        fontFamily: 'Instrument Sans',
                         fontSize: 15,
                         fontWeight: FontWeight.w500,
                         color: colorScheme.onSurface,
@@ -476,9 +476,9 @@ class _AddMilestoneSheetState extends ConsumerState<_AddMilestoneSheet> {
                     onSelected: (_) =>
                         setState(() => _reminderMinutesBefore = choice.key),
                     labelStyle: TextStyle(
-                      fontFamily: 'Inter',
+                      fontFamily: 'Instrument Sans',
                       fontSize: 12.5,
-                      fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                      fontWeight: selected ? FontWeight.w500 : FontWeight.w400,
                       color: selected
                           ? colorScheme.onPrimary
                           : colorScheme.onSurfaceVariant,
@@ -519,7 +519,7 @@ class _AddMilestoneSheetState extends ConsumerState<_AddMilestoneSheet> {
                 child: const Text(
                   'Save countdown',
                   style: TextStyle(
-                    fontFamily: 'Outfit',
+                    fontFamily: 'Instrument Sans',
                     fontSize: 15,
                     fontWeight: FontWeight.w500,
                   ),

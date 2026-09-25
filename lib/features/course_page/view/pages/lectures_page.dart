@@ -231,7 +231,7 @@ class _LecturesPageState extends ConsumerState<LecturesPage> {
           widget.courseTitle,
           style: Theme.of(
             context,
-          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
+          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w500),
         ),
         actions: [
           if (downloadState?.isLoading == true)
@@ -279,7 +279,7 @@ class _LecturesPageState extends ConsumerState<LecturesPage> {
                   Text(
                     facultyName,
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                   const SizedBox(height: 8),

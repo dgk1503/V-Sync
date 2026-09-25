@@ -1,11 +1,11 @@
 [package]
 name = "lib_vtop"
-version = "1.0.3"
+version = "2.0.0"
 edition = "2021"
 description = "A minimal libre package for scraping VTOP "
 license = "Apache-2.0"
-repository = "https://github.com/VITAP-Student-Project/lib_vtop"
-homepage = "https://github.com/VITAP-Student-Project/lib_vtop"
+repository = "https://github.com/Udhay-Adithya/vitap_student_app"
+homepage = "https://github.com/Udhay-Adithya/vitap_student_app"
 documentation = "https://docs.rs/lib_vtop"
 readme = "README.md"
 keywords = ["vtop", "api", "education"]
@@ -32,13 +32,14 @@ urlencoding = "2"
 chrono = "0.4.44"
 env_logger = "0.11.10"
 dotenv = "0.15"
-fake_user_agent = "0.2.3"
 ndarray = "0.17.2"
 image = "0.25.10"
 lazy_static = "1.5.0"
 
 [dev-dependencies]
 tokio-test = "0.4.5"
+# Already in the tree via reqwest; used to build synthetic responses in tests.
+http = "1"
 env_logger = "0.11.8"
 flutter_rust_bridge_codegen = "2.12.0"
 

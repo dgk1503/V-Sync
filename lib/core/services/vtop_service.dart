@@ -5,6 +5,7 @@ import 'package:crypto/crypto.dart';
 import 'package:vit_ap_student_app/core/error/exceptions.dart';
 import 'package:vit_ap_student_app/core/models/credentials.dart';
 import 'package:vit_ap_student_app/core/services/demo_service.dart';
+import 'package:vit_ap_student_app/core/utils/device_user_agent.dart';
 import 'package:vit_ap_student_app/src/rust/api/vtop/vtop_client.dart';
 import 'package:vit_ap_student_app/src/rust/api/vtop/vtop_errors.dart';
 import 'package:vit_ap_student_app/src/rust/api/vtop_get_client.dart';
@@ -144,8 +145,14 @@ class VtopClientService {
     required String password,
   }) async {
     try {
-      // Create client
-      _client = getVtopClient(username: username, password: password);
+      // Create the client with the same device user agent used by the
+      // authenticated VTOP WebView session.
+      final userAgent = await getDeviceUserAgent();
+      _client = getVtopClient(
+        username: username,
+        password: password,
+        userAgent: userAgent,
+      );
 
       // Login
       await vtopClientLogin(client: _client!);

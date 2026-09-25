@@ -109,7 +109,7 @@ class _GradeHistoryPageState extends ConsumerState<GradeHistoryPage> {
                                     });
                                   },
                                   style: TextStyle(
-                                    fontFamily: 'Outfit',
+                                    fontFamily: 'Instrument Sans',
                                     fontSize: 15,
                                     color: colorScheme.onSurface,
                                   ),
@@ -117,7 +117,7 @@ class _GradeHistoryPageState extends ConsumerState<GradeHistoryPage> {
                                     hintText:
                                         'Search $filteredCount courses...',
                                     hintStyle: TextStyle(
-                                      fontFamily: 'Inter',
+                                      fontFamily: 'Instrument Sans',
                                       fontSize: 14,
                                       color: colorScheme.onSurfaceVariant,
                                     ),
@@ -216,7 +216,7 @@ class _GradeHistoryPageState extends ConsumerState<GradeHistoryPage> {
                                       child: Text(
                                         filter,
                                         style: TextStyle(
-                                          fontFamily: 'Inter',
+                                          fontFamily: 'Instrument Sans',
                                           fontSize: 12.5,
                                           fontWeight: FontWeight.w500,
                                           color: isSelected
@@ -257,7 +257,7 @@ class _GradeHistoryPageState extends ConsumerState<GradeHistoryPage> {
                                       Text(
                                         'No courses found',
                                         style: TextStyle(
-                                          fontFamily: 'Outfit',
+                                          fontFamily: 'Instrument Sans',
                                           fontSize: 15,
                                           fontWeight: FontWeight.w500,
                                           color:

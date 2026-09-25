@@ -80,8 +80,10 @@ class _TimetablePageState extends ConsumerState<TimetablePage>
     final parts = <String>[];
     if (labs > 0) parts.add('$labs lab${labs == 1 ? '' : 's'}');
     if (theory > 0) {
-      parts.add('$theory theor${theory == 1 ? 'y' : 'y'} class'
-          '${theory == 1 ? '' : 'es'}');
+      parts.add(
+        '$theory theor${theory == 1 ? 'y' : 'y'} class'
+        '${theory == 1 ? '' : 'es'}',
+      );
     }
 
     final isToday = dayIndex == DateTime.now().weekday % 7;
@@ -105,17 +107,11 @@ class _TimetablePageState extends ConsumerState<TimetablePage>
     );
 
     ref.listen(timetableViewModelProvider, (_, next) {
-      next?.when(
-        data: (data) {},
-        loading: () {},
-        error: (error, st) {},
-      );
+      next?.when(data: (data) {}, loading: () {}, error: (error, st) {});
     });
 
     if (user == null || timetable == null) {
-      return const Scaffold(
-        body: Center(child: Text('User not found!')),
-      );
+      return const Scaffold(body: Center(child: Text('User not found!')));
     }
 
     final activeDays = _getActiveDays(timetable);
@@ -123,11 +119,10 @@ class _TimetablePageState extends ConsumerState<TimetablePage>
     final controller = _tabController!;
     final colorScheme = Theme.of(context).colorScheme;
 
-    // Aura color follows the accent theme (tertiary carries the accent
-    // in gold/pink/red/emerald; monochrome falls back to primary).
-    final auraColor = colorScheme.tertiary == colorScheme.primary
-        ? colorScheme.primary
-        : colorScheme.tertiary;
+    // Let the active theme provide a restrained aura behind the day strip.
+    // This is the one timetable decoration that intentionally follows the
+    // selected accent, while the page surface itself stays neutral.
+    final auraColor = colorScheme.tertiary;
 
     return Scaffold(
       body: activeDays.isEmpty
@@ -156,78 +151,82 @@ class _TimetablePageState extends ConsumerState<TimetablePage>
                 SafeArea(
                   bottom: false,
                   child: Column(
-                children: [
-                  const SizedBox(height: 12),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                    child: AnimatedBuilder(
-                      // Listen to the animation itself: TabController only
-                      // notifies on animation start/end, while the underlying
-                      // AnimationController notifies every frame — this keeps
-                      // the selected day chip in sync while swiping.
-                      animation: controller.animation ?? controller,
-                      builder: (context, _) {
-                        final liveIndex = (controller.animation?.value ??
-                                controller.index.toDouble())
-                            .round()
-                            .clamp(0, activeDays.length - 1);
-                        return Column(
-                          children: [
-                            Row(
+                    children: [
+                      const SizedBox(height: 12),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                        child: AnimatedBuilder(
+                          // Listen to the animation itself: TabController only
+                          // notifies on animation start/end, while the underlying
+                          // AnimationController notifies every frame — this keeps
+                          // the selected day chip in sync while swiping.
+                          animation: controller.animation ?? controller,
+                          builder: (context, _) {
+                            final liveIndex =
+                                (controller.animation?.value ??
+                                        controller.index.toDouble())
+                                    .round()
+                                    .clamp(0, activeDays.length - 1);
+                            return Column(
                               children: [
-                                for (var i = 0; i < activeDays.length; i++)
-                                  Expanded(
-                                    child: _buildDayChip(
-                                      context,
-                                      letter: _dayLetters[activeDays[i]],
-                                      isSelected: liveIndex == i,
-                                      onTap: () => controller.animateTo(i),
-                                    ),
+                                Row(
+                                  children: [
+                                    for (var i = 0; i < activeDays.length; i++)
+                                      Expanded(
+                                        child: _buildDayChip(
+                                          context,
+                                          letter: _dayLetters[activeDays[i]],
+                                          isSelected: liveIndex == i,
+                                          onTap: () => controller.animateTo(i),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  _buildSubtitle(
+                                    timetable,
+                                    activeDays[liveIndex],
                                   ),
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontFamily: 'Instrument Sans',
+                                    fontSize: 13,
+                                    color:
+                                        Theme.of(context).brightness ==
+                                            Brightness.dark
+                                        ? const Color(0xFFB3B3B3)
+                                        : const Color(0xFF4D4D4D),
+                                  ),
+                                ),
                               ],
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              _buildSubtitle(
-                                  timetable, activeDays[liveIndex]),
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontFamily: 'Inter',
-                                fontSize: 13,
-                                color: Theme.of(context).brightness ==
-                                        Brightness.dark
-                                    ? const Color(0xFFB3B3B3)
-                                    : const Color(0xFF4D4D4D),
+                            );
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Expanded(
+                        child: isLoading
+                            ? const Loader()
+                            : TabBarView(
+                                controller: controller,
+                                physics: const BouncingScrollPhysics(),
+                                children: [
+                                  for (final dayIndex in activeDays)
+                                    ScheduleList(
+                                      day: _dayNames[dayIndex],
+                                      onRefresh: refresh,
+                                    ),
+                                ],
                               ),
-                            ),
-                          ],
-                        );
-                      },
-                    ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 8),
-                  Expanded(
-                    child: isLoading
-                        ? const Loader()
-                        : TabBarView(
-                            controller: controller,
-                            physics: const BouncingScrollPhysics(),
-                            children: [
-                             for (final dayIndex in activeDays)
-                                 ScheduleList(
-                                   day: _dayNames[dayIndex],
-                                   onRefresh: refresh,
-                                 ),
-                             ],
-                           ),
-                   ),
-                 ],
-               ),
-             ),
-           ],
-         ),
-      );
-   }
+                ),
+              ],
+            ),
+    );
+  }
 
   Widget _buildDayChip(
     BuildContext context, {
@@ -248,16 +247,16 @@ class _TimetablePageState extends ConsumerState<TimetablePage>
           alignment: Alignment.center,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: isSelected ? colorScheme.primary : Colors.transparent,
+            color: isSelected ? colorScheme.tertiary : Colors.transparent,
           ),
           child: Text(
             letter,
             style: TextStyle(
-              fontFamily: 'Outfit',
+              fontFamily: 'Instrument Sans',
               fontSize: 15,
-              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+              fontWeight: isSelected ? FontWeight.w500 : FontWeight.w500,
               color: isSelected
-                  ? colorScheme.onPrimary
+                  ? colorScheme.onTertiary
                   : colorScheme.onSurfaceVariant,
             ),
           ),

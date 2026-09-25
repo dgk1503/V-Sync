@@ -32,9 +32,7 @@ class UserPreferencesNotifier extends _$UserPreferencesNotifier {
 
   // Toggle bypass weekend outing restriction
   Future<void> toggleBypassWeekendOutingRestriction(bool value) async {
-    final updatedPrefs = state.copyWith(
-      bypassWeekendOutingRestriction: value,
-    );
+    final updatedPrefs = state.copyWith(bypassWeekendOutingRestriction: value);
     await updatePreferences(updatedPrefs);
   }
 

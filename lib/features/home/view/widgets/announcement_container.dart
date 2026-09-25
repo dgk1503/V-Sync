@@ -69,7 +69,7 @@ class AnnouncementContainer extends ConsumerWidget {
                                 .textTheme
                                 .titleMedium
                                 ?.copyWith(
-                                  fontWeight: FontWeight.w600,
+                                  fontWeight: FontWeight.w500,
                                   color:
                                       Theme.of(context).colorScheme.onSurface,
                                 ),
@@ -91,7 +91,7 @@ class AnnouncementContainer extends ConsumerWidget {
                               style: TextStyle(
                                 color: Theme.of(context).colorScheme.primary,
                                 fontSize: 12,
-                                fontWeight: FontWeight.w600,
+                                fontWeight: FontWeight.w500,
                               ),
                             ),
                           ),
@@ -237,7 +237,7 @@ class AnnouncementTile extends StatelessWidget {
                       child: Text(
                         announcement.title,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              fontWeight: FontWeight.w600,
+                              fontWeight: FontWeight.w500,
                               color: Theme.of(context).colorScheme.onSurface,
                             ),
                         maxLines: 2,
@@ -297,7 +297,7 @@ class AnnouncementTile extends StatelessWidget {
                               style: TextStyle(
                                 color: importanceColor,
                                 fontSize: 12,
-                                fontWeight: FontWeight.w600,
+                                fontWeight: FontWeight.w500,
                               ),
                             ),
                             const SizedBox(width: 4),

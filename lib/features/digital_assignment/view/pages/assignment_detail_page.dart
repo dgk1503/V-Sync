@@ -81,7 +81,7 @@ class _AssignmentDetailPageState extends ConsumerState<AssignmentDetailPage> {
         title: Text(
           widget.assignment.courseTitle,
           style: theme.textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w500,
           ),
         ),
       ),
@@ -126,7 +126,7 @@ class _AssignmentDetailPageState extends ConsumerState<AssignmentDetailPage> {
         Text(
           _extractFacultyName(widget.assignment.faculty),
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w500,
               ),
         ),
         const SizedBox(height: 8),
@@ -200,7 +200,7 @@ class _AssignmentDetailPageState extends ConsumerState<AssignmentDetailPage> {
                 Text(
                   'Upload Guidelines',
                   style: theme.textTheme.labelLarge?.copyWith(
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w500,
                     color: theme.colorScheme.primary,
                   ),
                 ),

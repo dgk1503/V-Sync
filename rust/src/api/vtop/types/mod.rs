@@ -1,5 +1,7 @@
+pub mod academic_calendar;
 pub mod attendance;
 pub mod biometric;
+pub mod capstone_attendance;
 pub mod comprehensive_data;
 pub mod course_page;
 pub mod digital_assignment;
@@ -8,6 +10,7 @@ pub mod faculty;
 pub mod general_outing;
 pub mod grade_course_history;
 pub mod grade_history;
+pub mod grade_view;
 pub mod marks;
 pub mod mentor_details;
 pub mod outing_info;
@@ -19,8 +22,10 @@ pub mod timetable;
 pub mod weekend_outing;
 
 // Re-export all types for easy access
+pub use academic_calendar::*;
 pub use attendance::*;
 pub use biometric::*;
+pub use capstone_attendance::*;
 pub use comprehensive_data::*;
 #[allow(unused_imports)]
 pub use course_page::*;
@@ -30,6 +35,7 @@ pub use faculty::*;
 pub use general_outing::*;
 pub use grade_course_history::*;
 pub use grade_history::*;
+pub use grade_view::*;
 pub use marks::*;
 pub use mentor_details::*;
 #[allow(unused_imports)]

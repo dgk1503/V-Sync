@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:vit_ap_student_app/core/common/widget/user_icon.dart';
+import 'package:vit_ap_student_app/core/utils/faculty_name.dart';
 import 'package:vit_ap_student_app/features/home/model/faculty.dart';
 
 class FacultyListTile extends StatelessWidget {
@@ -14,39 +14,18 @@ class FacultyListTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // The faculty directory is intentionally name-only. Full designation,
+    // department, contact, and office details remain available after tap.
+    final name = stripFacultyTitle(faculty.facultyName);
+
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      leading: UserIcon(name: faculty.facultyName),
       title: Text(
-        faculty.facultyName,
-        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+        name,
+        style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 15),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       ),
-      subtitle: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            faculty.designation,
-            style: TextStyle(
-              fontSize: 13,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          Text(
-            faculty.schoolOrCentre,
-            style: TextStyle(
-              fontSize: 12,
-              color: Theme.of(context).colorScheme.outline,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
-      ),
-      isThreeLine: true,
       onTap: onTap,
     );
   }

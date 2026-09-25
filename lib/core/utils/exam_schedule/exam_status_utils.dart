@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:vit_ap_student_app/core/theme/app_theme.dart';
 
 import 'exam_constants.dart';
 import 'exam_date_utils.dart';
@@ -41,14 +42,15 @@ String getExamStatusLabel(ExamStatus status) {
 
 /// Returns the appropriate color for a given exam status based on the color scheme.
 Color getExamStatusColor(ExamStatus status, ColorScheme colorScheme) {
+  final statusColors = AppStatusColors.forColorScheme(colorScheme);
   switch (status) {
     case ExamStatus.today:
-      return colorScheme.primary;
+      return statusColors.warning;
     case ExamStatus.upcoming:
-      return colorScheme.tertiary;
+      return statusColors.neutral;
     case ExamStatus.completed:
-      return colorScheme.secondary;
+      return statusColors.success;
     case ExamStatus.unknown:
-      return colorScheme.primary;
+      return statusColors.neutral;
   }
 }

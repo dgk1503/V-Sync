@@ -48,7 +48,7 @@ class PaymentCard extends StatelessWidget {
               payment.feesHeads,
               style: Theme.of(
                 context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w500),
             ),
             const SizedBox(height: 8),
 
@@ -88,7 +88,7 @@ class PaymentCard extends StatelessWidget {
                     payment.paymentStatus.toUpperCase(),
                     style: const TextStyle(
                       color: Colors.red,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w500,
                       fontSize: 12,
                     ),
                   ),
@@ -115,7 +115,7 @@ class _AmountLabel extends StatelessWidget {
         const SizedBox(height: 4),
         Text(
           '₹$value',
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
         ),
       ],
     );

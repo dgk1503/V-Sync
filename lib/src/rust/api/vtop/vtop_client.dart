@@ -8,8 +8,10 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import '../../frb_generated.dart';
 import 'client/academic.dart';
 import 'client/biometric.dart';
+import 'client/calendar.dart';
 import 'client/course_page.dart';
 import 'client/faculty.dart';
+import 'client/grade_view.dart';
 import 'client/hostel.dart';
 import 'client/payment.dart';
 import 'client/profile.dart';
@@ -288,16 +290,18 @@ abstract class VtopClient implements RustOpaqueInterface {
   ///
   /// # Examples
   ///
-  /// ```
+  /// ```no_run
+  /// # use lib_vtop::api::vtop::vtop_client::VtopClient;
   /// # async fn example(client: &mut VtopClient) -> Result<(), Box<dyn std::error::Error>> {
-  /// // First get the list of receipts
+  /// // First get the list of receipts, and the application number from the profile.
   /// let receipts = client.get_payment_receipts().await?;
+  /// let profile = client.get_student_profile().await?;
   ///
   /// // Download a specific receipt
   /// if let Some(receipt) = receipts.first() {
   ///     let receipt_html = client.download_payment_receipt(
   ///         receipt.receipt_no.clone(),
-  ///         receipt.applno.clone()
+  ///         profile.application_number.clone(),
   ///     ).await?;
   ///
   ///     // Save to file or display
@@ -310,6 +314,25 @@ abstract class VtopClient implements RustOpaqueInterface {
   Future<VtopResultString> downloadPaymentReceipt({
     required String receiptNo,
     required String applno,
+  });
+
+  /// Retrieves a semester's whole academic calendar.
+  ///
+  /// VTOP serves the calendar a month at a time, so this is one request for
+  /// the month list plus one per month — seven or so for a semester. It is
+  /// meant to be called once and the result cached, not on every page open.
+  ///
+  /// A month that fails to load is skipped rather than failing the whole
+  /// calendar: a calendar missing one month is still worth showing, and the
+  /// gap is visible in `months` against `days`.
+  ///
+  /// # Arguments
+  ///
+  /// * `semester_id` - The unique identifier for the semester.
+  /// * `class_group_id` - The class group, e.g. [`DEFAULT_CLASS_GROUP`].
+  Future<VtopResultAcademicCalendar> getAcademicCalendar({
+    required String semesterId,
+    required String classGroupId,
   });
 
   /// Retrieves the digital assignments for all courses in a specific semester.
@@ -442,6 +465,31 @@ abstract class VtopClient implements RustOpaqueInterface {
     required String courseType,
   });
 
+  /// Retrieves course attendance and, when the student has one, the
+  /// capstone/SDP attendance alongside it.
+  ///
+  /// The attendance page itself says whether a capstone exists — it renders a
+  /// "View CAPSTONE/SDP Attendance" button only for students who have one —
+  /// so the second request is made only when that button is present.
+  ///
+  /// # Arguments
+  ///
+  /// * `semester_id` - The unique identifier for the semester.
+  ///
+  /// # Returns
+  ///
+  /// Returns the course records and the capstone attendance, the latter being
+  /// `None` for the majority of students who have no capstone registration.
+  ///
+  /// # Errors
+  ///
+  /// Fails under the same conditions as [`Self::get_attendance`]. A failure
+  /// while fetching the capstone is *not* one of them: the course records are
+  /// already parsed and correct at that point, so a capstone failure degrades
+  /// to `None` rather than losing the whole page.
+  Future<VtopResultVecAttendanceRecordOptionCapstoneAttendance>
+  getAttendanceWithCapstone({required String semesterId});
+
   /// Retrieves biometric attendance records for a specific date.
   ///
   /// Fetches the student's biometric entry/exit records from the campus biometric system
@@ -486,6 +534,86 @@ abstract class VtopClient implements RustOpaqueInterface {
   /// # }
   /// ```
   Future<VtopResultVecBiometricRecord> getBiometricData({required String date});
+
+  /// Retrieves the class groups available for a semester.
+  ///
+  /// Class groups are semester dependent, so VTOP only renders them once a
+  /// semester is chosen.
+  ///
+  /// # Arguments
+  ///
+  /// * `semester_id` - The unique identifier for the semester.
+  ///
+  /// # Errors
+  ///
+  /// This function will return an error if:
+  /// - The session is not authenticated (`VtopError::SessionExpired`)
+  /// - Network communication fails (`VtopError::NetworkError`)
+  /// - The VTOP server returns an error response (`VtopError::VtopServerError`)
+  Future<VtopResultVecClassGroup> getCalendarClassGroups({
+    required String semesterId,
+  });
+
+  /// Retrieves one month of a semester's calendar.
+  ///
+  /// # Arguments
+  ///
+  /// * `semester_id` - The unique identifier for the semester.
+  /// * `cal_date` - The month to view, from [`CalendarMonthRef::cal_date`] —
+  ///   e.g. "01-AUG-2026".
+  /// * `class_group_id` - The class group, e.g. [`DEFAULT_CLASS_GROUP`].
+  ///
+  /// # Returns
+  ///
+  /// The month's days, in date order.
+  Future<VtopResultVecCalendarDay> getCalendarMonth({
+    required String semesterId,
+    required String calDate,
+    required String classGroupId,
+  });
+
+  /// Retrieves the months a semester's calendar covers.
+  ///
+  /// # Arguments
+  ///
+  /// * `semester_id` - The unique identifier for the semester.
+  /// * `class_group_id` - The class group, e.g. [`DEFAULT_CLASS_GROUP`].
+  ///
+  /// # Returns
+  ///
+  /// One entry per month, each carrying the `cal_date` that
+  /// [`Self::get_calendar_month`] expects.
+  Future<VtopResultVecCalendarMonthRef> getCalendarMonths({
+    required String semesterId,
+    required String classGroupId,
+  });
+
+  /// Retrieves the capstone/SDP attendance for a semester.
+  ///
+  /// This is not per-course attendance: it covers the single capstone or SDP
+  /// registration a final-year student has, and VTOP tracks it as a daily
+  /// punch rather than as classes attended out of classes held.
+  ///
+  /// # Arguments
+  ///
+  /// * `semester_id` - The unique identifier for the semester.
+  ///
+  /// # Returns
+  ///
+  /// Returns `Ok(None)` when the response carries no attendance summary,
+  /// which is what a student with no capstone registration gets. Otherwise
+  /// returns the registration details, the present/on-duty/absent tally and
+  /// the day-by-day punch calendar, all of which arrive in this one response.
+  ///
+  /// # Errors
+  ///
+  /// This function will return an error if:
+  /// - The session is not authenticated (`VtopError::SessionExpired`)
+  /// - Network communication fails (`VtopError::NetworkError`)
+  /// - The VTOP server returns an error response (`VtopError::VtopServerError`)
+  Future<VtopResultOptionCapstoneAttendance> getCapstoneAttendance({
+    required String semesterId,
+  });
 
   /// Retrieves the current session's cookies as a byte vector.
   ///
@@ -927,6 +1055,45 @@ abstract class VtopClient implements RustOpaqueInterface {
   /// ```
   Future<VtopResultGradeHistory> getGradeHistory();
 
+  /// Retrieves the graded courses for a semester from the grade view page.
+  ///
+  /// Grades are visible for a semester only once it has ended; the current
+  /// semester returns nothing until results are published. Each returned
+  /// course carries a `course_id` for looking up its detailed marks with
+  /// [`get_grade_view_detail`](Self::get_grade_view_detail).
+  ///
+  /// # Arguments
+  ///
+  /// * `semester_id` - The semester id (obtained from `get_semesters()`)
+  ///
+  /// # Errors
+  ///
+  /// Returns an error if the session is not authenticated, the CSRF token is
+  /// missing, or network communication fails.
+  Future<VtopResultVecGradeViewCourse> getGradeView({
+    required String semesterId,
+  });
+
+  /// Retrieves the mark breakdown and class statistics for one course.
+  ///
+  /// This is the data behind an expandable tile on the grade view page: the
+  /// per-component marks (CAT, FAT, quizzes), the total, and the class
+  /// statistics (strength, mean, standard deviation, and grade cutoffs).
+  ///
+  /// # Arguments
+  ///
+  /// * `semester_id` - The semester id
+  /// * `course_id` - The course id, from [`GradeViewCourse::course_id`]
+  ///
+  /// # Errors
+  ///
+  /// Returns an error if the session is not authenticated, the CSRF token is
+  /// missing, or network communication fails.
+  Future<VtopResultGradeViewDetail> getGradeViewDetail({
+    required String semesterId,
+    required String courseId,
+  });
+
   /// Downloads the PDF pass for a specific weekend outing booking.
   ///
   /// Retrieves the official weekend outing pass document in PDF format. This pass must be
@@ -1052,7 +1219,8 @@ abstract class VtopClient implements RustOpaqueInterface {
   ///
   /// # Examples
   ///
-  /// ```
+  /// ```no_run
+  /// # use lib_vtop::api::vtop::vtop_client::VtopClient;
   /// # async fn example(client: &mut VtopClient) -> Result<(), Box<dyn std::error::Error>> {
   /// let receipts = client.get_payment_receipts().await?;
   ///
@@ -1061,13 +1229,13 @@ abstract class VtopClient implements RustOpaqueInterface {
   ///     println!("Receipt: {} | Amount: ₹{} | Date: {}",
   ///         receipt.receipt_no,
   ///         receipt.amount,
-  ///         receipt.payment_date
+  ///         receipt.date
   ///     );
   /// }
   ///
-  /// // Calculate total paid
+  /// // Calculate total paid (amounts are strings, so parse them)
   /// let total: f64 = receipts.iter()
-  ///     .map(|r| r.amount)
+  ///     .filter_map(|r| r.amount.parse::<f64>().ok())
   ///     .sum();
   /// println!("Total paid: ₹{}", total);
   /// # Ok(())
@@ -1103,7 +1271,8 @@ abstract class VtopClient implements RustOpaqueInterface {
   ///
   /// # Examples
   ///
-  /// ```
+  /// ```no_run
+  /// # use lib_vtop::api::vtop::vtop_client::VtopClient;
   /// # async fn example(client: &mut VtopClient) -> Result<(), Box<dyn std::error::Error>> {
   /// let pending = client.get_pending_payment().await?;
   ///
@@ -1114,15 +1283,15 @@ abstract class VtopClient implements RustOpaqueInterface {
   ///
   ///     for payment in &pending {
   ///         println!("- {} | Amount: ₹{} | Due: {}",
-  ///             payment.description,
-  ///             payment.amount,
-  ///             payment.due_date
+  ///             payment.fees_heads,
+  ///             payment.total_amount,
+  ///             payment.end_date
   ///         );
   ///     }
   ///
-  ///     // Calculate total due
+  ///     // Calculate total due (amounts are strings, so parse them)
   ///     let total_due: f64 = pending.iter()
-  ///         .map(|p| p.amount)
+  ///         .filter_map(|p| p.total_amount.parse::<f64>().ok())
   ///         .sum();
   ///     println!("\nTotal amount due: ₹{}", total_due);
   /// }
@@ -1130,16 +1299,17 @@ abstract class VtopClient implements RustOpaqueInterface {
   /// # }
   /// ```
   ///
-  /// ```
+  /// ```no_run
+  /// # use lib_vtop::api::vtop::vtop_client::VtopClient;
   /// # async fn example2(client: &mut VtopClient) -> Result<(), Box<dyn std::error::Error>> {
-  /// // Check for overdue payments
+  /// // List the pending payments that carry a fine.
   /// let pending = client.get_pending_payment().await?;
-  /// let overdue: Vec<_> = pending.iter()
-  ///     .filter(|p| p.status == "Overdue")
+  /// let with_fine: Vec<_> = pending.iter()
+  ///     .filter(|p| p.fine != "0" && !p.fine.is_empty())
   ///     .collect();
   ///
-  /// if !overdue.is_empty() {
-  ///     println!("URGENT: {} overdue payment(s) require immediate attention!", overdue.len());
+  /// if !with_fine.is_empty() {
+  ///     println!("URGENT: {} payment(s) have accrued a fine!", with_fine.len());
   /// }
   /// # Ok(())
   /// # }

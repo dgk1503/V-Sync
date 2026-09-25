@@ -14,9 +14,9 @@ class UnknownContentView extends StatelessWidget {
           'This page does not exist',
           textAlign: TextAlign.center,
           style: TextStyle(
-            fontFamily: 'Outfit',
+            fontFamily: 'Instrument Sans',
             fontSize: 16,
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w500,
             color: colorScheme.onSurfaceVariant,
           ),
         ),

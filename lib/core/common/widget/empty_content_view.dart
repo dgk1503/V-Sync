@@ -24,9 +24,9 @@ class EmptyContentView extends StatelessWidget {
               primaryText,
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontFamily: 'Outfit',
+                fontFamily: 'Instrument Sans',
                 fontSize: 16,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w500,
                 color: colorScheme.onSurface,
               ),
             ),
@@ -35,7 +35,7 @@ class EmptyContentView extends StatelessWidget {
               secondaryText,
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontFamily: 'Inter',
+                fontFamily: 'Instrument Sans',
                 fontSize: 13,
                 color: colorScheme.onSurfaceVariant,
               ),

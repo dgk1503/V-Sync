@@ -15,7 +15,8 @@ class AttendanceCalculatorPage extends ConsumerStatefulWidget {
       _AttendanceCalculatorPageState();
 }
 
-class _AttendanceCalculatorPageState extends ConsumerState<AttendanceCalculatorPage> {
+class _AttendanceCalculatorPageState
+    extends ConsumerState<AttendanceCalculatorPage> {
   late int attended;
   late int total;
   late int futureAttend;
@@ -44,8 +45,7 @@ class _AttendanceCalculatorPageState extends ConsumerState<AttendanceCalculatorP
     return (needAttend > 0 ? needAttend : 0, 0);
   }
 
-  double get _currentPercentage =>
-      total == 0 ? 0.0 : (attended / total) * 100;
+  double get _currentPercentage => total == 0 ? 0.0 : (attended / total) * 100;
 
   double get _predictedPercentage {
     final newTotal = total + futureAttend + futureSkip;
@@ -98,20 +98,21 @@ class _AttendanceCalculatorPageState extends ConsumerState<AttendanceCalculatorP
         title: Text(
           'Attendance Calculator',
           style: TextStyle(
-            fontFamily: 'Outfit',
+            fontFamily: 'Instrument Sans',
             fontSize: 18,
-            fontWeight: FontWeight.w600,
-            color: cs.onSurface,
+            fontWeight: FontWeight.w500,
+            color: headingColor(),
           ),
         ),
         actions: [
           TextButton.icon(
-            onPressed: () => showAttendanceBottomSheet(context, widget.attendance),
+            onPressed: () =>
+                showAttendanceBottomSheet(context, widget.attendance),
             icon: Icon(Icons.list_alt, size: 18, color: captionColor),
             label: Text(
               'Details',
               style: TextStyle(
-                fontFamily: 'Inter',
+                fontFamily: 'Instrument Sans',
                 fontSize: 13,
                 color: captionColor,
               ),
@@ -129,11 +130,27 @@ class _AttendanceCalculatorPageState extends ConsumerState<AttendanceCalculatorP
             const SizedBox(height: 20),
 
             // ── Current attendance card ──
-            _buildCurrentCard(cs, cardBg, cardBorder, captionColor, presentColor, absentColor, isDark),
+            _buildCurrentCard(
+              cs,
+              cardBg,
+              cardBorder,
+              captionColor,
+              presentColor,
+              absentColor,
+              isDark,
+            ),
             const SizedBox(height: 16),
 
             // ── Future prediction card ──
-            _buildFutureCard(cs, cardBg, cardBorder, captionColor, presentColor, absentColor, isDark),
+            _buildFutureCard(
+              cs,
+              cardBg,
+              cardBorder,
+              captionColor,
+              presentColor,
+              absentColor,
+              isDark,
+            ),
             const SizedBox(height: 16),
 
             // ── Attendance Details (inline) ──
@@ -153,9 +170,9 @@ class _AttendanceCalculatorPageState extends ConsumerState<AttendanceCalculatorP
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
           style: TextStyle(
-            fontFamily: 'Outfit',
+            fontFamily: 'Instrument Sans',
             fontSize: 22,
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w500,
             color: heading,
           ),
         ),
@@ -163,7 +180,7 @@ class _AttendanceCalculatorPageState extends ConsumerState<AttendanceCalculatorP
         Text(
           '${widget.attendance.courseCode}  •  ${widget.attendance.faculty}',
           style: TextStyle(
-            fontFamily: 'Inter',
+            fontFamily: 'Instrument Sans',
             fontSize: 13,
             color: caption,
           ),
@@ -173,8 +190,13 @@ class _AttendanceCalculatorPageState extends ConsumerState<AttendanceCalculatorP
   }
 
   Widget _buildCurrentCard(
-    ColorScheme cs, Color cardBg, Color cardBorder, Color caption,
-    Color presentColor, Color absentColor, bool isDark,
+    ColorScheme cs,
+    Color cardBg,
+    Color cardBorder,
+    Color caption,
+    Color presentColor,
+    Color absentColor,
+    bool isDark,
   ) {
     final pct = _currentPercentage;
     final pctCol = _pctColor(pct, cs);
@@ -195,9 +217,9 @@ class _AttendanceCalculatorPageState extends ConsumerState<AttendanceCalculatorP
               Text(
                 'Current Attendance',
                 style: TextStyle(
-                  fontFamily: 'Outfit',
+                  fontFamily: 'Instrument Sans',
                   fontSize: 15,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w500,
                   color: cs.onSurface,
                 ),
               ),
@@ -205,7 +227,7 @@ class _AttendanceCalculatorPageState extends ConsumerState<AttendanceCalculatorP
               Text(
                 'Edit',
                 style: TextStyle(
-                  fontFamily: 'Inter',
+                  fontFamily: 'Instrument Sans',
                   fontSize: 12,
                   color: caption,
                 ),
@@ -256,16 +278,16 @@ class _AttendanceCalculatorPageState extends ConsumerState<AttendanceCalculatorP
                     Text(
                       '${pct.toStringAsFixed(0)}%',
                       style: TextStyle(
-                        fontFamily: 'Outfit',
+                        fontFamily: 'Instrument Sans',
                         fontSize: 32,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w500,
                         color: pctCol,
                       ),
                     ),
                     Text(
                       '$attended / $total',
                       style: TextStyle(
-                        fontFamily: 'Inter',
+                        fontFamily: 'Instrument Sans',
                         fontSize: 12,
                         color: caption,
                       ),
@@ -289,9 +311,17 @@ class _AttendanceCalculatorPageState extends ConsumerState<AttendanceCalculatorP
                   value: attended,
                   color: presentColor,
                   enable: editCurrent,
-                  onInc: () => setState(() { attended++; total++; }),
+                  onInc: () => setState(() {
+                    attended++;
+                    total++;
+                  }),
                   onDec: () {
-                    if (attended > 0) setState(() { attended--; total--; });
+                    if (attended > 0) {
+                      setState(() {
+                        attended--;
+                        total--;
+                      });
+                    }
                   },
                 ),
               ),
@@ -305,9 +335,15 @@ class _AttendanceCalculatorPageState extends ConsumerState<AttendanceCalculatorP
                   value: total - attended,
                   color: absentColor,
                   enable: editCurrent,
-                  onInc: () => setState(() { total++; }),
+                  onInc: () => setState(() {
+                    total++;
+                  }),
                   onDec: () {
-                    if (total > attended) setState(() { total--; });
+                    if (total > attended) {
+                      setState(() {
+                        total--;
+                      });
+                    }
                   },
                 ),
               ),
@@ -319,8 +355,13 @@ class _AttendanceCalculatorPageState extends ConsumerState<AttendanceCalculatorP
   }
 
   Widget _buildFutureCard(
-    ColorScheme cs, Color cardBg, Color cardBorder, Color caption,
-    Color presentColor, Color absentColor, bool isDark,
+    ColorScheme cs,
+    Color cardBg,
+    Color cardBorder,
+    Color caption,
+    Color presentColor,
+    Color absentColor,
+    bool isDark,
   ) {
     final hasPlan = futureAttend > 0 || futureSkip > 0;
 
@@ -341,18 +382,24 @@ class _AttendanceCalculatorPageState extends ConsumerState<AttendanceCalculatorP
               Text(
                 'Future Prediction',
                 style: TextStyle(
-                  fontFamily: 'Outfit',
+                  fontFamily: 'Instrument Sans',
                   fontSize: 15,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w500,
                   color: cs.onSurface,
                 ),
               ),
               const Spacer(),
               if (hasPlan)
                 GestureDetector(
-                  onTap: () => setState(() { futureAttend = 0; futureSkip = 0; }),
+                  onTap: () => setState(() {
+                    futureAttend = 0;
+                    futureSkip = 0;
+                  }),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(color: cardBorder),
@@ -360,7 +407,7 @@ class _AttendanceCalculatorPageState extends ConsumerState<AttendanceCalculatorP
                     child: Text(
                       'Reset',
                       style: TextStyle(
-                        fontFamily: 'Inter',
+                        fontFamily: 'Instrument Sans',
                         fontSize: 12,
                         color: cs.onSurface,
                       ),
@@ -414,7 +461,11 @@ class _AttendanceCalculatorPageState extends ConsumerState<AttendanceCalculatorP
     );
   }
 
-  Widget _buildPredictedBanner(ColorScheme cs, Color cardBorder, Color caption) {
+  Widget _buildPredictedBanner(
+    ColorScheme cs,
+    Color cardBorder,
+    Color caption,
+  ) {
     final pct = _predictedPercentage;
     final pctCol = _pctColor(pct, cs);
 
@@ -430,7 +481,7 @@ class _AttendanceCalculatorPageState extends ConsumerState<AttendanceCalculatorP
           Text(
             'Predicted Attendance',
             style: TextStyle(
-              fontFamily: 'Inter',
+              fontFamily: 'Instrument Sans',
               fontSize: 13,
               fontWeight: FontWeight.w500,
               color: caption,
@@ -439,9 +490,9 @@ class _AttendanceCalculatorPageState extends ConsumerState<AttendanceCalculatorP
           Text(
             '${pct.toStringAsFixed(1)}%',
             style: TextStyle(
-              fontFamily: 'Outfit',
+              fontFamily: 'Instrument Sans',
               fontSize: 20,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w500,
               color: pctCol,
             ),
           ),
@@ -473,7 +524,7 @@ class _AttendanceCalculatorPageState extends ConsumerState<AttendanceCalculatorP
           Text(
             label,
             style: TextStyle(
-              fontFamily: 'Inter',
+              fontFamily: 'Instrument Sans',
               fontSize: 11,
               fontWeight: FontWeight.w500,
               color: cs.onSurfaceVariant,
@@ -501,9 +552,9 @@ class _AttendanceCalculatorPageState extends ConsumerState<AttendanceCalculatorP
               Text(
                 '$value',
                 style: TextStyle(
-                  fontFamily: 'Outfit',
+                  fontFamily: 'Instrument Sans',
                   fontSize: 24,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w500,
                   color: cs.onSurface,
                 ),
               ),
@@ -538,17 +589,15 @@ class _AttendanceCalculatorPageState extends ConsumerState<AttendanceCalculatorP
         title: Text(
           'Attendance Details',
           style: TextStyle(
-            fontFamily: 'Outfit',
+            fontFamily: 'Instrument Sans',
             fontSize: 15,
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w500,
             color: cs.onSurface,
           ),
         ),
         iconColor: cs.onSurfaceVariant,
         collapsedIconColor: cs.onSurfaceVariant,
-        children: [
-          _buildDetailContent(cs),
-        ],
+        children: [_buildDetailContent(cs)],
       ),
     );
   }
@@ -573,7 +622,7 @@ class _AttendanceCalculatorPageState extends ConsumerState<AttendanceCalculatorP
             Text(
               'View day-wise attendance',
               style: TextStyle(
-                fontFamily: 'Inter',
+                fontFamily: 'Instrument Sans',
                 fontSize: 13,
                 color: cs.onSurfaceVariant,
               ),

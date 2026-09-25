@@ -103,7 +103,7 @@ class _GeneralOutingDetailBottomSheetContent extends ConsumerWidget {
                       Text(
                         outing.purposeOfVisit,
                         style: Theme.of(context).textTheme.headlineSmall
-                            ?.copyWith(fontWeight: FontWeight.bold),
+                            ?.copyWith(fontWeight: FontWeight.w500),
                       ),
                       const SizedBox(height: 8),
                       Container(
@@ -123,7 +123,7 @@ class _GeneralOutingDetailBottomSheetContent extends ConsumerWidget {
                           style: Theme.of(context).textTheme.labelMedium
                               ?.copyWith(
                                 color: getStatusColor(outing.status, context),
-                                fontWeight: FontWeight.bold,
+                                fontWeight: FontWeight.w500,
                                 letterSpacing: 0.5,
                               ),
                         ),
@@ -258,7 +258,7 @@ class _GeneralOutingDetailBottomSheetContent extends ConsumerWidget {
                     'Download',
                     style: TextStyle(
                       color: Colors.green.shade500,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ),
@@ -283,7 +283,7 @@ Widget _buildDetailSection(
       Text(
         title,
         style: Theme.of(context).textTheme.titleMedium?.copyWith(
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.w500,
           color: Theme.of(context).colorScheme.onSurface,
         ),
       ),

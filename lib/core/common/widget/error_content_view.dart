@@ -18,9 +18,9 @@ class ErrorContentView extends StatelessWidget {
               'Something went wrong',
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontFamily: 'Outfit',
+                fontFamily: 'Instrument Sans',
                 fontSize: 16,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w500,
                 color: colorScheme.onSurface,
               ),
             ),
@@ -29,7 +29,7 @@ class ErrorContentView extends StatelessWidget {
               error,
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontFamily: 'Inter',
+                fontFamily: 'Instrument Sans',
                 fontSize: 13,
                 color: colorScheme.onSurfaceVariant,
               ),

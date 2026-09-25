@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:vit_ap_student_app/core/common/widget/loader.dart';
+import 'package:vit_ap_student_app/core/utils/faculty_name.dart';
 import 'package:vit_ap_student_app/features/home/model/faculty.dart';
 import 'package:vit_ap_student_app/features/home/viewmodel/faculty_viewmodel.dart';
 import 'package:vit_ap_student_app/src/rust/api/vtop/types/faculty.dart';
@@ -41,8 +42,9 @@ class _FacultyDetailsSheetState extends ConsumerState<FacultyDetailsSheet> {
           children: [
             SizedBox(width: MediaQuery.sizeOf(context).width),
             Text(
-              widget.faculty.facultyName,
-              style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w600),
+              // Honorific stripped: "Dr. John Doe" shows as "John Doe".
+              stripFacultyTitle(widget.faculty.facultyName),
+              style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w500),
             ),
             const SizedBox(height: 8),
             switch (state) {
@@ -100,7 +102,7 @@ class FacultyDetailsBody extends StatelessWidget {
           'Designation',
           style: TextStyle(
             fontSize: 18,
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w500,
             color: colorScheme.primary,
           ),
         ),
@@ -117,7 +119,7 @@ class FacultyDetailsBody extends StatelessWidget {
           'Department',
           style: TextStyle(
             fontSize: 18,
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w500,
             color: colorScheme.primary,
           ),
         ),
@@ -134,7 +136,7 @@ class FacultyDetailsBody extends StatelessWidget {
           'School',
           style: TextStyle(
             fontSize: 18,
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w500,
             color: colorScheme.primary,
           ),
         ),
@@ -151,7 +153,7 @@ class FacultyDetailsBody extends StatelessWidget {
           'Email',
           style: TextStyle(
             fontSize: 18,
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w500,
             color: colorScheme.primary,
           ),
         ),
@@ -175,7 +177,7 @@ class FacultyDetailsBody extends StatelessWidget {
           'Cabin Number',
           style: TextStyle(
             fontSize: 18,
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w500,
             color: colorScheme.primary,
           ),
         ),
@@ -192,7 +194,7 @@ class FacultyDetailsBody extends StatelessWidget {
           'Open Hours:',
           style: TextStyle(
             fontSize: 18,
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w500,
             color: colorScheme.primary,
           ),
         ),

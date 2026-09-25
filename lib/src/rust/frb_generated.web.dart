@@ -16,18 +16,23 @@ import 'api/simple.dart';
 import 'api/vtop/captcha_solver.dart';
 import 'api/vtop/client/academic.dart';
 import 'api/vtop/client/biometric.dart';
+import 'api/vtop/client/calendar.dart';
 import 'api/vtop/client/course_page.dart';
 import 'api/vtop/client/faculty.dart';
+import 'api/vtop/client/grade_view.dart';
 import 'api/vtop/client/hostel.dart';
 import 'api/vtop/client/payment.dart';
 import 'api/vtop/client/profile.dart';
 import 'api/vtop/parser/attendance_parser.dart';
+import 'api/vtop/parser/calendar_parser.dart';
+import 'api/vtop/parser/capstone_attendance_parser.dart';
 import 'api/vtop/parser/course_page_parser.dart';
 import 'api/vtop/parser/digital_assignment_parser.dart';
 import 'api/vtop/parser/exam_schedule_parser.dart';
 import 'api/vtop/parser/faculty/parseabout.dart';
 import 'api/vtop/parser/faculty/parsesearch.dart';
 import 'api/vtop/parser/grade_history_parser.dart';
+import 'api/vtop/parser/grade_view_parser.dart';
 import 'api/vtop/parser/hostel/general_outing_parser.dart';
 import 'api/vtop/parser/hostel/weekend_outing_parser.dart';
 import 'api/vtop/parser/marks_parser.dart';
@@ -40,8 +45,10 @@ import 'api/vtop/parser/profile_parser.dart';
 import 'api/vtop/parser/semested_id_parser.dart';
 import 'api/vtop/parser/timetable_parser.dart';
 import 'api/vtop/session_manager.dart';
+import 'api/vtop/types/academic_calendar.dart';
 import 'api/vtop/types/attendance.dart';
 import 'api/vtop/types/biometric.dart';
+import 'api/vtop/types/capstone_attendance.dart';
 import 'api/vtop/types/course_page.dart';
 import 'api/vtop/types/digital_assignment.dart';
 import 'api/vtop/types/exam_schedule.dart';
@@ -49,6 +56,7 @@ import 'api/vtop/types/faculty.dart';
 import 'api/vtop/types/general_outing.dart';
 import 'api/vtop/types/grade_course_history.dart';
 import 'api/vtop/types/grade_history.dart';
+import 'api/vtop/types/grade_view.dart';
 import 'api/vtop/types/marks.dart';
 import 'api/vtop/types/mentor_details.dart';
 import 'api/vtop/types/outing_info.dart';
@@ -98,6 +106,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
       .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResult;
 
   CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_VtopResultAcademicCalendarPtr => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultAcademicCalendar;
+
+  CrossPlatformFinalizerArg
   get rust_arc_decrement_strong_count_VtopResultCoursePageDetailPtr => wire
       .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultCoursePageDetail;
 
@@ -116,6 +128,14 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   CrossPlatformFinalizerArg
   get rust_arc_decrement_strong_count_VtopResultGradeHistoryPtr => wire
       .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultGradeHistory;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_VtopResultGradeViewDetailPtr => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultGradeViewDetail;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_VtopResultOptionCapstoneAttendancePtr => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultOptionCapstoneAttendance;
 
   CrossPlatformFinalizerArg
   get rust_arc_decrement_strong_count_VtopResultSemesterDataPtr => wire
@@ -150,8 +170,24 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
       .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecAttendanceRecord;
 
   CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_VtopResultVecAttendanceRecordOptionCapstoneAttendancePtr =>
+      wire.rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecAttendanceRecordOptionCapstoneAttendance;
+
+  CrossPlatformFinalizerArg
   get rust_arc_decrement_strong_count_VtopResultVecBiometricRecordPtr => wire
       .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecBiometricRecord;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_VtopResultVecCalendarDayPtr => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecCalendarDay;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_VtopResultVecCalendarMonthRefPtr => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecCalendarMonthRef;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_VtopResultVecClassGroupPtr => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecClassGroup;
 
   CrossPlatformFinalizerArg
   get rust_arc_decrement_strong_count_VtopResultVecDigitalAssignmentsPtr => wire
@@ -164,6 +200,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   CrossPlatformFinalizerArg
   get rust_arc_decrement_strong_count_VtopResultVecGetFacultyPtr => wire
       .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecGetFaculty;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_VtopResultVecGradeViewCoursePtr => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecGradeViewCourse;
 
   CrossPlatformFinalizerArg
   get rust_arc_decrement_strong_count_VtopResultVecMarksPtr => wire
@@ -224,6 +264,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  VtopResultAcademicCalendar
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultAcademicCalendar(
+    dynamic raw,
+  );
+
+  @protected
   VtopResultCoursePageDetail
   dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultCoursePageDetail(
     dynamic raw,
@@ -250,6 +296,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   VtopResultGradeHistory
   dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultGradeHistory(
+    dynamic raw,
+  );
+
+  @protected
+  VtopResultGradeViewDetail
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultGradeViewDetail(
+    dynamic raw,
+  );
+
+  @protected
+  VtopResultOptionCapstoneAttendance
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultOptionCapstoneAttendance(
     dynamic raw,
   );
 
@@ -302,8 +360,32 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  VtopResultVecAttendanceRecordOptionCapstoneAttendance
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecAttendanceRecordOptionCapstoneAttendance(
+    dynamic raw,
+  );
+
+  @protected
   VtopResultVecBiometricRecord
   dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecBiometricRecord(
+    dynamic raw,
+  );
+
+  @protected
+  VtopResultVecCalendarDay
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecCalendarDay(
+    dynamic raw,
+  );
+
+  @protected
+  VtopResultVecCalendarMonthRef
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecCalendarMonthRef(
+    dynamic raw,
+  );
+
+  @protected
+  VtopResultVecClassGroup
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecClassGroup(
     dynamic raw,
   );
 
@@ -322,6 +404,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   VtopResultVecGetFaculty
   dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecGetFaculty(
+    dynamic raw,
+  );
+
+  @protected
+  VtopResultVecGradeViewCourse
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecGradeViewCourse(
     dynamic raw,
   );
 
@@ -434,6 +522,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  VtopResultAcademicCalendar
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultAcademicCalendar(
+    dynamic raw,
+  );
+
+  @protected
   VtopResultCoursePageDetail
   dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultCoursePageDetail(
     dynamic raw,
@@ -460,6 +554,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   VtopResultGradeHistory
   dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultGradeHistory(
+    dynamic raw,
+  );
+
+  @protected
+  VtopResultGradeViewDetail
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultGradeViewDetail(
+    dynamic raw,
+  );
+
+  @protected
+  VtopResultOptionCapstoneAttendance
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultOptionCapstoneAttendance(
     dynamic raw,
   );
 
@@ -512,8 +618,32 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  VtopResultVecAttendanceRecordOptionCapstoneAttendance
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecAttendanceRecordOptionCapstoneAttendance(
+    dynamic raw,
+  );
+
+  @protected
   VtopResultVecBiometricRecord
   dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecBiometricRecord(
+    dynamic raw,
+  );
+
+  @protected
+  VtopResultVecCalendarDay
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecCalendarDay(
+    dynamic raw,
+  );
+
+  @protected
+  VtopResultVecCalendarMonthRef
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecCalendarMonthRef(
+    dynamic raw,
+  );
+
+  @protected
+  VtopResultVecClassGroup
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecClassGroup(
     dynamic raw,
   );
 
@@ -532,6 +662,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   VtopResultVecGetFaculty
   dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecGetFaculty(
+    dynamic raw,
+  );
+
+  @protected
+  VtopResultVecGradeViewCourse
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecGradeViewCourse(
     dynamic raw,
   );
 
@@ -581,6 +717,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   String dco_decode_String(dynamic raw);
 
   @protected
+  AcademicCalendar dco_decode_academic_calendar(dynamic raw);
+
+  @protected
   AssignmentRecordEach dco_decode_assignment_record_each(dynamic raw);
 
   @protected
@@ -596,10 +735,37 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   bool dco_decode_bool(dynamic raw);
 
   @protected
+  CapstoneAttendance dco_decode_box_autoadd_capstone_attendance(dynamic raw);
+
+  @protected
   VtopConfig dco_decode_box_autoadd_vtop_config(dynamic raw);
 
   @protected
   VtopError dco_decode_box_autoadd_vtop_error(dynamic raw);
+
+  @protected
+  CalendarDay dco_decode_calendar_day(dynamic raw);
+
+  @protected
+  CalendarEvent dco_decode_calendar_event(dynamic raw);
+
+  @protected
+  CalendarMonthRef dco_decode_calendar_month_ref(dynamic raw);
+
+  @protected
+  CapstoneAttendance dco_decode_capstone_attendance(dynamic raw);
+
+  @protected
+  CapstoneInfo dco_decode_capstone_info(dynamic raw);
+
+  @protected
+  CapstonePunch dco_decode_capstone_punch(dynamic raw);
+
+  @protected
+  CapstoneSummary dco_decode_capstone_summary(dynamic raw);
+
+  @protected
+  ClassGroup dco_decode_class_group(dynamic raw);
 
   @protected
   CourseClassEntry dco_decode_course_class_entry(dynamic raw);
@@ -638,6 +804,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   GradeHistory dco_decode_grade_history(dynamic raw);
 
   @protected
+  GradeRange dco_decode_grade_range(dynamic raw);
+
+  @protected
+  GradeStatistics dco_decode_grade_statistics(dynamic raw);
+
+  @protected
+  GradeViewCourse dco_decode_grade_view_course(dynamic raw);
+
+  @protected
+  GradeViewDetail dco_decode_grade_view_detail(dynamic raw);
+
+  @protected
   int dco_decode_i_32(dynamic raw);
 
   @protected
@@ -663,6 +841,21 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<BiometricRecord> dco_decode_list_biometric_record(dynamic raw);
 
   @protected
+  List<CalendarDay> dco_decode_list_calendar_day(dynamic raw);
+
+  @protected
+  List<CalendarEvent> dco_decode_list_calendar_event(dynamic raw);
+
+  @protected
+  List<CalendarMonthRef> dco_decode_list_calendar_month_ref(dynamic raw);
+
+  @protected
+  List<CapstonePunch> dco_decode_list_capstone_punch(dynamic raw);
+
+  @protected
+  List<ClassGroup> dco_decode_list_class_group(dynamic raw);
+
+  @protected
   List<CourseClassEntry> dco_decode_list_course_class_entry(dynamic raw);
 
   @protected
@@ -684,10 +877,19 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<GradeCourseHistory> dco_decode_list_grade_course_history(dynamic raw);
 
   @protected
+  List<GradeRange> dco_decode_list_grade_range(dynamic raw);
+
+  @protected
+  List<GradeViewCourse> dco_decode_list_grade_view_course(dynamic raw);
+
+  @protected
   List<LectureEntry> dco_decode_list_lecture_entry(dynamic raw);
 
   @protected
   List<List<String>> dco_decode_list_list_String(dynamic raw);
+
+  @protected
+  List<MarkComponent> dco_decode_list_mark_component(dynamic raw);
 
   @protected
   List<Marks> dco_decode_list_marks(dynamic raw);
@@ -733,6 +935,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<WeekendOutingRecord> dco_decode_list_weekend_outing_record(dynamic raw);
 
   @protected
+  MarkComponent dco_decode_mark_component(dynamic raw);
+
+  @protected
   Marks dco_decode_marks(dynamic raw);
 
   @protected
@@ -746,6 +951,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   String? dco_decode_opt_String(dynamic raw);
+
+  @protected
+  CapstoneAttendance? dco_decode_opt_box_autoadd_capstone_attendance(
+    dynamic raw,
+  );
 
   @protected
   OutingInfo dco_decode_outing_info(dynamic raw);
@@ -782,6 +992,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   TimetableClass dco_decode_timetable_class(dynamic raw);
+
+  @protected
+  int dco_decode_u_32(dynamic raw);
 
   @protected
   BigInt dco_decode_u_64(dynamic raw);
@@ -835,6 +1048,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  VtopResultAcademicCalendar
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultAcademicCalendar(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   VtopResultCoursePageDetail
   sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultCoursePageDetail(
     SseDeserializer deserializer,
@@ -861,6 +1080,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   VtopResultGradeHistory
   sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultGradeHistory(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  VtopResultGradeViewDetail
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultGradeViewDetail(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  VtopResultOptionCapstoneAttendance
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultOptionCapstoneAttendance(
     SseDeserializer deserializer,
   );
 
@@ -913,8 +1144,32 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  VtopResultVecAttendanceRecordOptionCapstoneAttendance
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecAttendanceRecordOptionCapstoneAttendance(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   VtopResultVecBiometricRecord
   sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecBiometricRecord(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  VtopResultVecCalendarDay
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecCalendarDay(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  VtopResultVecCalendarMonthRef
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecCalendarMonthRef(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  VtopResultVecClassGroup
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecClassGroup(
     SseDeserializer deserializer,
   );
 
@@ -933,6 +1188,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   VtopResultVecGetFaculty
   sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecGetFaculty(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  VtopResultVecGradeViewCourse
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecGradeViewCourse(
     SseDeserializer deserializer,
   );
 
@@ -1045,6 +1306,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  VtopResultAcademicCalendar
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultAcademicCalendar(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   VtopResultCoursePageDetail
   sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultCoursePageDetail(
     SseDeserializer deserializer,
@@ -1071,6 +1338,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   VtopResultGradeHistory
   sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultGradeHistory(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  VtopResultGradeViewDetail
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultGradeViewDetail(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  VtopResultOptionCapstoneAttendance
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultOptionCapstoneAttendance(
     SseDeserializer deserializer,
   );
 
@@ -1123,8 +1402,32 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  VtopResultVecAttendanceRecordOptionCapstoneAttendance
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecAttendanceRecordOptionCapstoneAttendance(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   VtopResultVecBiometricRecord
   sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecBiometricRecord(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  VtopResultVecCalendarDay
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecCalendarDay(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  VtopResultVecCalendarMonthRef
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecCalendarMonthRef(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  VtopResultVecClassGroup
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecClassGroup(
     SseDeserializer deserializer,
   );
 
@@ -1143,6 +1446,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   VtopResultVecGetFaculty
   sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecGetFaculty(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  VtopResultVecGradeViewCourse
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecGradeViewCourse(
     SseDeserializer deserializer,
   );
 
@@ -1192,6 +1501,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   String sse_decode_String(SseDeserializer deserializer);
 
   @protected
+  AcademicCalendar sse_decode_academic_calendar(SseDeserializer deserializer);
+
+  @protected
   AssignmentRecordEach sse_decode_assignment_record_each(
     SseDeserializer deserializer,
   );
@@ -1211,10 +1523,41 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   bool sse_decode_bool(SseDeserializer deserializer);
 
   @protected
+  CapstoneAttendance sse_decode_box_autoadd_capstone_attendance(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   VtopConfig sse_decode_box_autoadd_vtop_config(SseDeserializer deserializer);
 
   @protected
   VtopError sse_decode_box_autoadd_vtop_error(SseDeserializer deserializer);
+
+  @protected
+  CalendarDay sse_decode_calendar_day(SseDeserializer deserializer);
+
+  @protected
+  CalendarEvent sse_decode_calendar_event(SseDeserializer deserializer);
+
+  @protected
+  CalendarMonthRef sse_decode_calendar_month_ref(SseDeserializer deserializer);
+
+  @protected
+  CapstoneAttendance sse_decode_capstone_attendance(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  CapstoneInfo sse_decode_capstone_info(SseDeserializer deserializer);
+
+  @protected
+  CapstonePunch sse_decode_capstone_punch(SseDeserializer deserializer);
+
+  @protected
+  CapstoneSummary sse_decode_capstone_summary(SseDeserializer deserializer);
+
+  @protected
+  ClassGroup sse_decode_class_group(SseDeserializer deserializer);
 
   @protected
   CourseClassEntry sse_decode_course_class_entry(SseDeserializer deserializer);
@@ -1261,6 +1604,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   GradeHistory sse_decode_grade_history(SseDeserializer deserializer);
 
   @protected
+  GradeRange sse_decode_grade_range(SseDeserializer deserializer);
+
+  @protected
+  GradeStatistics sse_decode_grade_statistics(SseDeserializer deserializer);
+
+  @protected
+  GradeViewCourse sse_decode_grade_view_course(SseDeserializer deserializer);
+
+  @protected
+  GradeViewDetail sse_decode_grade_view_detail(SseDeserializer deserializer);
+
+  @protected
   int sse_decode_i_32(SseDeserializer deserializer);
 
   @protected
@@ -1288,6 +1643,27 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<BiometricRecord> sse_decode_list_biometric_record(
     SseDeserializer deserializer,
   );
+
+  @protected
+  List<CalendarDay> sse_decode_list_calendar_day(SseDeserializer deserializer);
+
+  @protected
+  List<CalendarEvent> sse_decode_list_calendar_event(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<CalendarMonthRef> sse_decode_list_calendar_month_ref(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<CapstonePunch> sse_decode_list_capstone_punch(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<ClassGroup> sse_decode_list_class_group(SseDeserializer deserializer);
 
   @protected
   List<CourseClassEntry> sse_decode_list_course_class_entry(
@@ -1323,12 +1699,25 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  List<GradeRange> sse_decode_list_grade_range(SseDeserializer deserializer);
+
+  @protected
+  List<GradeViewCourse> sse_decode_list_grade_view_course(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   List<LectureEntry> sse_decode_list_lecture_entry(
     SseDeserializer deserializer,
   );
 
   @protected
   List<List<String>> sse_decode_list_list_String(SseDeserializer deserializer);
+
+  @protected
+  List<MarkComponent> sse_decode_list_mark_component(
+    SseDeserializer deserializer,
+  );
 
   @protected
   List<Marks> sse_decode_list_marks(SseDeserializer deserializer);
@@ -1386,6 +1775,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  MarkComponent sse_decode_mark_component(SseDeserializer deserializer);
+
+  @protected
   Marks sse_decode_marks(SseDeserializer deserializer);
 
   @protected
@@ -1399,6 +1791,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   String? sse_decode_opt_String(SseDeserializer deserializer);
+
+  @protected
+  CapstoneAttendance? sse_decode_opt_box_autoadd_capstone_attendance(
+    SseDeserializer deserializer,
+  );
 
   @protected
   OutingInfo sse_decode_outing_info(SseDeserializer deserializer);
@@ -1441,6 +1838,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   TimetableClass sse_decode_timetable_class(SseDeserializer deserializer);
+
+  @protected
+  int sse_decode_u_32(SseDeserializer deserializer);
 
   @protected
   BigInt sse_decode_u_64(SseDeserializer deserializer);
@@ -1502,6 +1902,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultAcademicCalendar(
+    VtopResultAcademicCalendar self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
   sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultCoursePageDetail(
     VtopResultCoursePageDetail self,
     SseSerializer serializer,
@@ -1532,6 +1939,20 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void
   sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultGradeHistory(
     VtopResultGradeHistory self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultGradeViewDetail(
+    VtopResultGradeViewDetail self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultOptionCapstoneAttendance(
+    VtopResultOptionCapstoneAttendance self,
     SseSerializer serializer,
   );
 
@@ -1593,8 +2014,36 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecAttendanceRecordOptionCapstoneAttendance(
+    VtopResultVecAttendanceRecordOptionCapstoneAttendance self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
   sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecBiometricRecord(
     VtopResultVecBiometricRecord self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecCalendarDay(
+    VtopResultVecCalendarDay self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecCalendarMonthRef(
+    VtopResultVecCalendarMonthRef self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecClassGroup(
+    VtopResultVecClassGroup self,
     SseSerializer serializer,
   );
 
@@ -1616,6 +2065,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void
   sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecGetFaculty(
     VtopResultVecGetFaculty self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecGradeViewCourse(
+    VtopResultVecGradeViewCourse self,
     SseSerializer serializer,
   );
 
@@ -1747,6 +2203,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultAcademicCalendar(
+    VtopResultAcademicCalendar self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
   sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultCoursePageDetail(
     VtopResultCoursePageDetail self,
     SseSerializer serializer,
@@ -1777,6 +2240,20 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void
   sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultGradeHistory(
     VtopResultGradeHistory self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultGradeViewDetail(
+    VtopResultGradeViewDetail self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultOptionCapstoneAttendance(
+    VtopResultOptionCapstoneAttendance self,
     SseSerializer serializer,
   );
 
@@ -1838,8 +2315,36 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecAttendanceRecordOptionCapstoneAttendance(
+    VtopResultVecAttendanceRecordOptionCapstoneAttendance self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
   sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecBiometricRecord(
     VtopResultVecBiometricRecord self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecCalendarDay(
+    VtopResultVecCalendarDay self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecCalendarMonthRef(
+    VtopResultVecCalendarMonthRef self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecClassGroup(
+    VtopResultVecClassGroup self,
     SseSerializer serializer,
   );
 
@@ -1861,6 +2366,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void
   sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecGetFaculty(
     VtopResultVecGetFaculty self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecGradeViewCourse(
+    VtopResultVecGradeViewCourse self,
     SseSerializer serializer,
   );
 
@@ -1917,6 +2429,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_String(String self, SseSerializer serializer);
 
   @protected
+  void sse_encode_academic_calendar(
+    AcademicCalendar self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_assignment_record_each(
     AssignmentRecordEach self,
     SseSerializer serializer,
@@ -1944,6 +2462,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_bool(bool self, SseSerializer serializer);
 
   @protected
+  void sse_encode_box_autoadd_capstone_attendance(
+    CapstoneAttendance self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_box_autoadd_vtop_config(
     VtopConfig self,
     SseSerializer serializer,
@@ -1954,6 +2478,39 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     VtopError self,
     SseSerializer serializer,
   );
+
+  @protected
+  void sse_encode_calendar_day(CalendarDay self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_calendar_event(CalendarEvent self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_calendar_month_ref(
+    CalendarMonthRef self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_capstone_attendance(
+    CapstoneAttendance self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_capstone_info(CapstoneInfo self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_capstone_punch(CapstonePunch self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_capstone_summary(
+    CapstoneSummary self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_class_group(ClassGroup self, SseSerializer serializer);
 
   @protected
   void sse_encode_course_class_entry(
@@ -2016,6 +2573,27 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_grade_history(GradeHistory self, SseSerializer serializer);
 
   @protected
+  void sse_encode_grade_range(GradeRange self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_grade_statistics(
+    GradeStatistics self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_grade_view_course(
+    GradeViewCourse self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_grade_view_detail(
+    GradeViewDetail self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_i_32(int self, SseSerializer serializer);
 
   @protected
@@ -2045,6 +2623,36 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_list_biometric_record(
     List<BiometricRecord> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_calendar_day(
+    List<CalendarDay> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_calendar_event(
+    List<CalendarEvent> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_calendar_month_ref(
+    List<CalendarMonthRef> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_capstone_punch(
+    List<CapstonePunch> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_class_group(
+    List<ClassGroup> self,
     SseSerializer serializer,
   );
 
@@ -2091,6 +2699,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_grade_range(
+    List<GradeRange> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_grade_view_course(
+    List<GradeViewCourse> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_lecture_entry(
     List<LectureEntry> self,
     SseSerializer serializer,
@@ -2099,6 +2719,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_list_list_String(
     List<List<String>> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_mark_component(
+    List<MarkComponent> self,
     SseSerializer serializer,
   );
 
@@ -2175,6 +2801,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_mark_component(MarkComponent self, SseSerializer serializer);
+
+  @protected
   void sse_encode_marks(Marks self, SseSerializer serializer);
 
   @protected
@@ -2191,6 +2820,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_opt_String(String? self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_opt_box_autoadd_capstone_attendance(
+    CapstoneAttendance? self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_outing_info(OutingInfo self, SseSerializer serializer);
@@ -2245,6 +2880,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     TimetableClass self,
     SseSerializer serializer,
   );
+
+  @protected
+  void sse_encode_u_32(int self, SseSerializer serializer);
 
   @protected
   void sse_encode_u_64(BigInt self, SseSerializer serializer);
@@ -2373,6 +3011,22 @@ class RustLibWire implements BaseWire {
       );
 
   void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultAcademicCalendar(
+    int ptr,
+  ) => wasmModule
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultAcademicCalendar(
+        ptr,
+      );
+
+  void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultAcademicCalendar(
+    int ptr,
+  ) => wasmModule
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultAcademicCalendar(
+        ptr,
+      );
+
+  void
   rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultCoursePageDetail(
     int ptr,
   ) => wasmModule
@@ -2449,6 +3103,38 @@ class RustLibWire implements BaseWire {
     int ptr,
   ) => wasmModule
       .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultGradeHistory(
+        ptr,
+      );
+
+  void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultGradeViewDetail(
+    int ptr,
+  ) => wasmModule
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultGradeViewDetail(
+        ptr,
+      );
+
+  void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultGradeViewDetail(
+    int ptr,
+  ) => wasmModule
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultGradeViewDetail(
+        ptr,
+      );
+
+  void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultOptionCapstoneAttendance(
+    int ptr,
+  ) => wasmModule
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultOptionCapstoneAttendance(
+        ptr,
+      );
+
+  void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultOptionCapstoneAttendance(
+    int ptr,
+  ) => wasmModule
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultOptionCapstoneAttendance(
         ptr,
       );
 
@@ -2581,6 +3267,22 @@ class RustLibWire implements BaseWire {
       );
 
   void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecAttendanceRecordOptionCapstoneAttendance(
+    int ptr,
+  ) => wasmModule
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecAttendanceRecordOptionCapstoneAttendance(
+        ptr,
+      );
+
+  void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecAttendanceRecordOptionCapstoneAttendance(
+    int ptr,
+  ) => wasmModule
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecAttendanceRecordOptionCapstoneAttendance(
+        ptr,
+      );
+
+  void
   rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecBiometricRecord(
     int ptr,
   ) => wasmModule
@@ -2593,6 +3295,54 @@ class RustLibWire implements BaseWire {
     int ptr,
   ) => wasmModule
       .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecBiometricRecord(
+        ptr,
+      );
+
+  void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecCalendarDay(
+    int ptr,
+  ) => wasmModule
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecCalendarDay(
+        ptr,
+      );
+
+  void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecCalendarDay(
+    int ptr,
+  ) => wasmModule
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecCalendarDay(
+        ptr,
+      );
+
+  void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecCalendarMonthRef(
+    int ptr,
+  ) => wasmModule
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecCalendarMonthRef(
+        ptr,
+      );
+
+  void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecCalendarMonthRef(
+    int ptr,
+  ) => wasmModule
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecCalendarMonthRef(
+        ptr,
+      );
+
+  void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecClassGroup(
+    int ptr,
+  ) => wasmModule
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecClassGroup(
+        ptr,
+      );
+
+  void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecClassGroup(
+    int ptr,
+  ) => wasmModule
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecClassGroup(
         ptr,
       );
 
@@ -2641,6 +3391,22 @@ class RustLibWire implements BaseWire {
     int ptr,
   ) => wasmModule
       .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecGetFaculty(
+        ptr,
+      );
+
+  void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecGradeViewCourse(
+    int ptr,
+  ) => wasmModule
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecGradeViewCourse(
+        ptr,
+      );
+
+  void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecGradeViewCourse(
+    int ptr,
+  ) => wasmModule
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecGradeViewCourse(
         ptr,
       );
 
@@ -2824,6 +3590,16 @@ extension type RustLibWasmModule._(JSObject _) implements JSObject {
   );
 
   external void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultAcademicCalendar(
+    int ptr,
+  );
+
+  external void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultAcademicCalendar(
+    int ptr,
+  );
+
+  external void
   rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultCoursePageDetail(
     int ptr,
   );
@@ -2870,6 +3646,26 @@ extension type RustLibWasmModule._(JSObject _) implements JSObject {
 
   external void
   rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultGradeHistory(
+    int ptr,
+  );
+
+  external void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultGradeViewDetail(
+    int ptr,
+  );
+
+  external void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultGradeViewDetail(
+    int ptr,
+  );
+
+  external void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultOptionCapstoneAttendance(
+    int ptr,
+  );
+
+  external void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultOptionCapstoneAttendance(
     int ptr,
   );
 
@@ -2954,12 +3750,52 @@ extension type RustLibWasmModule._(JSObject _) implements JSObject {
   );
 
   external void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecAttendanceRecordOptionCapstoneAttendance(
+    int ptr,
+  );
+
+  external void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecAttendanceRecordOptionCapstoneAttendance(
+    int ptr,
+  );
+
+  external void
   rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecBiometricRecord(
     int ptr,
   );
 
   external void
   rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecBiometricRecord(
+    int ptr,
+  );
+
+  external void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecCalendarDay(
+    int ptr,
+  );
+
+  external void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecCalendarDay(
+    int ptr,
+  );
+
+  external void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecCalendarMonthRef(
+    int ptr,
+  );
+
+  external void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecCalendarMonthRef(
+    int ptr,
+  );
+
+  external void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecClassGroup(
+    int ptr,
+  );
+
+  external void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecClassGroup(
     int ptr,
   );
 
@@ -2990,6 +3826,16 @@ extension type RustLibWasmModule._(JSObject _) implements JSObject {
 
   external void
   rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecGetFaculty(
+    int ptr,
+  );
+
+  external void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecGradeViewCourse(
+    int ptr,
+  );
+
+  external void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVtopResultVecGradeViewCourse(
     int ptr,
   );
 

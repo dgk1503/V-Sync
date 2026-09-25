@@ -121,7 +121,7 @@ class _MarksPageState extends ConsumerState<MarksPage>
                         'Last synced ${timeago.format(lastSynced!)}',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          fontFamily: 'Inter',
+                          fontFamily: 'Instrument Sans',
                           fontSize: 13,
                           color: colorScheme.onSurfaceVariant,
                         ),
@@ -200,10 +200,10 @@ class _MarksPageState extends ConsumerState<MarksPage>
                 Text(
                   course.courseTitle,
                   style: TextStyle(
-                    fontFamily: 'Outfit',
+                    fontFamily: 'Instrument Sans',
                     color: Theme.of(context).colorScheme.onSurface,
                     fontSize: 17,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w500,
                     height: 1.25,
                   ),
                 ),
@@ -211,7 +211,7 @@ class _MarksPageState extends ConsumerState<MarksPage>
                 Text(
                   course.faculty,
                   style: TextStyle(
-                    fontFamily: 'Inter',
+                    fontFamily: 'Instrument Sans',
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                     fontWeight: FontWeight.w400,
                     fontSize: 13,
@@ -222,16 +222,16 @@ class _MarksPageState extends ConsumerState<MarksPage>
                   text: TextSpan(
                     text: totalWeightage.toStringAsFixed(0),
                     style: TextStyle(
-                      fontFamily: 'Outfit',
+                      fontFamily: 'Instrument Sans',
                       color: Theme.of(context).colorScheme.onSurface,
                       fontSize: 30,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w500,
                     ),
                      children: <TextSpan>[
                        TextSpan(
                          text: ' / ${maxWeightage.toStringAsFixed(0)}',
                          style: TextStyle(
-                           fontFamily: 'Inter',
+                           fontFamily: 'Instrument Sans',
                            color: Theme.of(context).colorScheme.onSurfaceVariant,
                            fontSize: 16,
                            fontWeight: FontWeight.w400,

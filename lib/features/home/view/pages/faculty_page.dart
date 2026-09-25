@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:vit_ap_student_app/core/utils/faculty_name.dart';
 import 'package:vit_ap_student_app/features/home/model/faculty.dart';
 import 'package:vit_ap_student_app/features/home/view/widgets/faculty/faculty_details_sheet.dart';
 import 'package:vit_ap_student_app/features/home/view/widgets/faculty/faculty_list_tile.dart';
@@ -44,8 +45,13 @@ class _FacultiesPageState extends ConsumerState<FacultiesPage> {
 
   List<FacultyListItem> _filtered(List<FacultyListItem> all) {
     if (_query.isEmpty) return all;
+    // Match against the name without its honorific, so typing "John" finds
+    // "Dr. John Doe".
     return all
-        .where((f) => f.facultyName.toLowerCase().contains(_query))
+        .where(
+          (f) =>
+              stripFacultyTitle(f.facultyName).toLowerCase().contains(_query),
+        )
         .toList();
   }
 

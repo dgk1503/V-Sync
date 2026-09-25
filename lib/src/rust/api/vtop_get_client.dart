@@ -14,12 +14,24 @@ import 'vtop/types/semester.dart';
 import 'vtop/vtop_client.dart';
 import 'vtop/vtop_errors.dart';
 
+// These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `AttendanceWithCapstone`
+
+/// Build a client for one VTOP session.
+///
+/// `user_agent` is the browser identity every request on this session carries.
+/// VTOP binds the session to it, so the caller supplies the real device's
+/// User-Agent and hands the same string to anything else that reuses the
+/// session — notably the in-app VTOP WebView, which the portal rejects
+/// outright if it presents a different one. Pass an empty string to accept
+/// `DEFAULT_USER_AGENT`.
 VtopClient getVtopClient({
   required String username,
   required String password,
+  required String userAgent,
 }) => RustLib.instance.api.crateApiVtopGetClientGetVtopClient(
   username: username,
   password: password,
+  userAgent: userAgent,
 );
 
 Future<void> vtopClientLogin({required VtopClient client}) =>
@@ -48,6 +60,42 @@ Future<String> fetchAttendance({
   required VtopClient client,
   required String semesterId,
 }) => RustLib.instance.api.crateApiVtopGetClientFetchAttendance(
+  client: client,
+  semesterId: semesterId,
+);
+
+/// Fetches course attendance together with capstone/SDP attendance.
+///
+/// The capstone request is only made when the attendance page offers the
+/// CAPSTONE/SDP button, so students without a registration pay nothing for it.
+Future<String> fetchAttendanceWithCapstone({
+  required VtopClient client,
+  required String semesterId,
+}) => RustLib.instance.api.crateApiVtopGetClientFetchAttendanceWithCapstone(
+  client: client,
+  semesterId: semesterId,
+);
+
+/// Fetches a semester's whole academic calendar: the month list and every
+/// dated day, flattened into one date-ordered list.
+///
+/// This is one request per month, so it is meant to be called on an explicit
+/// refresh and the result cached — not on page open.
+Future<String> fetchAcademicCalendar({
+  required VtopClient client,
+  required String semesterId,
+  required String classGroupId,
+}) => RustLib.instance.api.crateApiVtopGetClientFetchAcademicCalendar(
+  client: client,
+  semesterId: semesterId,
+  classGroupId: classGroupId,
+);
+
+/// Fetches the class groups a semester's calendar can be viewed for.
+Future<String> fetchCalendarClassGroups({
+  required VtopClient client,
+  required String semesterId,
+}) => RustLib.instance.api.crateApiVtopGetClientFetchCalendarClassGroups(
   client: client,
   semesterId: semesterId,
 );
@@ -96,6 +144,15 @@ Future<String?> fetchCsrfToken({required VtopClient client}) =>
 
 Future<String> fetchUsername({required VtopClient client}) =>
     RustLib.instance.api.crateApiVtopGetClientFetchUsername(client: client);
+
+/// The User-Agent this session was established with.
+///
+/// `VtopConfig` picks a random browser UA per session, so anything that reuses
+/// the session out of process — the in-app VTOP WebView — must send the same
+/// one rather than inventing its own. Read-only on purpose: what the client
+/// sends is unchanged, the caller just gets to match it.
+Future<String> fetchUserAgent({required VtopClient client}) =>
+    RustLib.instance.api.crateApiVtopGetClientFetchUserAgent(client: client);
 
 Future<bool> fetchIsAuth({required VtopClient client}) =>
     RustLib.instance.api.crateApiVtopGetClientFetchIsAuth(client: client);
@@ -251,15 +308,75 @@ Future<String> fetchStudentProfile({required VtopClient client}) => RustLib
 Future<GradeHistory> fetchGradeHistory({required VtopClient client}) =>
     RustLib.instance.api.crateApiVtopGetClientFetchGradeHistory(client: client);
 
+/// Retrieves the graded courses for a semester from the grade view page.
+///
+/// Grades appear only once a semester has ended; the current semester returns
+/// an empty list until results are published. Each course carries a
+/// `course_id` for `fetch_grade_view_detail`.
+///
+/// # Examples
+///
+/// ```no_run
+/// # use lib_vtop::api::vtop::vtop_client::VtopClient;
+/// # use lib_vtop::api::vtop_get_client::fetch_grade_view;
+/// # async fn example(client: &mut VtopClient) -> Result<(), Box<dyn std::error::Error>> {
+/// let courses = fetch_grade_view(client, "AP2025264".to_string()).await?;
+/// for course in &courses {
+///     println!("{} - {}", course.course_code, course.grade);
+/// }
+/// # Ok(())
+/// # }
+/// ```
+Future<String> fetchGradeView({
+  required VtopClient client,
+  required String semesterId,
+}) => RustLib.instance.api.crateApiVtopGetClientFetchGradeView(
+  client: client,
+  semesterId: semesterId,
+);
+
+/// Retrieves the mark breakdown and class statistics for a single course.
+///
+/// # Examples
+///
+/// ```no_run
+/// # use lib_vtop::api::vtop::vtop_client::VtopClient;
+/// # use lib_vtop::api::vtop_get_client::fetch_grade_view_detail;
+/// # async fn example(client: &mut VtopClient) -> Result<(), Box<dyn std::error::Error>> {
+/// let detail = fetch_grade_view_detail(
+///     client,
+///     "AP2025264".to_string(),
+///     "AM_CSE1008_00200".to_string(),
+/// ).await?;
+/// println!("total: {}", detail.total);
+/// # Ok(())
+/// # }
+/// ```
+Future<String> fetchGradeViewDetail({
+  required VtopClient client,
+  required String semesterId,
+  required String courseId,
+}) => RustLib.instance.api.crateApiVtopGetClientFetchGradeViewDetail(
+  client: client,
+  semesterId: semesterId,
+  courseId: courseId,
+);
+
 /// Retrieves a list of pending payments for the student.
 ///
 /// Returns a vector of `PendingPaymentReceipt` records on success, or a `VtopError` if the operation fails.
 ///
 /// # Examples
 ///
-/// ```
-/// let payments = student_pending_payments(&mut client).await?;
-/// assert!(!payments.is_empty() || payments.is_empty());
+/// ```no_run
+/// # use lib_vtop::api::vtop::vtop_client::VtopClient;
+/// # use lib_vtop::api::vtop_get_client::fetch_pending_payments;
+/// # async fn example(client: &mut VtopClient) -> Result<(), Box<dyn std::error::Error>> {
+/// // Returns the pending payments serialized as a JSON string.
+/// let payments_json = fetch_pending_payments(client).await?;
+/// println!("{}", payments_json);
+/// # Ok(())
+/// # }
 /// ```
 Future<String> fetchPendingPayments({required VtopClient client}) => RustLib
     .instance

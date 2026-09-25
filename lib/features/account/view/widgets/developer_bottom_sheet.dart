@@ -80,7 +80,7 @@ class _DeveloperBottomSheetState extends State<DeveloperBottomSheet> {
                   'Developer',
                   style: TextStyle(
                     letterSpacing: 0,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w500,
                     fontSize: 20,
                     color: Theme.of(context).colorScheme.onSurface,
                   ),
@@ -118,7 +118,7 @@ class _DeveloperBottomSheetState extends State<DeveloperBottomSheet> {
                     Text(
                       widget.developerInfo.name,
                       style: TextStyle(
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w500,
                         fontSize: 18,
                         color: Theme.of(context).colorScheme.onSurface,
                       ),

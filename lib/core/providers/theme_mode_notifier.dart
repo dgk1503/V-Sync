@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:vit_ap_student_app/core/providers/color_theme_notifier.dart';
+import 'package:vit_ap_student_app/core/providers/custom_accent_provider.dart';
 import 'package:vit_ap_student_app/core/providers/user_preferences_notifier.dart';
 import 'package:vit_ap_student_app/core/theme/app_theme.dart';
 
@@ -16,6 +17,7 @@ class ThemeModeNotifier extends _$ThemeModeNotifier {
     // stored flag or OS setting.
     final userPreferences = ref.read(userPreferencesProvider);
     final colorTheme = ref.watch(colorThemeProvider);
+    final customAccent = ref.watch(customAccentProvider);
 
     final isDark = userPreferences.hasUserChosenTheme
         ? userPreferences.isDarkModeEnabled
@@ -25,6 +27,7 @@ class ThemeModeNotifier extends _$ThemeModeNotifier {
       isDarkMode: isDark,
       isAmoled: userPreferences.isAmoledEnabled,
       colorTheme: colorTheme,
+      customAccent: customAccent,
     );
   }
 

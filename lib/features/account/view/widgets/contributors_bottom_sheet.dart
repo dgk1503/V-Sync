@@ -26,7 +26,7 @@ class ContributorsBottomSheet extends ConsumerWidget {
               'Contributors',
               style: TextStyle(
                 letterSpacing: 0,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w500,
                 fontSize: 20,
                 color: Theme.of(context).colorScheme.onSurface,
               ),

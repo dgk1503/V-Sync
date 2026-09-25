@@ -45,17 +45,11 @@ void main() {
     expect(find.text('Outing'), findsOneWidget);
     expect(find.text('Faculty Info'), findsOneWidget);
     expect(find.text('Open VTOP'), findsOneWidget);
+    expect(find.text('Home page'), findsOneWidget);
+    expect(find.text('Class card slider'), findsOneWidget);
     expect(find.text('Liquid Glass'), findsOneWidget);
 
-    // Defaults: the five card toggles ON, Liquid Glass OFF.
-    Switch getSwitch(String label) => tester.widget<Switch>(
-          find
-              .ancestor(
-                of: find.text(label),
-                matching: find.byType(ListTile),
-              )
-              .first,
-        ) as Switch;
+    // Defaults: the five card toggles ON, class slider OFF, Liquid Glass ON.
     // (Switch.adaptive wraps a Switch on non-Apple platforms; locate via
     // descendant instead to stay platform-independent.)
     bool switchValue(String label) {
@@ -79,6 +73,7 @@ void main() {
     expect(switchValue('Outing'), isTrue);
     expect(switchValue('Faculty Info'), isTrue);
     expect(switchValue('Open VTOP'), isTrue);
+    expect(switchValue('Class card slider'), isFalse);
     expect(switchValue('Liquid Glass'), isTrue);
 
     // Persist a render so a human (or agent) can eyeball the layout.

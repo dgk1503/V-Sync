@@ -117,7 +117,7 @@ class _GeneralOutingTabState extends ConsumerState<GeneralOutingTab> {
               style: TextStyle(
                 fontSize: 16,
                 color: Theme.of(context).colorScheme.primary,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w500,
               ),
             ),
             TextFormField(
@@ -142,7 +142,7 @@ class _GeneralOutingTabState extends ConsumerState<GeneralOutingTab> {
               style: TextStyle(
                 fontSize: 16,
                 color: Theme.of(context).colorScheme.primary,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w500,
               ),
             ),
             TextFormField(
@@ -226,7 +226,7 @@ class _GeneralOutingTabState extends ConsumerState<GeneralOutingTab> {
                     child: Text(
                       'View outing history',
                       style: TextStyle(
-                        fontFamily: 'Inter',
+                        fontFamily: 'Instrument Sans',
                         fontSize: 13.5,
                         fontWeight: FontWeight.w500,
                         color: Theme.of(context).colorScheme.primary,

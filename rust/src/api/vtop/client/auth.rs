@@ -1,3 +1,4 @@
+use crate::api::vtop::vtop_config::MAX_CAPTCHA_RELOAD_ATTEMPTS;
 use crate::api::vtop::{
     captcha_solver as captcha_parser,
     vtop_client::VtopClient,
@@ -9,6 +10,53 @@ use reqwest::multipart::Form;
 use reqwest::{cookie::CookieStore, Url};
 use scraper::{Html, Selector};
 use serde_json::Value;
+
+/// VTOP's catch-all refusal, served with an HTTP 200.
+///
+/// Matched without the trailing exclamation marks so it does not hinge on
+/// punctuation VTOP might change.
+const MENU_UNAVAILABLE_MARKER: &str = "This menu is not available at present";
+
+/// Reads a response body, turning VTOP's refusal into an error.
+///
+/// The refusal is a 200 with a body, so nothing upstream catches it and the
+/// fragment used to reach a parser. Parsers return an empty result for markup
+/// they cannot recognise, so a refused request showed up as "no data" on screen
+/// with no error, no log line, and no way to tell it from a student who
+/// genuinely has no records.
+/// Whether a response body is VTOP's refusal rather than a page.
+///
+/// Two causes produce a byte-identical body and the response carries nothing to
+/// separate them: the request shape was wrong, or the portal has switched that
+/// menu off. Callers should not claim to know which.
+///
+/// Crate-private deliberately: `pub` made flutter_rust_bridge generate a Dart
+/// binding for it, putting an internal predicate on the app's API surface.
+pub(crate) fn is_menu_unavailable(body: &str) -> bool {
+    body.contains(MENU_UNAVAILABLE_MARKER)
+}
+
+pub(crate) async fn read_body(response: reqwest::Response) -> VtopResult<String> {
+    let text = response.text().await.map_err(map_response_read_error)?;
+    if is_menu_unavailable(&text) {
+        return Err(VtopError::MenuUnavailable);
+    }
+    Ok(text)
+}
+
+/// Swaps a stale CSRF token for the current one inside a form body.
+///
+/// `login` issues a fresh token, so a request replayed after a re-login would
+/// still carry the old one in `_csrf=...` and be rejected exactly as before.
+///
+/// Returns the body untouched when there is nothing to swap — no previous
+/// token, or the token did not change.
+pub(crate) fn refresh_csrf_in_body(body: &str, stale: Option<&str>, fresh: &str) -> String {
+    match stale {
+        Some(stale) if !stale.is_empty() && stale != fresh => body.replace(stale, fresh),
+        _ => body.to_string(),
+    }
+}
 
 impl VtopClient {
     /// Retrieves the current session's cookies as a byte vector.
@@ -52,6 +100,145 @@ impl VtopClient {
     /// Returns `Err(VtopError::SessionExpiredRetryNeeded)` if session expired and re-authentication
     /// succeeded, indicating the calling method should retry the request.
     /// Returns other errors if authentication failed.
+    /// Sends a form POST and, if VTOP has dropped the session, logs back in and
+    /// sends it again before the caller reads the body.
+    ///
+    /// [`Self::handle_session_check`] re-authenticates but cannot re-issue the
+    /// request, so callers went on to read the response captured *before* the
+    /// re-login — the expired-session page. The parsers return an empty result
+    /// for that rather than an error, so an expired session reached the screen
+    /// as "no data" with nothing to say anything had gone wrong.
+    ///
+    /// The retry rebuilds the body with the new CSRF token. [`Self::login`]
+    /// issues a fresh one, so replaying the original body verbatim would be
+    /// rejected just the same.
+    ///
+    /// Retries once. A second expiry means something other than an idle session
+    /// is wrong, and looping here would hammer a portal that locks accounts
+    /// after repeated failed logins.
+    pub(crate) async fn post_form_with_session_retry(
+        &mut self,
+        url: impl reqwest::IntoUrl + Clone,
+        body: String,
+    ) -> VtopResult<reqwest::Response> {
+        let response = self
+            .client
+            .post(url.clone())
+            .body(body.clone())
+            .send()
+            .await
+            .map_err(map_reqwest_error)?;
+
+        if self.session.check_session_expiration(&response).is_ok() {
+            return Ok(response);
+        }
+
+        let stale_csrf = self.session.get_csrf_token();
+        self.login().await?;
+        let fresh_csrf = self
+            .session
+            .get_csrf_token()
+            .ok_or(VtopError::SessionExpired)?;
+
+        let body = refresh_csrf_in_body(&body, stale_csrf.as_deref(), &fresh_csrf);
+
+        let retried = self
+            .client
+            .post(url)
+            .body(body)
+            .send()
+            .await
+            .map_err(map_reqwest_error)?;
+
+        self.session.check_session_expiration(&retried)?;
+        Ok(retried)
+    }
+
+    /// The multipart counterpart of [`Self::post_form_with_session_retry`].
+    ///
+    /// A `multipart::Form` cannot be cloned, and its `_csrf` part would be
+    /// stale after a re-login anyway, so the caller supplies a closure that
+    /// builds the form from whichever token is current. It is called again for
+    /// the retry.
+    ///
+    /// Deliberately not used by the upload and outing-submit paths: replaying a
+    /// write after a re-login risks submitting it twice. Those still surface
+    /// the expiry as an error, which is the safe outcome for a write.
+    pub(crate) async fn post_multipart_with_session_retry<F>(
+        &mut self,
+        url: impl reqwest::IntoUrl + Clone,
+        build_form: F,
+    ) -> VtopResult<reqwest::Response>
+    where
+        F: Fn(&str) -> reqwest::multipart::Form,
+    {
+        let csrf = self
+            .session
+            .get_csrf_token()
+            .ok_or(VtopError::SessionExpired)?;
+
+        let response = self
+            .client
+            .post(url.clone())
+            .multipart(build_form(&csrf))
+            .send()
+            .await
+            .map_err(map_reqwest_error)?;
+
+        if self.session.check_session_expiration(&response).is_ok() {
+            return Ok(response);
+        }
+
+        self.login().await?;
+        let fresh_csrf = self
+            .session
+            .get_csrf_token()
+            .ok_or(VtopError::SessionExpired)?;
+
+        let retried = self
+            .client
+            .post(url)
+            .multipart(build_form(&fresh_csrf))
+            .send()
+            .await
+            .map_err(map_reqwest_error)?;
+
+        self.session.check_session_expiration(&retried)?;
+        Ok(retried)
+    }
+
+    /// The GET counterpart of [`Self::post_form_with_session_retry`].
+    ///
+    /// Carries no body, so there is no CSRF token to refresh — the request is
+    /// simply sent again after a successful re-login.
+    pub(crate) async fn get_with_session_retry(
+        &mut self,
+        url: impl reqwest::IntoUrl + Clone,
+    ) -> VtopResult<reqwest::Response> {
+        let response = self
+            .client
+            .get(url.clone())
+            .send()
+            .await
+            .map_err(map_reqwest_error)?;
+
+        if self.session.check_session_expiration(&response).is_ok() {
+            return Ok(response);
+        }
+
+        self.login().await?;
+
+        let retried = self
+            .client
+            .get(url)
+            .send()
+            .await
+            .map_err(map_reqwest_error)?;
+
+        self.session.check_session_expiration(&retried)?;
+        Ok(retried)
+    }
+
     pub(crate) async fn handle_session_check(
         &mut self,
         response: &reqwest::Response,
@@ -400,7 +587,7 @@ impl VtopClient {
             .await
             .map_err(map_reqwest_error)?;
         let response_url = response.url().to_string();
-        let response_text = response.text().await.map_err(map_response_read_error)?;
+        let response_text = read_body(response).await?;
 
         if response_url.contains("error") {
             if response_text.contains("Invalid Captcha") {
@@ -465,15 +652,13 @@ impl VtopClient {
             self.load_initial_page().await?;
             self.extract_csrf_token()?;
         }
-        #[allow(non_snake_case)]
-        let Max_RELOAD_ATTEMPTS = 8;
         let csrf = self
             .session
             .get_csrf_token()
             .ok_or(VtopError::SessionExpired)?;
         let url = format!("{}/vtop/prelogin/setup", self.config.base_url);
         let body = format!("_csrf={}&flag=VTOP", csrf);
-        for _ in 0..Max_RELOAD_ATTEMPTS {
+        for _ in 0..MAX_CAPTCHA_RELOAD_ATTEMPTS {
             let response = self
                 .client
                 .post(&url)
@@ -484,15 +669,20 @@ impl VtopClient {
             if !response.status().is_success() {
                 return Err(VtopError::VtopServerError);
             }
-            let text = response.text().await.map_err(map_response_read_error)?;
+            let text = read_body(response).await?;
             if text.contains("base64,") {
                 self.current_page = Some(text);
                 self.extract_captcha_data()?;
-                break;
+                return Ok(());
             }
             println!("No captcha found Reloading the page ");
         }
-        Ok(())
+
+        // Falling out of the loop means the captcha never arrived. Returning
+        // Ok here told the caller the login page had loaded, and the login went
+        // on with `current_page` unset -- failing later for a reason that had
+        // nothing to do with the real cause.
+        Err(VtopError::CaptchaRequired)
     }
 
     /// Extracts the base64-encoded CAPTCHA image data from the login page HTML.
@@ -618,7 +808,7 @@ impl VtopClient {
         if !response.status().is_success() {
             return Err(VtopError::VtopServerError);
         }
-        self.current_page = Some(response.text().await.map_err(map_response_read_error)?);
+        self.current_page = Some(read_body(response).await?);
 
         Ok(())
     }
@@ -681,5 +871,110 @@ impl VtopClient {
     /// ```
     pub fn is_authenticated(&mut self) -> bool {
         self.session.is_authenticated()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::refresh_csrf_in_body;
+
+    const STALE: &str = "11111111-aaaa-4444-9999-222222222222";
+    const FRESH: &str = "33333333-bbbb-4444-9999-444444444444";
+
+    fn body(token: &str) -> String {
+        format!(
+            "_csrf={}&semesterSubId=AP2026272&authorizedID=00XXX0000",
+            token
+        )
+    }
+
+    #[test]
+    fn a_stale_token_is_replaced() {
+        assert_eq!(
+            refresh_csrf_in_body(&body(STALE), Some(STALE), FRESH),
+            body(FRESH)
+        );
+    }
+
+    #[test]
+    fn the_rest_of_the_body_is_left_alone() {
+        let out = refresh_csrf_in_body(&body(STALE), Some(STALE), FRESH);
+        assert!(out.contains("semesterSubId=AP2026272"));
+        assert!(out.contains("authorizedID=00XXX0000"));
+        assert!(!out.contains(STALE));
+    }
+
+    #[test]
+    fn an_unchanged_token_is_a_no_op() {
+        assert_eq!(
+            refresh_csrf_in_body(&body(FRESH), Some(FRESH), FRESH),
+            body(FRESH)
+        );
+    }
+
+    #[test]
+    fn no_previous_token_leaves_the_body_untouched() {
+        assert_eq!(refresh_csrf_in_body(&body(STALE), None, FRESH), body(STALE));
+    }
+
+    #[test]
+    fn an_empty_previous_token_does_not_corrupt_the_body() {
+        // "".replace() would splice the fresh token between every character.
+        assert_eq!(
+            refresh_csrf_in_body(&body(STALE), Some(""), FRESH),
+            body(STALE)
+        );
+    }
+
+    #[test]
+    fn a_token_appearing_more_than_once_is_replaced_everywhere() {
+        let two = format!("_csrf={}&nested={}", STALE, STALE);
+        let out = refresh_csrf_in_body(&two, Some(STALE), FRESH);
+        assert_eq!(out, format!("_csrf={}&nested={}", FRESH, FRESH));
+    }
+}
+
+#[cfg(test)]
+mod menu_unavailable_tests {
+    use super::is_menu_unavailable;
+
+    /// The real refusal, trimmed. VTOP serves this with an HTTP 200, so nothing
+    /// about the status says anything is wrong, and the fragment used to reach a
+    /// parser — which returns an empty result for markup it cannot recognise.
+    /// The screen then showed "no data" with no error and no log line.
+    const REFUSAL: &str = r#"
+        <div class="modal" tabindex="-1" id="msgBox">
+          <div class="modal-body">
+            <span class="text-danger fw-bold h6" id="msgBoxInfoText">
+              This menu is not available at present!!!
+            </span>
+          </div>
+        </div>
+    "#;
+
+    #[test]
+    fn a_real_refusal_is_recognised() {
+        assert!(is_menu_unavailable(REFUSAL));
+    }
+
+    #[test]
+    fn a_real_page_is_not() {
+        assert!(!is_menu_unavailable(
+            r#"<table id="AttendanceDetailDataTable"><tr><td>1</td></tr></table>"#
+        ));
+    }
+
+    #[test]
+    fn an_empty_body_is_not() {
+        assert!(!is_menu_unavailable(""));
+    }
+
+    /// VTOP writes "!!!" today. Matching them would make this hinge on
+    /// punctuation that is not load-bearing.
+    #[test]
+    fn the_match_does_not_depend_on_the_exclamation_marks() {
+        assert!(is_menu_unavailable(
+            "<span>This menu is not available at present</span>"
+        ));
     }
 }

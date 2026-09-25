@@ -53,9 +53,9 @@ void showAttendanceBottomSheet(BuildContext context, Attendance subjectInfo) {
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
-                                  fontFamily: 'Outfit',
+                                  fontFamily: 'Instrument Sans',
                                   fontSize: 19,
-                                  fontWeight: FontWeight.w600,
+                                  fontWeight: FontWeight.w500,
                                   color:
                                       Theme.of(context).colorScheme.onSurface,
                                 ),
@@ -65,7 +65,7 @@ void showAttendanceBottomSheet(BuildContext context, Attendance subjectInfo) {
                                 '${subjectInfo.courseCode}  •  '
                                 '${subjectInfo.attendancePercentage}%',
                                 style: TextStyle(
-                                  fontFamily: 'Inter',
+                                  fontFamily: 'Instrument Sans',
                                   fontSize: 13,
                                   color: Theme.of(context)
                                       .colorScheme
@@ -166,7 +166,7 @@ Widget _buildErrorState(
         Text(
           'Failed to load day-wise attendance',
           style: TextStyle(
-            fontFamily: 'Outfit',
+            fontFamily: 'Instrument Sans',
             fontSize: 15,
             fontWeight: FontWeight.w500,
             color: colorScheme.onSurface,
@@ -201,7 +201,7 @@ Widget _buildAttendanceTable(
       child: Text(
         'No day-wise records yet',
         style: TextStyle(
-          fontFamily: 'Inter',
+          fontFamily: 'Instrument Sans',
           fontSize: 13,
           color: colorScheme.onSurfaceVariant,
         ),
@@ -221,7 +221,7 @@ Widget _buildAttendanceTable(
               child: Text(
                 'DATE',
                 style: TextStyle(
-                  fontFamily: 'Inter',
+                  fontFamily: 'Instrument Sans',
                   fontSize: 10.5,
                   fontWeight: FontWeight.w500,
                   letterSpacing: 0.8,
@@ -235,7 +235,7 @@ Widget _buildAttendanceTable(
                 'DAY/TIME',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontFamily: 'Inter',
+                  fontFamily: 'Instrument Sans',
                   fontSize: 10.5,
                   fontWeight: FontWeight.w500,
                   letterSpacing: 0.8,
@@ -249,7 +249,7 @@ Widget _buildAttendanceTable(
                 'STATUS',
                 textAlign: TextAlign.end,
                 style: TextStyle(
-                  fontFamily: 'Inter',
+                  fontFamily: 'Instrument Sans',
                   fontSize: 10.5,
                   fontWeight: FontWeight.w500,
                   letterSpacing: 0.8,
@@ -291,7 +291,7 @@ Widget _buildAttendanceTable(
                     child: Text(
                       _formatDate(detail.date),
                       style: TextStyle(
-                        fontFamily: 'Inter',
+                        fontFamily: 'Instrument Sans',
                         fontSize: 13,
                         color: colorScheme.onSurface,
                       ),
@@ -302,7 +302,7 @@ Widget _buildAttendanceTable(
                     child: Text(
                       detail.dayTime,
                       style: TextStyle(
-                        fontFamily: 'Inter',
+                        fontFamily: 'Instrument Sans',
                         fontSize: 12,
                         color: colorScheme.onSurfaceVariant,
                       ),
@@ -314,9 +314,9 @@ Widget _buildAttendanceTable(
                     child: Text(
                       detail.status,
                       style: TextStyle(
-                        fontFamily: 'Inter',
+                        fontFamily: 'Instrument Sans',
                         fontSize: 12.5,
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w500,
                         color: isPresent
                             ? Colors.green
                             : isAbsent

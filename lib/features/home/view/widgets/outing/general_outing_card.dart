@@ -100,9 +100,9 @@ class GeneralOutingCard extends StatelessWidget {
                     Text(
                       outing.placeOfVisit,
                       style: TextStyle(
-                        fontFamily: 'Outfit',
+                        fontFamily: 'Instrument Sans',
                         fontSize: 15,
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w500,
                         color: colorScheme.onSurface,
                       ),
                       maxLines: 1,
@@ -113,7 +113,7 @@ class GeneralOutingCard extends StatelessWidget {
                     Text(
                       outing.purposeOfVisit,
                       style: TextStyle(
-                        fontFamily: 'Inter',
+                        fontFamily: 'Instrument Sans',
                         fontSize: 12,
                         color: colorScheme.onSurfaceVariant,
                       ),
@@ -132,7 +132,7 @@ class GeneralOutingCard extends StatelessWidget {
                         child: Text(
                           metaParts.join('  ·  '),
                           style: TextStyle(
-                            fontFamily: 'Inter',
+                            fontFamily: 'Instrument Sans',
                             fontSize: 12,
                             color: colorScheme.onSurfaceVariant,
                           ),
@@ -165,9 +165,9 @@ class GeneralOutingCard extends StatelessWidget {
                     Text(
                       getOutingStatusLabel(outing.status),
                       style: TextStyle(
-                        fontFamily: 'Inter',
+                        fontFamily: 'Instrument Sans',
                         fontSize: 11.5,
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w500,
                         color: statusColor,
                       ),
                     ),
@@ -206,9 +206,9 @@ class _TodayPill extends StatelessWidget {
       child: Text(
         'TODAY',
         style: TextStyle(
-          fontFamily: 'Inter',
+          fontFamily: 'Instrument Sans',
           fontSize: 9,
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.w500,
           letterSpacing: 0.4,
           color: colorScheme.onPrimary,
         ),

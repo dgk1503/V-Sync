@@ -276,9 +276,9 @@ class _ClassRow extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      fontFamily: 'Outfit',
+                      fontFamily: 'Instrument Sans',
                       fontSize: 16,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w500,
                       color: _neutralText(context),
                     ),
                   ),
@@ -303,7 +303,7 @@ class _ClassRow extends StatelessWidget {
                       formatTimeRange(classInfo.startTime, classInfo.endTime),
                       maxLines: 1,
                       style: TextStyle(
-                        fontFamily: 'Inter',
+                        fontFamily: 'Instrument Sans',
                         fontSize: 12.5,
                         color: _neutralMuted(context),
                       ),
@@ -326,7 +326,7 @@ class _ClassRow extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      fontFamily: 'Inter',
+                      fontFamily: 'Instrument Sans',
                       fontSize: 12.5,
                       color: _neutralMuted(context),
                     ),
@@ -362,9 +362,9 @@ class _TypePill extends StatelessWidget {
       child: Text(
         isLab ? 'LAB' : 'THEORY',
         style: TextStyle(
-          fontFamily: 'Inter',
+          fontFamily: 'Instrument Sans',
           fontSize: 9.5,
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.w500,
           letterSpacing: 0.6,
           color: isLab
               ? Theme.of(context).colorScheme.surface
@@ -413,9 +413,9 @@ class _ClassDetailsCard extends StatelessWidget {
                   child: Text(
                     classInfo.courseName ?? 'N/A',
                     style: TextStyle(
-                      fontFamily: 'Outfit',
+                      fontFamily: 'Instrument Sans',
                       fontSize: 17,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w500,
                       color: _neutralText(context),
                     ),
                   ),
@@ -460,7 +460,7 @@ class _DetailRow extends StatelessWidget {
             child: Text(
               label.toUpperCase(),
               style: TextStyle(
-                fontFamily: 'Inter',
+                fontFamily: 'Instrument Sans',
                 fontSize: 10.5,
                 fontWeight: FontWeight.w500,
                 letterSpacing: 0.8,
@@ -473,7 +473,7 @@ class _DetailRow extends StatelessWidget {
               (value == null || value!.trim().isEmpty) ? 'N/A' : value!,
               textAlign: TextAlign.right,
               style: TextStyle(
-                fontFamily: 'Outfit',
+                fontFamily: 'Instrument Sans',
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
                 color: _neutralText(context),

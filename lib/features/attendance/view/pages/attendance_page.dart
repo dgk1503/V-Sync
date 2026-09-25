@@ -108,7 +108,7 @@ class AttendancePageState extends ConsumerState<AttendancePage>
                       'Last synced ${timeago.format(lastSynced!)}',
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        fontFamily: 'Inter',
+                        fontFamily: 'Instrument Sans',
                         fontSize: 13,
                         color: colorScheme.onSurfaceVariant,
                       ),

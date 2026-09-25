@@ -1,10 +1,8 @@
+use crate::api::vtop::client::auth::read_body;
+use crate::api::vtop::vtop_config::validate_semester_id;
 use crate::api::vtop::{
-    parser::course_page_parser,
-    types::course_page::*,
-    vtop_client::VtopClient,
-    vtop_errors::VtopError,
-    vtop_errors::VtopResult,
-    vtop_errors::{map_reqwest_error, map_response_read_error},
+    parser::course_page_parser, types::course_page::*, vtop_client::VtopClient,
+    vtop_errors::map_response_read_error, vtop_errors::VtopError, vtop_errors::VtopResult,
 };
 use chrono::Utc;
 
@@ -42,17 +40,9 @@ impl VtopClient {
                 .ok_or(VtopError::SessionExpired)?,
         );
 
-        let res = self
-            .client
-            .post(url)
-            .body(body)
-            .send()
-            .await
-            .map_err(map_reqwest_error)?;
+        let res = self.post_form_with_session_retry(url, body).await?;
 
-        self.handle_session_check(&res).await?;
-
-        let text = res.text().await.map_err(map_response_read_error)?;
+        let text = read_body(res).await?;
         Ok(text)
     }
 
@@ -96,6 +86,7 @@ impl VtopClient {
         if !self.session.is_authenticated() {
             return Err(VtopError::SessionExpired);
         }
+        validate_semester_id(semester_id)?;
 
         let url = format!("{}/vtop/getCourseForCoursePage", self.config.base_url);
 
@@ -109,17 +100,9 @@ impl VtopClient {
             Utc::now().to_rfc2822()
         );
 
-        let res = self
-            .client
-            .post(url)
-            .body(body)
-            .send()
-            .await
-            .map_err(map_reqwest_error)?;
+        let res = self.post_form_with_session_retry(url, body).await?;
 
-        self.handle_session_check(&res).await?;
-
-        let text = res.text().await.map_err(map_response_read_error)?;
+        let text = read_body(res).await?;
         Ok(course_page_parser::parse_courses_for_course_page(text))
     }
 
@@ -166,6 +149,7 @@ impl VtopClient {
         if !self.session.is_authenticated() {
             return Err(VtopError::SessionExpired);
         }
+        validate_semester_id(semester_id)?;
 
         let url = format!("{}/vtop/getSlotIdForCoursePage", self.config.base_url);
 
@@ -180,17 +164,9 @@ impl VtopClient {
             Utc::now().to_rfc2822()
         );
 
-        let res = self
-            .client
-            .post(url)
-            .body(body)
-            .send()
-            .await
-            .map_err(map_reqwest_error)?;
+        let res = self.post_form_with_session_retry(url, body).await?;
 
-        self.handle_session_check(&res).await?;
-
-        let text = res.text().await.map_err(map_response_read_error)?;
+        let text = read_body(res).await?;
         Ok(course_page_parser::parse_slots_for_course_page(
             text,
             semester_id,
@@ -247,6 +223,7 @@ impl VtopClient {
         if !self.session.is_authenticated() {
             return Err(VtopError::SessionExpired);
         }
+        validate_semester_id(semester_id)?;
 
         let url = format!(
             "{}/vtop/processViewStudentCourseDetail",
@@ -265,17 +242,9 @@ impl VtopClient {
             Utc::now().to_rfc2822()
         );
 
-        let res = self
-            .client
-            .post(url)
-            .body(body)
-            .send()
-            .await
-            .map_err(map_reqwest_error)?;
+        let res = self.post_form_with_session_retry(url, body).await?;
 
-        self.handle_session_check(&res).await?;
-
-        let text = res.text().await.map_err(map_response_read_error)?;
+        let text = read_body(res).await?;
         Ok(course_page_parser::parse_course_detail_page(text))
     }
 
@@ -338,14 +307,7 @@ impl VtopClient {
             Utc::now().to_rfc2822()
         );
 
-        let res = self
-            .client
-            .get(url)
-            .send()
-            .await
-            .map_err(map_reqwest_error)?;
-
-        self.handle_session_check(&res).await?;
+        let res = self.get_with_session_retry(url).await?;
 
         let bytes = res.bytes().await.map_err(map_response_read_error)?;
         Ok(bytes.to_vec())
@@ -452,6 +414,7 @@ impl VtopClient {
         if !self.session.is_authenticated() {
             return Err(VtopError::SessionExpired);
         }
+        validate_semester_id(semester_id)?;
 
         let url = format!(
             "{}/vtop/academics/common/CoursePlanExcelDownload?semesterSubId={}&classId={}&authorizedID={}&x={}",
@@ -462,14 +425,7 @@ impl VtopClient {
             Utc::now().to_rfc2822()
         );
 
-        let res = self
-            .client
-            .get(url)
-            .send()
-            .await
-            .map_err(map_reqwest_error)?;
-
-        self.handle_session_check(&res).await?;
+        let res = self.get_with_session_retry(url).await?;
 
         let bytes = res.bytes().await.map_err(map_response_read_error)?;
         Ok(bytes.to_vec())

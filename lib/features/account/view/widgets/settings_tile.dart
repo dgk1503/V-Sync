@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 class SettingTile extends StatelessWidget {
   final bool isFirst;
   final bool isLast;
   final String title;
+  final String? subtitle;
   final Icon leadingIcon;
   final Icon? trailingIcon;
   final VoidCallback? onTap;
@@ -19,6 +21,7 @@ class SettingTile extends StatelessWidget {
     required this.isFirst,
     required this.isLast,
     required this.title,
+    this.subtitle,
     required this.leadingIcon,
     this.trailingIcon,
     this.onTap,
@@ -32,7 +35,11 @@ class SettingTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
+    final colorScheme = Theme.of(context).colorScheme;
+
+    // One wrapper handles the disabled look for every part of the row (icon,
+    // title, subtitle, chevron) without threading a colour through each.
+    final row = Column(
       children: [
         if (!isFirst)
           Padding(
@@ -48,55 +55,92 @@ class SettingTile extends StatelessWidget {
             ),
           ),
         Material(
+          color: Colors.transparent,
           child: ListTile(
             minVerticalPadding: 10,
-            tileColor:
-                tileColor ?? Theme.of(context).colorScheme.surfaceContainerLow,
+            tileColor: tileColor ?? Colors.transparent,
+            // Use the same Outfit title role as the Academics hub. The
+            // previous bodyLarge role rendered these options at regular
+            // weight while academic rows were semi-bold, which made the two
+            // menus look like different type systems.
             titleTextStyle: Theme.of(
               context,
-            ).textTheme.bodyLarge?.copyWith(color: titleColor),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-            leading: Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color:
-                    leadingIconBackgroundColor ??
-                    Theme.of(context).colorScheme.surfaceContainerLow,
-                borderRadius: BorderRadius.circular(9),
-              ),
-              child: Icon(
-                leadingIcon.icon,
-                color:
-                    leadingIconColor ?? Theme.of(context).colorScheme.primary,
-              ),
-            ),
-            title: Row(
-              mainAxisAlignment: MainAxisAlignment.start,
+            ).textTheme.titleMedium?.copyWith(color: titleColor),
+            // Plain line icon, no chip behind it: a filled rounded square
+            // behind every glyph reads as heavy at row height, while the
+            // bare stroke matches the rest of the profile menu.
+            leading: leadingIconBackgroundColor == null
+                ? Icon(
+                    leadingIcon.icon,
+                    size: 20,
+                    color: leadingIconColor ?? colorScheme.onSurfaceVariant,
+                  )
+                : Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: leadingIconBackgroundColor,
+                      borderRadius: BorderRadius.circular(9),
+                    ),
+                    child: Icon(
+                      leadingIcon.icon,
+                      size: 20,
+                      color: leadingIconColor ?? colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+            title: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Text(title),
-                if (infoText != null)
-                  Tooltip(
-                    message: infoText!,
-                    triggerMode: TooltipTriggerMode.tap,
-                    showDuration: const Duration(seconds: 5),
-                    child: Padding(
-                      padding: const EdgeInsets.only(left: 4.0),
-                      child: Icon(
-                        Icons.help_outline_rounded,
-                        color: Theme.of(context).colorScheme.secondary,
-                        size: 18,
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    Text(title),
+                    if (infoText != null)
+                      Tooltip(
+                        message: infoText!,
+                        triggerMode: TooltipTriggerMode.tap,
+                        showDuration: const Duration(seconds: 5),
+                        child: Padding(
+                          padding: const EdgeInsets.only(left: 4.0),
+                          child: Icon(
+                            LucideIcons.circleHelp,
+                            color: Theme.of(context).colorScheme.secondary,
+                            size: 16,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                if (subtitle != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 1),
+                    child: Text(
+                      subtitle!,
+                      style: TextStyle(
+                        fontFamily: 'Instrument Sans',
+                        fontSize: 12,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ),
               ],
             ),
-            trailing: trailingWidget ?? trailingIcon,
+            // Every row is a link, so a chevron is the default affordance;
+            // pass trailingWidget to override (the Logout row has none).
+            trailing:
+                trailingWidget ??
+                trailingIcon ??
+                Icon(
+                  LucideIcons.chevronRight,
+                  size: 16,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
             onTap: onTap,
           ),
         ),
       ],
     );
+
+    return row;
   }
 }

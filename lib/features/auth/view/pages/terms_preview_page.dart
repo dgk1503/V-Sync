@@ -20,9 +20,9 @@ class TermsPreviewPage extends StatelessWidget {
         title: const Text(
           'terms & privacy',
           style: TextStyle(
-            fontFamily: 'Outfit',
+            fontFamily: 'Instrument Sans',
             fontSize: 20,
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w500,
             letterSpacing: -0.25,
           ),
         ),
@@ -38,7 +38,7 @@ class TermsPreviewPage extends StatelessWidget {
               Text(
                 'last updated: august 2026',
                 style: TextStyle(
-                  fontFamily: 'Inter',
+                  fontFamily: 'Instrument Sans',
                   fontSize: 11,
                   fontWeight: FontWeight.w500,
                   letterSpacing: 0.4,
@@ -51,7 +51,7 @@ class TermsPreviewPage extends StatelessWidget {
                 'collect, store, or transmit any of your data to our '
                 'servers — everything happens on your device.',
                 style: TextStyle(
-                  fontFamily: 'Outfit',
+                  fontFamily: 'Instrument Sans',
                   fontSize: 15,
                   fontWeight: FontWeight.w500,
                   height: 1.5,
@@ -169,9 +169,9 @@ class _Section extends StatelessWidget {
           Text(
             heading,
             style: TextStyle(
-              fontFamily: 'Outfit',
+              fontFamily: 'Instrument Sans',
               fontSize: 16,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w500,
               letterSpacing: -0.25,
               color: colorScheme.onSurface,
             ),
@@ -181,7 +181,7 @@ class _Section extends StatelessWidget {
             Text(
               body[i],
               style: TextStyle(
-                fontFamily: 'Outfit',
+                fontFamily: 'Instrument Sans',
                 fontSize: 14,
                 fontWeight: FontWeight.w400,
                 height: 1.55,

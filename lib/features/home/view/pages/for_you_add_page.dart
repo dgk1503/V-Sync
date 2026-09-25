@@ -78,7 +78,7 @@ class _ForYouAddPageState extends ConsumerState<ForYouAddPage> {
                 style: TextStyle(
                   fontSize: 16,
                   color: Theme.of(context).colorScheme.primary,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
               const SizedBox(height: 8),
@@ -109,7 +109,7 @@ class _ForYouAddPageState extends ConsumerState<ForYouAddPage> {
                 style: TextStyle(
                   fontSize: 16,
                   color: Theme.of(context).colorScheme.primary,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
               const SizedBox(height: 8),
@@ -138,7 +138,7 @@ class _ForYouAddPageState extends ConsumerState<ForYouAddPage> {
                 style: TextStyle(
                   fontSize: 16,
                   color: Theme.of(context).colorScheme.primary,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
               const SizedBox(height: 8),
@@ -170,7 +170,7 @@ class _ForYouAddPageState extends ConsumerState<ForYouAddPage> {
                 style: TextStyle(
                   fontSize: 16,
                   color: Theme.of(context).colorScheme.primary,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
               const SizedBox(height: 8),
@@ -205,7 +205,7 @@ class _ForYouAddPageState extends ConsumerState<ForYouAddPage> {
                 style: TextStyle(
                   fontSize: 16,
                   color: Theme.of(context).colorScheme.primary,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
               const SizedBox(height: 8),
@@ -241,7 +241,7 @@ class _ForYouAddPageState extends ConsumerState<ForYouAddPage> {
                 style: TextStyle(
                   fontSize: 16,
                   color: Theme.of(context).colorScheme.primary,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
               const SizedBox(height: 8),
@@ -274,7 +274,7 @@ class _ForYouAddPageState extends ConsumerState<ForYouAddPage> {
                 style: TextStyle(
                   fontSize: 16,
                   color: Theme.of(context).colorScheme.primary,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
               const SizedBox(height: 8),
@@ -310,7 +310,7 @@ class _ForYouAddPageState extends ConsumerState<ForYouAddPage> {
                 'Preview',
                 style: Theme.of(
                   context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w500),
               ),
               const SizedBox(height: 12),
               _buildPreviewCard(),
@@ -392,7 +392,7 @@ class _ForYouAddPageState extends ConsumerState<ForYouAddPage> {
                           'Submit for Approval',
                           style: TextStyle(
                             fontSize: 16,
-                            fontWeight: FontWeight.w600,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                 ),
@@ -473,7 +473,7 @@ class _ForYouAddPageState extends ConsumerState<ForYouAddPage> {
                             : _selectedType == 'resource'
                             ? Colors.green.shade700
                             : Colors.blue.shade700,
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ),
@@ -502,7 +502,7 @@ class _ForYouAddPageState extends ConsumerState<ForYouAddPage> {
                   style: TextStyle(
                     color: Theme.of(context).colorScheme.primary,
                     fontSize: 12,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
                 const SizedBox(height: 6),

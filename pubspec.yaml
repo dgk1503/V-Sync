@@ -1,7 +1,7 @@
 name: vit_ap_student_app
 description: "vsync"
 publish_to: "none"
-version: 1.1.1+4
+version: 1.2.0+6
 
 environment:
   sdk: ">=3.8.0 <4.0.0"
@@ -31,11 +31,13 @@ dependencies:
   html: ^0.15.6
   http: ^1.2.1
   iconsax_flutter: ^1.0.0
+  in_app_update: ^5.0.0
   internet_connection_checker_plus: ^2.7.2
   intl: ^0.20.0
   json_annotation: ^4.9.0
   lib_vtop:
     path: rust_builder
+  lucide_icons_flutter: ^3.1.20
   meta: any
   objectbox: ^5.3.2
   objectbox_flutter_libs: ^5.3.2
@@ -60,8 +62,6 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   freezed: ^3.1.0
-  integration_test:
-    sdk: flutter
   json_serializable: ^6.9.5
   objectbox_generator: ^5.3.2
   riverpod_generator: ^4.0.3
@@ -105,3 +105,7 @@ flutter:
           weight: 600
         - asset: assets/fonts/Inter-Bold.ttf
           weight: 700
+
+    - family: Instrument Sans
+      fonts:
+        - asset: assets/fonts/InstrumentSans-Variable.ttf

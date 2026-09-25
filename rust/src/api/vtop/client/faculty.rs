@@ -1,10 +1,6 @@
+use crate::api::vtop::client::auth::read_body;
 use crate::api::vtop::{
-    parser,
-    types::*,
-    vtop_client::VtopClient,
-    vtop_errors::VtopError,
-    vtop_errors::VtopResult,
-    vtop_errors::{map_reqwest_error, map_response_read_error},
+    parser, types::*, vtop_client::VtopClient, vtop_errors::VtopError, vtop_errors::VtopResult,
 };
 
 impl VtopClient {
@@ -70,18 +66,9 @@ impl VtopClient {
             self.username
         );
 
-        let res = self
-            .client
-            .post(url)
-            .body(body)
-            .send()
-            .await
-            .map_err(map_reqwest_error)?;
+        let res = self.post_form_with_session_retry(url, body).await?;
 
-        // Check for session expiration and auto re-authenticate if needed
-        self.handle_session_check(&res).await?;
-
-        let text = res.text().await.map_err(map_response_read_error)?;
+        let text = read_body(res).await?;
         // print!("Fetched faculty search data: {}", text);
         Ok(parser::faculty::parsesearch::parse_faculty_search(text))
     }
@@ -154,18 +141,9 @@ impl VtopClient {
             chrono::Utc::now().to_rfc2822()
         );
 
-        let res = self
-            .client
-            .post(url)
-            .body(body)
-            .send()
-            .await
-            .map_err(map_reqwest_error)?;
+        let res = self.post_form_with_session_retry(url, body).await?;
 
-        // Check for session expiration and auto re-authenticate if needed
-        self.handle_session_check(&res).await?;
-
-        let text = res.text().await.map_err(map_response_read_error)?;
+        let text = read_body(res).await?;
         let faculty_details = parser::faculty::parseabout::parse_faculty_data(text);
         Ok(faculty_details)
     }
@@ -192,17 +170,9 @@ impl VtopClient {
             chrono::Utc::now().to_rfc2822()
         );
 
-        let res = self
-            .client
-            .post(url)
-            .body(body)
-            .send()
-            .await
-            .map_err(map_reqwest_error)?;
+        let res = self.post_form_with_session_retry(url, body).await?;
 
-        self.handle_session_check(&res).await?;
-
-        let text = res.text().await.map_err(map_response_read_error)?;
+        let text = read_body(res).await?;
         Ok(parser::faculty::parsesearch::parse_all_faculty_search(text))
     }
 }

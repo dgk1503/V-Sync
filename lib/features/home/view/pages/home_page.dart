@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:vit_ap_student_app/features/home/view/widgets/class_schedule_stack.dart';
 import 'package:vit_ap_student_app/features/home/view/widgets/mess/mess_menu_section.dart';
 import 'package:vit_ap_student_app/features/home/view/widgets/milestones/milestones_section.dart';
 
@@ -25,7 +26,8 @@ class HomePage extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const MilestonesSection(),
-              // Fading hairline separating the countdowns from the mess menu.
+              const ClassScheduleSection(),
+              // Fading hairline separating the class stack from the mess menu.
               Container(
                 height: 1.5,
                 margin: const EdgeInsets.symmetric(vertical: 24),

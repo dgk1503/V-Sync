@@ -11,8 +11,8 @@ class SettingsCategory extends StatelessWidget {
       child: Text(
         category,
         style: Theme.of(context).textTheme.titleLarge!.copyWith(
-              color: Theme.of(context).colorScheme.primary,
-            ),
+          color: Theme.of(context).colorScheme.tertiary,
+        ),
       ),
     );
   }

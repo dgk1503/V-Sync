@@ -729,7 +729,7 @@ final _entities = <obx_int.ModelEntity>[
   obx_int.ModelEntity(
     id: const obx_int.IdUid(12, 8803805611900482677),
     name: 'UserPreferences',
-    lastPropertyId: const obx_int.IdUid(25, 4923396874467733992),
+    lastPropertyId: const obx_int.IdUid(28, 6130767091723589936),
     flags: 0,
     properties: <obx_int.ModelProperty>[
       obx_int.ModelProperty(
@@ -873,6 +873,12 @@ final _entities = <obx_int.ModelEntity>[
       obx_int.ModelProperty(
         id: const obx_int.IdUid(25, 4923396874467733992),
         name: 'hasUserChosenTheme',
+        type: 1,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(28, 6130767091723589936),
+        name: 'classStackEnabled',
         type: 1,
         flags: 0,
       ),
@@ -1218,6 +1224,8 @@ obx_int.ModelDefinition getObjectBoxModel() {
       5953351526892332308,
       8130406564169076586,
       7577332749877002715,
+      5120397759199651304,
+      5576006293326158511,
     ],
     retiredRelationUids: const [],
     modelVersion: 5,
@@ -2136,7 +2144,7 @@ obx_int.ModelDefinition getObjectBoxModel() {
         final appThemeOffset = object.appTheme == null
             ? null
             : fbb.writeString(object.appTheme!);
-        fbb.startTable(26);
+        fbb.startTable(29);
         fbb.addInt64(0, object.id ?? 0);
         fbb.addOffset(1, pfpPathOffset);
         fbb.addBool(2, object.isTimetableNotificationsEnabled);
@@ -2161,6 +2169,7 @@ obx_int.ModelDefinition getObjectBoxModel() {
         fbb.addBool(22, object.hideOpenVtop);
         fbb.addBool(23, object.liquidGlassNavbar);
         fbb.addBool(24, object.hasUserChosenTheme);
+        fbb.addBool(27, object.classStackEnabled);
         fbb.finish(fbb.endTable());
         return object.id ?? 0;
       },
@@ -2285,6 +2294,12 @@ obx_int.ModelDefinition getObjectBoxModel() {
           50,
           false,
         );
+        final classStackEnabledParam = const fb.BoolReader().vTableGet(
+          buffer,
+          rootOffset,
+          58,
+          false,
+        );
         final object = UserPreferences(
           id: idParam,
           pfpPath: pfpPathParam,
@@ -2311,6 +2326,7 @@ obx_int.ModelDefinition getObjectBoxModel() {
           hideFacultyInfo: hideFacultyInfoParam,
           hideOpenVtop: hideOpenVtopParam,
           liquidGlassNavbar: liquidGlassNavbarParam,
+          classStackEnabled: classStackEnabledParam,
         );
 
         return object;
@@ -3281,6 +3297,11 @@ class UserPreferences_ {
   /// See [UserPreferences.hasUserChosenTheme].
   static final hasUserChosenTheme = obx.QueryBooleanProperty<UserPreferences>(
     _entities[11].properties[23],
+  );
+
+  /// See [UserPreferences.classStackEnabled].
+  static final classStackEnabled = obx.QueryBooleanProperty<UserPreferences>(
+    _entities[11].properties[24],
   );
 }
 

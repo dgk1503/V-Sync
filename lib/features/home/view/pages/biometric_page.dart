@@ -258,7 +258,7 @@ class _BiometricPageState extends ConsumerState<BiometricPage> {
                             style: TextStyle(
                               color: Theme.of(context).colorScheme.primary,
                               fontSize: 12,
-                              fontWeight: FontWeight.w600,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                         ),

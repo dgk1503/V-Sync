@@ -50,22 +50,21 @@ class AppTabBar extends StatelessWidget implements PreferredSizeWidget {
         dividerColor: Theme.of(context).colorScheme.surface,
         labelPadding: const EdgeInsets.symmetric(horizontal: 4.0),
         splashBorderRadius: BorderRadius.circular(30),
-        labelStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        labelStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
         unselectedLabelStyle: const TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w400,
         ),
-        unselectedLabelColor: Theme.of(
-          context,
-        ).colorScheme.onSecondaryContainer,
-        labelColor: Theme.of(context).colorScheme.onSecondaryContainer,
+        unselectedLabelColor: Theme.of(context).colorScheme.onSurfaceVariant,
+        labelColor: Theme.of(context).colorScheme.onTertiary,
         indicator: BoxDecoration(
-          color: Theme.of(context).colorScheme.secondaryContainer,
+          color: Theme.of(context).colorScheme.tertiary,
           borderRadius: BorderRadius.circular(30),
         ),
         splashFactory: InkRipple.splashFactory,
         overlayColor: WidgetStateColor.resolveWith(
-          (states) => Theme.of(context).colorScheme.secondaryContainer,
+          (states) =>
+              Theme.of(context).colorScheme.tertiary.withValues(alpha: 0.12),
         ),
         tabAlignment: isScrollable ? TabAlignment.start : null,
         tabs: tabs.map((label) => _buildTab(context, label)).toList(),

@@ -72,7 +72,7 @@ class ExamCard extends StatelessWidget {
                     Text(
                       formattedDate,
                       style: TextStyle(
-                        fontFamily: 'Inter',
+                        fontFamily: 'Instrument Sans',
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
                         letterSpacing: 0.2,
@@ -90,9 +90,9 @@ class ExamCard extends StatelessWidget {
                 Text(
                   exam.courseTitle,
                   style: TextStyle(
-                    fontFamily: 'Outfit',
+                    fontFamily: 'Instrument Sans',
                     fontSize: 17,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w500,
                     letterSpacing: -0.3,
                     height: 1.2,
                     color: colorScheme.onSurface,
@@ -107,7 +107,7 @@ class ExamCard extends StatelessWidget {
                 Text(
                   exam.courseCode,
                   style: TextStyle(
-                    fontFamily: 'Inter',
+                    fontFamily: 'Instrument Sans',
                     fontSize: 11.5,
                     fontWeight: FontWeight.w500,
                     letterSpacing: 0.4,
@@ -257,9 +257,9 @@ class _StatusDot extends StatelessWidget {
         Text(
           label,
           style: TextStyle(
-            fontFamily: 'Inter',
+            fontFamily: 'Instrument Sans',
             fontSize: 11.5,
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w500,
             letterSpacing: 0.2,
             color: color,
           ),
@@ -282,9 +282,9 @@ class _StatCell extends StatelessWidget {
       child: Text(
         value,
         style: TextStyle(
-          fontFamily: 'Outfit',
+          fontFamily: 'Instrument Sans',
           fontSize: 13,
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.w500,
           letterSpacing: -0.2,
           color: colorScheme.onSurface,
         ),

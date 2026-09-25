@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:iconsax_flutter/iconsax_flutter.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:vit_ap_student_app/core/common/widget/app_card.dart';
 import 'package:vit_ap_student_app/core/common/widget/bottom_navigation_bar.dart';
 import 'package:vit_ap_student_app/core/providers/current_user.dart';
@@ -9,6 +9,7 @@ import 'package:vit_ap_student_app/core/utils/launch_web.dart';
 import 'package:vit_ap_student_app/core/utils/show_snackbar.dart';
 import 'package:vit_ap_student_app/features/account/view/pages/customization_page.dart';
 import 'package:vit_ap_student_app/features/account/view/pages/manage_credentials_page.dart';
+import 'package:vit_ap_student_app/features/account/view/pages/otp_information_page.dart';
 import 'package:vit_ap_student_app/features/account/view/pages/settings_page.dart';
 import 'package:vit_ap_student_app/features/account/view/widgets/settings_tile.dart';
 import 'package:vit_ap_student_app/features/account/viewmodel/account_viewmodel.dart';
@@ -35,15 +36,17 @@ class AccountPage extends ConsumerStatefulWidget {
 class _AccountPageState extends ConsumerState<AccountPage> {
   bool _isNavigating = false;
 
+  /// Guards the one-time background resync that repairs profiles scraped
+  /// before the student-name parsing fix (their cached `studentName` is
+  /// empty, so the identity block falls back to the registration number).
+  bool _nameAutoHealTriggered = false;
+
   Future<void> _navigateTo(WidgetBuilder builder) async {
     if (_isNavigating) return;
     _isNavigating = true;
 
     try {
-      await Navigator.push(
-        context,
-        MaterialPageRoute<void>(builder: builder),
-      );
+      await Navigator.push(context, MaterialPageRoute<void>(builder: builder));
     } finally {
       if (mounted) {
         _isNavigating = false;
@@ -63,6 +66,7 @@ class _AccountPageState extends ConsumerState<AccountPage> {
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(currentUserProvider);
+    final showManageCredentials = !DemoService.isDemoMode;
 
     ref.listen(accountViewModelProvider, (_, next) {
       next?.when(
@@ -86,6 +90,22 @@ class _AccountPageState extends ConsumerState<AccountPage> {
       );
     });
 
+    // One-time self-heal: profiles cached before the student-name parsing fix
+    // carry an empty `studentName`, so the identity block below falls back to
+    // the registration number. Kick off a single background sync to refill it
+    // instead of forcing the user to log out and back in.
+    if (!_nameAutoHealTriggered &&
+        !DemoService.isDemoMode &&
+        user != null &&
+        (user.profile.target?.studentName.trim().isEmpty ?? true)) {
+      _nameAutoHealTriggered = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          ref.read(accountViewModelProvider.notifier).sync();
+        }
+      });
+    }
+
     return Scaffold(
       body: SafeArea(
         // bottom: false lets content scroll underneath the floating capsule
@@ -104,13 +124,20 @@ class _AccountPageState extends ConsumerState<AccountPage> {
             children: [
               const SizedBox(height: 16),
 
-              // Identity block: name on top, semester + change below.
-              Text(
-                user?.profile.target?.studentName ?? 'N/A',
-                style: Theme.of(context)
-                    .textTheme
-                    .headlineMedium
-                    ?.copyWith(fontWeight: FontWeight.w600),
+              // Identity block: the student's name, and the selected
+              // semester with its change shortcut below. The name is the one
+              // field shown — no register-number fallback, so the header
+              // always reads as a name or a neutral placeholder.
+              Builder(
+                builder: (context) {
+                  final name = user?.profile.target?.studentName.trim() ?? '';
+                  return Text(
+                    name.isNotEmpty ? name : 'N/A',
+                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      fontWeight: FontWeight.w500,
+                    ),
+                  );
+                },
               ),
               const SizedBox(height: 4),
               GestureDetector(
@@ -130,10 +157,11 @@ class _AccountPageState extends ConsumerState<AccountPage> {
                           return Text(
                             snapshot.data ?? 'Select semester',
                             style: const TextStyle(
-                              fontFamily: 'Inter',
+                              fontFamily: 'Instrument Sans',
                               fontSize: 14,
-                              // Blue on purpose: it reads as an interactive
-                              // link, unlike the monochrome body text.
+                              // Keep the interactive semester shortcut blue;
+                              // it was previously changed to the monochrome
+                              // primary colour and disappeared in light mode.
                               color: Colors.blue,
                             ),
                           );
@@ -141,8 +169,8 @@ class _AccountPageState extends ConsumerState<AccountPage> {
                       ),
                       const SizedBox(width: 6),
                       const Icon(
-                        Iconsax.edit_copy,
-                        size: 15,
+                        LucideIcons.pencil,
+                        size: 14,
                         color: Colors.blue,
                       ),
                     ],
@@ -152,17 +180,20 @@ class _AccountPageState extends ConsumerState<AccountPage> {
 
               const SizedBox(height: 24),
 
-              // Main settings group
+              // Main settings group. ONE section: every row lives in the same
+              // card, separated by the tile's own hairline, so spacing is
+              // uniform and there is no gap between "settings" and
+              // "actions". One unique Lucide glyph per feature.
               _SettingsGroup(
                 children: [
                   // Managing VTOP credentials is meaningless for the demo
                   // account, so the entry point is hidden in demo mode.
-                  if (!DemoService.isDemoMode)
+                  if (showManageCredentials)
                     SettingTile(
                       isFirst: true,
                       isLast: false,
                       title: 'Manage credentials',
-                      leadingIcon: const Icon(Iconsax.lock_1_copy),
+                      leadingIcon: const Icon(LucideIcons.keyRound),
                       onTap: () async {
                         final result = await Navigator.push<bool>(
                           context,
@@ -178,38 +209,32 @@ class _AccountPageState extends ConsumerState<AccountPage> {
                       },
                     ),
                   SettingTile(
-                    isFirst: !DemoService.isDemoMode,
+                    isFirst: !showManageCredentials,
                     isLast: false,
                     title: 'Appearance',
-                    leadingIcon: const Icon(Iconsax.moon_copy),
-                    onTap: () => _navigateTo(
-                      (builder) => const SettingsPage(),
-                    ),
+                    leadingIcon: const Icon(LucideIcons.moon),
+                    onTap: () => _navigateTo((builder) => const SettingsPage()),
                   ),
                   SettingTile(
                     isFirst: false,
-                    isLast: true,
+                    isLast: false,
                     title: 'Customization',
-                    // Iconsax has no wrench glyph (setting_4 is sliders —
-                    // verified against the font), so use Material's wrench.
-                    leadingIcon: const Icon(Icons.build_rounded),
-                    onTap: () => _navigateTo(
-                      (builder) => const CustomizationPage(),
-                    ),
+                    leadingIcon: const Icon(LucideIcons.palette),
+                    onTap: () =>
+                        _navigateTo((builder) => const CustomizationPage()),
                   ),
-                ],
-              ),
-
-              const SizedBox(height: 16),
-
-              // Actions group
-              _SettingsGroup(
-                children: [
                   SettingTile(
-                    isFirst: true,
+                    isFirst: false,
+                    isLast: false,
+                    title: 'Automatic OTP Fetching',
+                    leadingIcon: const Icon(LucideIcons.circleHelp),
+                    onTap: () => showOtpInformationSheet(context),
+                  ),
+                  SettingTile(
+                    isFirst: false,
                     isLast: false,
                     title: 'Website',
-                    leadingIcon: const Icon(Iconsax.global_copy),
+                    leadingIcon: const Icon(LucideIcons.globe),
                     onTap: () async {
                       await directToWeb(kWebsiteUrl);
                     },
@@ -218,7 +243,7 @@ class _AccountPageState extends ConsumerState<AccountPage> {
                     isFirst: false,
                     isLast: false,
                     title: 'Terms of Use',
-                    leadingIcon: const Icon(Iconsax.document_code_copy),
+                    leadingIcon: const Icon(LucideIcons.fileText),
                     onTap: () async {
                       await directToWeb(
                         'https://v-sync-minimallabs.vercel.app/terms',
@@ -229,7 +254,7 @@ class _AccountPageState extends ConsumerState<AccountPage> {
                     isFirst: false,
                     isLast: false,
                     title: 'Privacy Policy',
-                    leadingIcon: const Icon(Iconsax.security_copy),
+                    leadingIcon: const Icon(LucideIcons.shieldCheck),
                     onTap: () async {
                       await directToWeb(
                         'https://v-sync-minimallabs.vercel.app/privacypolicy',
@@ -240,9 +265,11 @@ class _AccountPageState extends ConsumerState<AccountPage> {
                     isFirst: false,
                     isLast: true,
                     title: 'Logout',
-                    leadingIcon: const Icon(Iconsax.logout),
+                    leadingIcon: const Icon(LucideIcons.logOut),
                     leadingIconColor: Colors.red,
                     titleColor: Colors.redAccent,
+                    // Logout is a command, not a link: no chevron.
+                    trailingWidget: const SizedBox.shrink(),
                     onTap: () async {
                       await ref.read(currentUserProvider.notifier).logout();
                       if (!context.mounted) return;
@@ -313,8 +340,9 @@ class _SemesterPickerSheetState extends ConsumerState<_SemesterPickerSheet> {
           .read(semesterViewModelProvider.notifier)
           .getSelectedSemester();
 
-      final credentials =
-          await ref.read(currentUserProvider.notifier).getSavedCredentials();
+      final credentials = await ref
+          .read(currentUserProvider.notifier)
+          .getSavedCredentials();
       if (credentials == null) {
         setState(() {
           _error = 'Credentials not found';
@@ -323,7 +351,9 @@ class _SemesterPickerSheetState extends ConsumerState<_SemesterPickerSheet> {
         return;
       }
 
-      await ref.read(semesterViewModelProvider.notifier).fetchSemesters(
+      await ref
+          .read(semesterViewModelProvider.notifier)
+          .fetchSemesters(
             registrationNumber: credentials.registrationNumber,
             password: credentials.password,
             needsUpdate: true,
@@ -346,8 +376,9 @@ class _SemesterPickerSheetState extends ConsumerState<_SemesterPickerSheet> {
   }
 
   Future<void> _select(SemesterInfo semester) async {
-    final credentials =
-        await ref.read(currentUserProvider.notifier).getSavedCredentials();
+    final credentials = await ref
+        .read(currentUserProvider.notifier)
+        .getSavedCredentials();
     if (credentials == null) return;
 
     final changed = _currentSemesterId != semester.id;
@@ -363,7 +394,9 @@ class _SemesterPickerSheetState extends ConsumerState<_SemesterPickerSheet> {
     }
 
     // Re-login so all data is refetched for the chosen semester.
-    await ref.read(authViewModelProvider.notifier).loginUser(
+    await ref
+        .read(authViewModelProvider.notifier)
+        .loginUser(
           semSubId: semester.id,
           registrationNumber: credentials.registrationNumber,
           password: credentials.password,
@@ -383,8 +416,7 @@ class _SemesterPickerSheetState extends ConsumerState<_SemesterPickerSheet> {
         data: (_) {
           Navigator.pushAndRemoveUntil(
             context,
-            MaterialPageRoute<void>(
-                builder: (context) => const BottomNavBar()),
+            MaterialPageRoute<void>(builder: (context) => const BottomNavBar()),
             (_) => false,
           );
         },
@@ -407,9 +439,7 @@ class _SemesterPickerSheetState extends ConsumerState<_SemesterPickerSheet> {
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
           decoration: BoxDecoration(
             color: colorScheme.surface,
-            borderRadius: const BorderRadius.vertical(
-              top: Radius.circular(24),
-            ),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -428,10 +458,9 @@ class _SemesterPickerSheetState extends ConsumerState<_SemesterPickerSheet> {
               const SizedBox(height: 16),
               Text(
                 'Change semester',
-                style: Theme.of(context)
-                    .textTheme
-                    .titleLarge
-                    ?.copyWith(fontWeight: FontWeight.w600),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w500),
               ),
               const SizedBox(height: 12),
               if (!_initialised ||
@@ -454,20 +483,19 @@ class _SemesterPickerSheetState extends ConsumerState<_SemesterPickerSheet> {
                   child: Text(
                     _error!,
                     style: TextStyle(
-                      fontFamily: 'Inter',
+                      fontFamily: 'Instrument Sans',
                       fontSize: 13,
                       color: colorScheme.onSurfaceVariant,
                     ),
                   ),
                 )
-              else if (semesterState.hasValue &&
-                  semesterState.value!.isEmpty)
+              else if (semesterState.hasValue && semesterState.value!.isEmpty)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 24),
                   child: Text(
                     'No semesters available. Try again later.',
                     style: TextStyle(
-                      fontFamily: 'Inter',
+                      fontFamily: 'Instrument Sans',
                       fontSize: 13,
                       color: colorScheme.onSurfaceVariant,
                     ),
@@ -507,7 +535,7 @@ class _SemesterPickerSheetState extends ConsumerState<_SemesterPickerSheet> {
                                 child: Text(
                                   semester.name,
                                   style: TextStyle(
-                                    fontFamily: 'Outfit',
+                                    fontFamily: 'Instrument Sans',
                                     fontSize: 14.5,
                                     fontWeight: FontWeight.w500,
                                     color: colorScheme.onSurface,
@@ -516,7 +544,7 @@ class _SemesterPickerSheetState extends ConsumerState<_SemesterPickerSheet> {
                               ),
                               if (isCurrent)
                                 Icon(
-                                  Iconsax.tick_circle_copy,
+                                  LucideIcons.check,
                                   size: 18,
                                   color: colorScheme.onSurface,
                                 ),

@@ -48,7 +48,7 @@ class _TileDetailPageState extends State<TileDetailPage> {
                 widget.title,
                 style: const TextStyle(
                   fontSize: 18,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
               const SizedBox(height: 16),

@@ -1002,15 +1002,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "fake_user_agent"
-version = "0.2.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b525286f3f8402e322df2beaa7328503acdd1ba176985ff854759899c3e9e65f"
-dependencies = [
- "fastrand",
-]
-
-[[package]]
 name = "fastrand"
 version = "2.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1947,16 +1938,16 @@ checksum = "03087c2bad5e1034e8cace5926dec053fb3790248370865f5117a7d0213354c8"
 
 [[package]]
 name = "lib_vtop"
-version = "1.0.3"
+version = "2.0.0"
 dependencies = [
  "base",
  "base64",
  "chrono",
  "dotenv",
  "env_logger",
- "fake_user_agent",
  "flutter_rust_bridge",
  "flutter_rust_bridge_codegen",
+ "http",
  "image",
  "lazy_static",
  "ndarray",

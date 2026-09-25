@@ -290,7 +290,7 @@ class _CoursePageMainState extends ConsumerState<CoursePage> {
               child: Text(
                 'Select Faculty',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w500,
                   color: Theme.of(context).colorScheme.primary,
                 ),
               ),

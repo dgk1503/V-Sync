@@ -46,7 +46,7 @@ class _AuthFieldState extends State<AuthField> {
           Text(
             (widget.title ?? widget.hintText).toUpperCase(),
             style: TextStyle(
-              fontFamily: 'Inter',
+              fontFamily: 'Instrument Sans',
               fontSize: 10.5,
               fontWeight: FontWeight.w500,
               letterSpacing: 0.8,
@@ -57,7 +57,7 @@ class _AuthFieldState extends State<AuthField> {
           TextFormField(
             controller: widget.controller,
             style: TextStyle(
-              fontFamily: 'Outfit',
+              fontFamily: 'Instrument Sans',
               fontSize: 15.5,
               fontWeight: FontWeight.w500,
               color: colorScheme.onSurface,
@@ -69,7 +69,7 @@ class _AuthFieldState extends State<AuthField> {
               ),
               hintText: widget.hintText,
               hintStyle: TextStyle(
-                fontFamily: 'Inter',
+                fontFamily: 'Instrument Sans',
                 fontSize: 13.5,
                 color: colorScheme.onSurfaceVariant,
               ),

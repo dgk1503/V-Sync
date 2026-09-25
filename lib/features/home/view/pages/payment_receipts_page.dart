@@ -117,7 +117,7 @@ class _PaymentReceiptCard extends StatelessWidget {
               'Receipt #${receipt.receiptNumber}',
               style: Theme.of(
                 context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w500),
             ),
             const SizedBox(height: 4),
             Row(
@@ -134,7 +134,7 @@ class _PaymentReceiptCard extends StatelessWidget {
                 Text(
                   '₹${receipt.amount}',
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w500,
                     color: Colors.green.shade700,
                   ),
                 ),
@@ -153,7 +153,7 @@ class _PaymentReceiptCard extends StatelessWidget {
                       color: isPaid
                           ? Colors.green.shade800
                           : Colors.red.shade800,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ),

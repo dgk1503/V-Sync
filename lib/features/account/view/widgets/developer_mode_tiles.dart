@@ -133,7 +133,7 @@ class _DeveloperOptionsContent extends ConsumerWidget {
             style: TextStyle(
               fontSize: 15,
               color: Theme.of(context).colorScheme.primary,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w500,
             ),
           ),
         ],

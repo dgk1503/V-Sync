@@ -49,17 +49,23 @@ class _ProfileCardState extends ConsumerState<ProfileCard> {
           children: [
             CircleAvatar(
               radius: 50,
-              backgroundColor:
-                  Theme.of(context).colorScheme.surfaceContainerHigh,
+              backgroundColor: Theme.of(
+                context,
+              ).colorScheme.surfaceContainerHigh,
               child: Text(
-                (widget.user?.profile.target?.studentName ?? '?')
-                    .trim()
-                    .substring(0, 1)
-                    .toUpperCase(),
+                // An empty scraped name must not reach substring(0, 1) —
+                // that throws a RangeError. '?' is the neutral fallback.
+                (widget.user?.profile.target?.studentName.trim().isNotEmpty ==
+                        true)
+                    ? widget.user!.profile.target!.studentName
+                          .trim()
+                          .substring(0, 1)
+                          .toUpperCase()
+                    : '?',
                 style: TextStyle(
-                  fontFamily: 'Outfit',
+                  fontFamily: 'Instrument Sans',
                   fontSize: 34,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w500,
                   color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),

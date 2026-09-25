@@ -160,9 +160,9 @@ class LoginPageState extends ConsumerState<LoginPage> {
                         const AccentGradientText(
                           'welcome back',
                           style: TextStyle(
-                            fontFamily: 'Outfit',
+                            fontFamily: 'Instrument Sans',
                             fontSize: 34,
-                            fontWeight: FontWeight.w600,
+                            fontWeight: FontWeight.w500,
                             letterSpacing: -0.5,
                             height: 1.1,
                           ),
@@ -172,7 +172,7 @@ class LoginPageState extends ConsumerState<LoginPage> {
                           'connect your college portal once and vsync '
                           'takes it from there.',
                           style: TextStyle(
-                            fontFamily: 'Outfit',
+                            fontFamily: 'Instrument Sans',
                             fontSize: 15.5,
                             fontWeight: FontWeight.w500,
                             height: 1.45,
@@ -219,9 +219,9 @@ class LoginPageState extends ConsumerState<LoginPage> {
                                 : const Text(
                                     'continue',
                                     style: TextStyle(
-                                      fontFamily: 'Outfit',
+                                      fontFamily: 'Instrument Sans',
                                       fontSize: 16,
-                                      fontWeight: FontWeight.w600,
+                                      fontWeight: FontWeight.w500,
                                     ),
                                   ),
                           ),
@@ -232,7 +232,7 @@ class LoginPageState extends ConsumerState<LoginPage> {
                             TextSpan(
                               text: 'by continuing, you agree to our ',
                               style: TextStyle(
-                                fontFamily: 'Inter',
+                                fontFamily: 'Instrument Sans',
                                 fontSize: 12,
                                 fontWeight: FontWeight.w400,
                                 letterSpacing: 0.2,
@@ -243,9 +243,9 @@ class LoginPageState extends ConsumerState<LoginPage> {
                                 TextSpan(
                                   text: 'terms & privacy policy',
                                   style: TextStyle(
-                                    fontFamily: 'Inter',
+                                    fontFamily: 'Instrument Sans',
                                     fontSize: 12,
-                                    fontWeight: FontWeight.w600,
+                                    fontWeight: FontWeight.w500,
                                     letterSpacing: 0.2,
                                     color: colorScheme.onSurface,
                                     decoration: TextDecoration.underline,

@@ -1,3 +1,5 @@
+use crate::api::vtop::client::auth::read_body;
+use crate::api::vtop::vtop_config::validate_semester_id;
 use crate::api::vtop::{
     parser,
     types::*,
@@ -47,11 +49,46 @@ impl VtopClient {
         if !self.session.is_authenticated() {
             return Err(VtopError::SessionExpired);
         }
-        let url = format!(
-            "{}/vtop/academics/common/StudentTimeTable",
-            self.config.base_url
-        );
 
+        // The semester dropdown appears on several pages, but they are not
+        // equally reliable:
+        //   - The timetable page lists only the semesters the student actually
+        //     has a timetable for. That is the nicest list to show, but it is
+        //     empty for freshers (and others) before their timetable is set up,
+        //     which surfaced as "No semesters available" at login.
+        //   - The marks and exam-schedule pages render the full institutional
+        //     semester list server-side, so their dropdown is populated for
+        //     anyone who can log in, regardless of their own records.
+        //
+        // Try the timetable first for the better list, then fall back to the
+        // fuller pages so login never dead-ends on an empty semester list.
+        const SEMESTER_PAGES: [&str; 3] = [
+            "academics/common/StudentTimeTable",
+            "examinations/StudentMarkView",
+            "examinations/StudExamSchedule",
+        ];
+
+        let mut last = SemesterData {
+            semesters: Vec::new(),
+            update_time: 0,
+        };
+        for page in SEMESTER_PAGES {
+            let data = self.fetch_semesters_from(page).await?;
+            if !data.semesters.is_empty() {
+                return Ok(data);
+            }
+            last = data;
+        }
+
+        // Every source was empty; return the (empty) last result so the caller
+        // can show its "try again later" message rather than an error.
+        Ok(last)
+    }
+
+    /// Loads a VTOP page and parses its `semesterSubId` dropdown into a
+    /// [`SemesterData`]. Used by [`Self::get_semesters`] for each fallback page.
+    async fn fetch_semesters_from(&mut self, page_path: &str) -> VtopResult<SemesterData> {
+        let url = format!("{}/vtop/{}", self.config.base_url, page_path);
         let body = format!(
             "verifyMenu=true&authorizedID={}&_csrf={}&nocache=@(new Date().getTime())",
             self.username,
@@ -59,17 +96,9 @@ impl VtopClient {
                 .get_csrf_token()
                 .ok_or(VtopError::SessionExpired)?,
         );
-        let res = self
-            .client
-            .post(url)
-            .body(body)
-            .send()
-            .await
-            .map_err(map_reqwest_error)?;
-        // Check for session expiration and auto re-authenticate if needed
-        self.handle_session_check(&res).await?;
+        let res = self.post_form_with_session_retry(url, body).await?;
 
-        let text = res.text().await.map_err(map_response_read_error)?;
+        let text = read_body(res).await?;
         Ok(parser::semested_id_parser::parse_semid_from_timetable(text))
     }
 
@@ -116,6 +145,7 @@ impl VtopClient {
         if !self.session.is_authenticated() {
             return Err(VtopError::SessionExpired);
         }
+        validate_semester_id(semester_id)?;
         let url = format!("{}/vtop/processViewTimeTable", self.config.base_url);
         let body = format!(
             "_csrf={}&semesterSubId={}&authorizedID={}",
@@ -125,16 +155,8 @@ impl VtopClient {
             semester_id,
             self.username
         );
-        let res = self
-            .client
-            .post(url)
-            .body(body)
-            .send()
-            .await
-            .map_err(map_reqwest_error)?;
-        // Check for session expiration and auto re-authenticate if needed
-        self.handle_session_check(&res).await?;
-        let text = res.text().await.map_err(map_response_read_error)?;
+        let res = self.post_form_with_session_retry(url, body).await?;
+        let text = read_body(res).await?;
         Ok(parser::timetable_parser::parse_timetable(text))
     }
 
@@ -188,6 +210,7 @@ impl VtopClient {
         if !self.session.is_authenticated() {
             return Err(VtopError::SessionExpired);
         }
+        validate_semester_id(semester_id)?;
         let url = format!("{}/vtop/processViewStudentAttendance", self.config.base_url);
         let body = format!(
             "_csrf={}&semesterSubId={}&authorizedID={}",
@@ -197,16 +220,8 @@ impl VtopClient {
             semester_id,
             self.username
         );
-        let res = self
-            .client
-            .post(url)
-            .body(body)
-            .send()
-            .await
-            .map_err(map_reqwest_error)?;
-        // Check for session expiration and auto re-authenticate if needed
-        self.handle_session_check(&res).await?;
-        let text = res.text().await.map_err(map_response_read_error)?;
+        let res = self.post_form_with_session_retry(url, body).await?;
+        let text = read_body(res).await?;
         Ok(parser::attendance_parser::parse_attendance(text))
     }
 
@@ -271,6 +286,7 @@ impl VtopClient {
         if !self.session.is_authenticated() {
             return Err(VtopError::SessionExpired);
         }
+        validate_semester_id(semester_id)?;
         let url = format!("{}/vtop/processViewAttendanceDetail", self.config.base_url);
         let timestamp = Utc::now().format("%a, %d %b %Y %H:%M:%S GMT").to_string();
         let body = format!(
@@ -285,17 +301,114 @@ impl VtopClient {
             self.username,
             timestamp
         );
-        let res = self
-            .client
-            .post(url)
-            .body(body)
-            .send()
-            .await
-            .map_err(map_reqwest_error)?;
-        // Check for session expiration and auto re-authenticate if needed
-        self.handle_session_check(&res).await?;
-        let text = res.text().await.map_err(map_response_read_error)?;
+        let res = self.post_form_with_session_retry(url, body).await?;
+        let text = read_body(res).await?;
         Ok(parser::attendance_parser::parse_full_attendance(text))
+    }
+    /// Retrieves the capstone/SDP attendance for a semester.
+    ///
+    /// This is not per-course attendance: it covers the single capstone or SDP
+    /// registration a final-year student has, and VTOP tracks it as a daily
+    /// punch rather than as classes attended out of classes held.
+    ///
+    /// # Arguments
+    ///
+    /// * `semester_id` - The unique identifier for the semester.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Ok(None)` when the response carries no attendance summary,
+    /// which is what a student with no capstone registration gets. Otherwise
+    /// returns the registration details, the present/on-duty/absent tally and
+    /// the day-by-day punch calendar, all of which arrive in this one response.
+    ///
+    /// # Errors
+    ///
+    /// This function will return an error if:
+    /// - The session is not authenticated (`VtopError::SessionExpired`)
+    /// - Network communication fails (`VtopError::NetworkError`)
+    /// - The VTOP server returns an error response (`VtopError::VtopServerError`)
+    pub async fn get_capstone_attendance(
+        &mut self,
+        semester_id: &str,
+    ) -> VtopResult<Option<CapstoneAttendance>> {
+        if !self.session.is_authenticated() {
+            return Err(VtopError::SessionExpired);
+        }
+        validate_semester_id(semester_id)?;
+        let url = format!("{}/vtop/processSdpAttendance", self.config.base_url);
+        let timestamp = Utc::now().format("%a, %d %b %Y %H:%M:%S GMT").to_string();
+        let body = format!(
+            "_csrf={}&semesterSubId={}&regNo={}&authorizedID={}&x={}",
+            self.session
+                .get_csrf_token()
+                .ok_or(VtopError::SessionExpired)?,
+            semester_id,
+            self.username,
+            self.username,
+            timestamp
+        );
+        let res = self.post_form_with_session_retry(url, body).await?;
+        let text = read_body(res).await?;
+        Ok(parser::capstone_attendance_parser::parse_capstone_attendance(text))
+    }
+
+    /// Retrieves course attendance and, when the student has one, the
+    /// capstone/SDP attendance alongside it.
+    ///
+    /// The attendance page itself says whether a capstone exists — it renders a
+    /// "View CAPSTONE/SDP Attendance" button only for students who have one —
+    /// so the second request is made only when that button is present.
+    ///
+    /// # Arguments
+    ///
+    /// * `semester_id` - The unique identifier for the semester.
+    ///
+    /// # Returns
+    ///
+    /// Returns the course records and the capstone attendance, the latter being
+    /// `None` for the majority of students who have no capstone registration.
+    ///
+    /// # Errors
+    ///
+    /// Fails under the same conditions as [`Self::get_attendance`]. A failure
+    /// while fetching the capstone is *not* one of them: the course records are
+    /// already parsed and correct at that point, so a capstone failure degrades
+    /// to `None` rather than losing the whole page.
+    pub async fn get_attendance_with_capstone(
+        &mut self,
+        semester_id: &str,
+    ) -> VtopResult<(Vec<AttendanceRecord>, Option<CapstoneAttendance>)> {
+        if !self.session.is_authenticated() {
+            return Err(VtopError::SessionExpired);
+        }
+        validate_semester_id(semester_id)?;
+        let url = format!("{}/vtop/processViewStudentAttendance", self.config.base_url);
+        let body = format!(
+            "_csrf={}&semesterSubId={}&authorizedID={}",
+            self.session
+                .get_csrf_token()
+                .ok_or(VtopError::SessionExpired)?,
+            semester_id,
+            self.username
+        );
+        let res = self.post_form_with_session_retry(url, body).await?;
+        let text = read_body(res).await?;
+
+        let has_capstone = parser::attendance_parser::has_capstone_attendance(&text);
+        let records = parser::attendance_parser::parse_attendance(text);
+
+        let capstone = if has_capstone {
+            // Course attendance is already parsed and correct; do not let a
+            // capstone failure take it down with it.
+            self.get_capstone_attendance(semester_id)
+                .await
+                .unwrap_or(None)
+        } else {
+            None
+        };
+
+        Ok((records, capstone))
     }
 
     /// Retrieves marks and assessment scores for all courses in a specific semester.
@@ -348,31 +461,23 @@ impl VtopClient {
         if !self.session.is_authenticated() {
             return Err(VtopError::SessionExpired);
         }
+        validate_semester_id(semester_id)?;
         let url = format!(
             "{}/vtop/examinations/doStudentMarkView",
             self.config.base_url
         );
-        let form = Form::new()
-            .text("authorizedID", self.username.clone())
-            .text("semesterSubId", semester_id.to_string())
-            .text(
-                "_csrf",
-                self.session
-                    .get_csrf_token()
-                    .ok_or(VtopError::SessionExpired)?,
-            );
-
+        let authorizedid_v = self.username.clone();
+        let semestersubid_v = semester_id.to_string();
         let res = self
-            .client
-            .post(url)
-            .multipart(form)
-            .send()
-            .await
-            .map_err(map_reqwest_error)?;
-        // Check for session expiration and auto re-authenticate if needed
-        self.handle_session_check(&res).await?;
+            .post_multipart_with_session_retry(url, |csrf| {
+                Form::new()
+                    .text("authorizedID", authorizedid_v.clone())
+                    .text("semesterSubId", semestersubid_v.clone())
+                    .text("_csrf", csrf.to_string())
+            })
+            .await?;
 
-        let text = res.text().await.map_err(map_response_read_error)?;
+        let text = read_body(res).await?;
 
         Ok(parser::marks_parser::parse_marks(text))
     }
@@ -433,29 +538,22 @@ impl VtopClient {
         if !self.session.is_authenticated() {
             return Err(VtopError::SessionExpired);
         }
+        validate_semester_id(semester_id)?;
         let url = format!(
             "{}/vtop/examinations/doSearchExamScheduleForStudent",
             self.config.base_url
         );
-        let form = Form::new()
-            .text("authorizedID", self.username.clone())
-            .text("semesterSubId", semester_id.to_string())
-            .text(
-                "_csrf",
-                self.session
-                    .get_csrf_token()
-                    .ok_or(VtopError::SessionExpired)?,
-            );
+        let authorizedid_v = self.username.clone();
+        let semestersubid_v = semester_id.to_string();
         let res = self
-            .client
-            .post(url)
-            .multipart(form)
-            .send()
-            .await
-            .map_err(map_reqwest_error)?;
-        // Check for session expiration and auto re-authenticate if needed
-        self.handle_session_check(&res).await?;
-        let text = res.text().await.map_err(map_response_read_error)?;
+            .post_multipart_with_session_retry(url, |csrf| {
+                Form::new()
+                    .text("authorizedID", authorizedid_v.clone())
+                    .text("semesterSubId", semestersubid_v.clone())
+                    .text("_csrf", csrf.to_string())
+            })
+            .await?;
+        let text = read_body(res).await?;
         Ok(parser::exam_schedule_parser::parse_schedule(text))
     }
 
@@ -478,29 +576,22 @@ impl VtopClient {
         if !self.session.is_authenticated() {
             return Err(VtopError::SessionExpired);
         }
+        validate_semester_id(semester_id)?;
         let url = format!(
             "{}/vtop/examinations/doDigitalAssignment",
             self.config.base_url
         );
-        let form = Form::new()
-            .text("authorizedID", self.username.clone())
-            .text("semesterSubId", semester_id.to_string())
-            .text(
-                "_csrf",
-                self.session
-                    .get_csrf_token()
-                    .ok_or(VtopError::SessionExpired)?,
-            );
+        let authorizedid_v = self.username.clone();
+        let semestersubid_v = semester_id.to_string();
         let res = self
-            .client
-            .post(url)
-            .multipart(form)
-            .send()
-            .await
-            .map_err(map_reqwest_error)?;
-        // Check for session expiration and auto re-authenticate if needed
-        self.handle_session_check(&res).await?;
-        let text = res.text().await.map_err(map_response_read_error)?;
+            .post_multipart_with_session_retry(url, |csrf| {
+                Form::new()
+                    .text("authorizedID", authorizedid_v.clone())
+                    .text("semesterSubId", semestersubid_v.clone())
+                    .text("_csrf", csrf.to_string())
+            })
+            .await?;
+        let text = read_body(res).await?;
         let mut assignments = parser::digital_assignment_parser::parse_all_assignments(text);
         for assignment in &mut assignments {
             assignment.details = self
@@ -542,16 +633,8 @@ impl VtopClient {
                 .get_csrf_token()
                 .ok_or(VtopError::SessionExpired)?,
         );
-        let res = self
-            .client
-            .post(url)
-            .body(body)
-            .send()
-            .await
-            .map_err(map_reqwest_error)?;
-        // Check for session expiration and auto re-authenticate if needed
-        self.handle_session_check(&res).await?;
-        let text = res.text().await.map_err(map_response_read_error)?;
+        let res = self.post_form_with_session_retry(url, body).await?;
+        let text = read_body(res).await?;
         Ok(parser::digital_assignment_parser::parse_per_course_dassignments(text))
     }
 
@@ -594,15 +677,7 @@ impl VtopClient {
             urlencoding::encode(&chrono::Utc::now().to_rfc2822())
         );
 
-        let res = self
-            .client
-            .get(url)
-            .send()
-            .await
-            .map_err(map_reqwest_error)?;
-
-        // Check for session expiration and auto re-authenticate if needed
-        self.handle_session_check(&res).await?;
+        let res = self.get_with_session_retry(url).await?;
 
         let bytes = res.bytes().await.map_err(map_response_read_error)?;
         Ok(bytes.to_vec())
@@ -658,16 +733,8 @@ impl VtopClient {
                 .get_csrf_token()
                 .ok_or(VtopError::SessionExpired)?,
         );
-        let res = self
-            .client
-            .post(url)
-            .body(body)
-            .send()
-            .await
-            .map_err(map_reqwest_error)?;
-        // Check for session expiration and auto re-authenticate if needed
-        self.handle_session_check(&res).await?;
-        let text = res.text().await.map_err(map_response_read_error)?;
+        let res = self.post_form_with_session_retry(url, body).await?;
+        let text = read_body(res).await?;
         Ok(parser::digital_assignment_parser::parse_process_upload_assignment_response(text))
     }
 
@@ -744,7 +811,7 @@ impl VtopClient {
             .map_err(map_reqwest_error)?;
         // Check for session expiration and auto re-authenticate if needed
         self.handle_session_check(&res).await?;
-        let text = res.text().await.map_err(map_response_read_error)?;
+        let text = read_body(res).await?;
         let result = parser::digital_assignment_parser::parse_upload_assignment_response(text);
         if result == "OTP Required".to_string() {
             // Callback for OTP verification
@@ -767,6 +834,9 @@ impl VtopClient {
             "{}/vtop/examinations/doDAssignmentOtpUpload",
             self.config.base_url
         );
+        // Deliberately not retried after a re-login: this submits an OTP, and
+        // replaying a write risks sending it twice. An expired session stays an
+        // error here, which is the safe outcome.
         let form = Form::new()
             .text("authorizedID", self.username.clone())
             .text("otpEmail", otp_email.to_string())
@@ -776,6 +846,7 @@ impl VtopClient {
                     .get_csrf_token()
                     .ok_or(VtopError::SessionExpired)?,
             );
+
         let res = self
             .client
             .post(url)
@@ -783,9 +854,9 @@ impl VtopClient {
             .send()
             .await
             .map_err(map_reqwest_error)?;
-        // Check for session expiration and auto re-authenticate if needed
         self.handle_session_check(&res).await?;
-        let text = res.text().await.map_err(map_response_read_error)?;
+
+        let text = read_body(res).await?;
         let result = parser::digital_assignment_parser::parse_upload_assignment_response(text);
         if result == "Invalid OTP. Please try again.".to_string() {
             // OTP was incorrect.

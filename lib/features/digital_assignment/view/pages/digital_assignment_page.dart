@@ -113,7 +113,7 @@ class _DigitalAssignmentPageState extends ConsumerState<DigitalAssignmentPage>
               Text(
                 'Last synced ${timeago.format(lastSynced!)}',
                 style: TextStyle(
-                  fontFamily: 'Inter',
+                  fontFamily: 'Instrument Sans',
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                   fontSize: 13,
                   fontWeight: FontWeight.w400,

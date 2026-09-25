@@ -72,7 +72,7 @@ class _AuthFailureSheet extends StatelessWidget {
                   ? 'Reset Password'
                   : 'Authentication Failed',
               style: theme.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w500,
               ),
             ),
             const SizedBox(height: 8),
@@ -103,7 +103,7 @@ class _AuthFailureSheet extends StatelessWidget {
                   Text(
                     'How to fix this',
                     style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                   const SizedBox(height: 12),

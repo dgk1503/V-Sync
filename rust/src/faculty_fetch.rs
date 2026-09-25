@@ -29,7 +29,7 @@
 //! `fetchFacultyData` respectively.
 //!
 //! ## Environment
-//! Reads `VTOP_USERNAME` and `VTOP_PASSWORD` from `.env` (see `.env`).
+//! Reads `VTOP_USERNAME` and `VTOP_PASSWORD` from `.env` (see `.env.example`).
 //! If the OTP flow is triggered, the binary prompts for the one-time code
 //! via stdin.
 
@@ -64,7 +64,7 @@
 //! `fetchFacultyData` respectively.
 //!
 //! ## Environment
-//! Reads `VTOP_USERNAME` and `VTOP_PASSWORD` from `.env` (see `.env`).
+//! Reads `VTOP_USERNAME` and `VTOP_PASSWORD` from `.env` (see `.env.example`).
 //! If the OTP flow is triggered, the binary prompts for the one-time code
 //! via stdin.
 
@@ -127,7 +127,7 @@ async fn main() {
         return;
     }
 
-    let mut client = api::vtop_get_client::get_vtop_client(username, password);
+    let mut client = api::vtop_get_client::get_vtop_client(username, password, String::new());
 
     if !login(&mut client).await {
         return;

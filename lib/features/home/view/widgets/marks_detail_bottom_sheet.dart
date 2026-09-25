@@ -60,9 +60,9 @@ void showMarksDetailBottomSheet(Mark course, BuildContext context) {
                   Text(
                     course.courseTitle,
                     style: TextStyle(
-                      fontFamily: 'Outfit',
+                      fontFamily: 'Instrument Sans',
                       fontSize: 27,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w500,
                       letterSpacing: -0.5,
                       color: colorScheme.onSurface,
                       height: 1.15,
@@ -74,7 +74,7 @@ void showMarksDetailBottomSheet(Mark course, BuildContext context) {
                   Text(
                     'FACULTY',
                     style: TextStyle(
-                      fontFamily: 'Inter',
+                      fontFamily: 'Instrument Sans',
                       fontSize: 10.5,
                       fontWeight: FontWeight.w500,
                       letterSpacing: 0.8,
@@ -85,7 +85,7 @@ void showMarksDetailBottomSheet(Mark course, BuildContext context) {
                   Text(
                     course.faculty,
                     style: TextStyle(
-                      fontFamily: 'Outfit',
+                      fontFamily: 'Instrument Sans',
                       fontSize: 15,
                       fontWeight: FontWeight.w500,
                       color: colorScheme.onSurface,
@@ -97,7 +97,7 @@ void showMarksDetailBottomSheet(Mark course, BuildContext context) {
                   Text(
                     'COURSE CODE',
                     style: TextStyle(
-                      fontFamily: 'Inter',
+                      fontFamily: 'Instrument Sans',
                       fontSize: 10.5,
                       fontWeight: FontWeight.w500,
                       letterSpacing: 0.8,
@@ -108,7 +108,7 @@ void showMarksDetailBottomSheet(Mark course, BuildContext context) {
                   Text(
                     course.courseCode,
                     style: TextStyle(
-                      fontFamily: 'Outfit',
+                      fontFamily: 'Instrument Sans',
                       fontSize: 15,
                       fontWeight: FontWeight.w500,
                       color: colorScheme.onSurface,
@@ -146,9 +146,9 @@ void showMarksDetailBottomSheet(Mark course, BuildContext context) {
                   Text(
                     'Details',
                     style: TextStyle(
-                      fontFamily: 'Outfit',
+                      fontFamily: 'Instrument Sans',
                       fontSize: 17,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w500,
                       color: colorScheme.onSurface,
                     ),
                   ),
@@ -179,7 +179,7 @@ void showMarksDetailBottomSheet(Mark course, BuildContext context) {
                               child: Text(
                                 detail.markTitle,
                                 style: TextStyle(
-                                  fontFamily: 'Outfit',
+                                  fontFamily: 'Instrument Sans',
                                   fontSize: 14.5,
                                   fontWeight: FontWeight.w500,
                                   color: colorScheme.onSurface,
@@ -190,16 +190,16 @@ void showMarksDetailBottomSheet(Mark course, BuildContext context) {
                               text: TextSpan(
                                 text: detail.scoredMark,
                                 style: TextStyle(
-                                  fontFamily: 'Outfit',
+                                  fontFamily: 'Instrument Sans',
                                   fontSize: 15,
-                                  fontWeight: FontWeight.w600,
+                                  fontWeight: FontWeight.w500,
                                   color: colorScheme.onSurface,
                                 ),
                                 children: [
                                   TextSpan(
                                     text: ' / ${detail.maxMark}',
                                     style: TextStyle(
-                                      fontFamily: 'Inter',
+                                      fontFamily: 'Instrument Sans',
                                       fontSize: 12.5,
                                       fontWeight: FontWeight.w400,
                                       color: colorScheme.onSurfaceVariant,
@@ -252,9 +252,9 @@ class _WeightageCard extends StatelessWidget {
           Text(
             label,
             style: TextStyle(
-              fontFamily: 'Inter',
+              fontFamily: 'Instrument Sans',
               fontSize: 10.5,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w500,
               letterSpacing: 0.8,
               height: 1.4,
               color: labelColor.withValues(alpha: 0.75),
@@ -264,9 +264,9 @@ class _WeightageCard extends StatelessWidget {
           Text(
             value,
             style: TextStyle(
-              fontFamily: 'Outfit',
+              fontFamily: 'Instrument Sans',
               fontSize: 32,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w500,
               letterSpacing: -0.5,
               color: valueColor,
             ),

@@ -65,7 +65,7 @@ class AttendanceCourseCard extends StatelessWidget {
               attendance.debarStatus,
               style: TextStyle(
                 color: isDebarred ? Colors.red : Colors.green,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w500,
                 fontSize: 12,
               ),
             ),

@@ -8,6 +8,7 @@ import 'package:vit_ap_student_app/core/providers/schedule_home_widget_notifier.
 import 'package:vit_ap_student_app/core/providers/theme_mode_notifier.dart';
 import 'package:vit_ap_student_app/core/providers/user_preferences_notifier.dart';
 import 'package:vit_ap_student_app/core/services/notification_service.dart';
+import 'package:vit_ap_student_app/core/services/app_update_service.dart';
 import 'package:vit_ap_student_app/core/services/vtop_service.dart';
 import 'package:vit_ap_student_app/features/auth/view/widgets/auth_failure_bottom_sheet.dart';
 import 'package:vit_ap_student_app/features/auth/view/widgets/login_otp_bottom_sheet.dart';
@@ -33,7 +34,7 @@ class MyApp extends ConsumerStatefulWidget {
   ConsumerState<MyApp> createState() => _MyAppState();
 }
 
-class _MyAppState extends ConsumerState<MyApp> {
+class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
   StreamSubscription<void>? _otpSubscription;
   StreamSubscription<String>? _authFailureSubscription;
@@ -43,6 +44,8 @@ class _MyAppState extends ConsumerState<MyApp> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    unawaited(AppUpdateService.checkForUpdate());
     _otpSubscription = serviceLocator<VtopClientService>().onOtpRequired.listen(
       (_) => _showGlobalOtpSheet(),
     );
@@ -51,7 +54,15 @@ class _MyAppState extends ConsumerState<MyApp> {
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      unawaited(AppUpdateService.checkForUpdate());
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _otpSubscription?.cancel();
     _authFailureSubscription?.cancel();
     super.dispose();

@@ -39,7 +39,7 @@ class CourseOptionCard extends StatelessWidget {
             course.courseCode,
             style: TextStyle(
               color: Theme.of(context).colorScheme.secondary,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w500,
               fontSize: 14,
             ),
           ),

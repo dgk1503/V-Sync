@@ -6,10 +6,7 @@ import 'package:vit_ap_student_app/core/models/grade_history.dart';
 class GradeCard extends StatelessWidget {
   final Course course;
 
-  const GradeCard({
-    super.key,
-    required this.course,
-  });
+  const GradeCard({super.key, required this.course});
 
   /// Monochrome-friendly grade hierarchy: gold at the very top, greens
   /// after that, warm tones in the middle, red at the bottom.
@@ -73,10 +70,10 @@ class GradeCard extends StatelessWidget {
                 child: Text(
                   course.grade,
                   style: TextStyle(
-                    fontFamily: 'Outfit',
+                    fontFamily: 'Instrument Sans',
                     color: badgeTextColor,
                     fontSize: 20,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ),
@@ -90,9 +87,9 @@ class GradeCard extends StatelessWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        fontFamily: 'Outfit',
+                        fontFamily: 'Instrument Sans',
                         color: colorScheme.onSurface,
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w500,
                         fontSize: 15.5,
                         height: 1.25,
                       ),
@@ -101,8 +98,8 @@ class GradeCard extends StatelessWidget {
                     Text(
                       course.courseCode,
                       style: TextStyle(
-                        fontFamily: 'Inter',
-                        color: colorScheme.tertiary,
+                        fontFamily: 'Instrument Sans',
+                        color: colorScheme.onSurfaceVariant,
                         fontWeight: FontWeight.w400,
                         fontSize: 13,
                       ),
@@ -139,7 +136,7 @@ class GradeCard extends StatelessWidget {
               Text(
                 '${course.credits} Credits',
                 style: TextStyle(
-                  fontFamily: 'Inter',
+                  fontFamily: 'Instrument Sans',
                   fontSize: 12.5,
                   color: colorScheme.onSurfaceVariant,
                 ),
@@ -154,7 +151,7 @@ class GradeCard extends StatelessWidget {
               Text(
                 course.examMonth,
                 style: TextStyle(
-                  fontFamily: 'Inter',
+                  fontFamily: 'Instrument Sans',
                   fontSize: 12.5,
                   color: colorScheme.onSurfaceVariant,
                 ),
@@ -172,7 +169,7 @@ class GradeCard extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontFamily: 'Inter',
+                    fontFamily: 'Instrument Sans',
                     fontSize: 12.5,
                     color: colorScheme.onSurfaceVariant,
                   ),

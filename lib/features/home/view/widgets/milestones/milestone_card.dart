@@ -52,9 +52,9 @@ class MilestoneCard extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              fontFamily: 'Outfit',
+              fontFamily: 'Instrument Sans',
               fontSize: 22,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w500,
               letterSpacing: -0.3,
               color: foreground,
             ),
@@ -66,7 +66,7 @@ class MilestoneCard extends StatelessWidget {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                fontFamily: 'Inter',
+                fontFamily: 'Instrument Sans',
                 fontSize: 12.5,
                 color: muted,
               ),
@@ -76,7 +76,7 @@ class MilestoneCard extends StatelessWidget {
           Text(
             headerLabel,
             style: TextStyle(
-              fontFamily: 'Inter',
+              fontFamily: 'Instrument Sans',
               fontSize: 10.5,
               fontWeight: FontWeight.w500,
               letterSpacing: 1.2,
@@ -91,9 +91,9 @@ class MilestoneCard extends StatelessWidget {
               Text(
                 countLabel,
                 style: TextStyle(
-                  fontFamily: 'Outfit',
+                  fontFamily: 'Instrument Sans',
                   fontSize: 44,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w500,
                   letterSpacing: -1,
                   color: foreground,
                 ),
@@ -103,7 +103,7 @@ class MilestoneCard extends StatelessWidget {
                 Text(
                   unitLabel,
                   style: TextStyle(
-                    fontFamily: 'Inter',
+                    fontFamily: 'Instrument Sans',
                     fontSize: 15,
                     fontWeight: FontWeight.w500,
                     color: muted,

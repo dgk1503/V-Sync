@@ -53,64 +53,86 @@ float sdRoundedBox(vec2 p, vec2 halfSize, float r) {
   return min(max(q.x, q.y), 0.0) + length(max(q, 0.0)) - r;
 }
 
+// Cheap per-pixel hash, used only for sub-LSB dithering.
+float hash21(vec2 p) {
+  p = fract(p * vec2(123.34, 456.21));
+  p += dot(p, p + 45.32);
+  return fract(p.x * p.y);
+}
+
 void main() {
   vec2 fragCoord = FlutterFragCoord().xy;
-
-  // Straight-through, screen-aligned sampling: the glass is see-through by
-  // default; only the edge band below bends the image.
   vec2 uv = sampleUv(fragCoord);
 
   // Capsule SDF in screen space.
   vec2 center = uCapsuleOrigin + uCapsuleSize * 0.5;
   vec2 halfSize = uCapsuleSize * 0.5 - 1.0;
   vec2 p = fragCoord - center;
-
   float d = sdRoundedBox(p, halfSize, uRadius);
 
   // Surface normal from the SDF gradient (central differences).
-  float e = 1.0;
   vec2 grad = vec2(
-    sdRoundedBox(p + vec2(e, 0.0), halfSize, uRadius) -
-        sdRoundedBox(p - vec2(e, 0.0), halfSize, uRadius),
-    sdRoundedBox(p + vec2(0.0, e), halfSize, uRadius) -
-        sdRoundedBox(p - vec2(0.0, e), halfSize, uRadius)
+    sdRoundedBox(p + vec2(1.0, 0.0), halfSize, uRadius) -
+        sdRoundedBox(p - vec2(1.0, 0.0), halfSize, uRadius),
+    sdRoundedBox(p + vec2(0.0, 1.0), halfSize, uRadius) -
+        sdRoundedBox(p - vec2(0.0, 1.0), halfSize, uRadius)
   );
   vec2 normal = normalize(grad + vec2(0.0001));
 
-  // Refraction band: 1 right at the edge, fading inwards across uEdge px.
-  float band = clamp(-d / uEdge, 0.0, 1.0);
-  float edge = (1.0 - band) * (1.0 - band);
+  // Refraction: full strength at the rim, easing to zero uEdge px inwards.
+  // A smoothstep (rather than a raw squared band) makes the image bend like
+  // a lens instead of snapping on at the edge.
+  float t = clamp(-d / uEdge, 0.0, 1.0);
+  float bend = 1.0 - t;
+  bend = bend * bend * (3.0 - 2.0 * bend);
+  vec2 refracted = fragCoord - normal * (bend * uEdge * 0.85);
 
-  // True-color reflection: R, G and B are sampled from the SAME position
-  // (no chromatic aberration) so underlying content keeps its real colors —
-  // white text reflects as white, not pink/green. The bend is a touch
-  // stronger than before so the rim reads as real curvature.
-  vec2 refracted = fragCoord - normal * (edge * uEdge * 0.48);
-
-  // Glass interior: real liquid glass is OPTICALLY CLEAR in the middle —
-  // text scrolling behind it stays crisp — and only the curved rim
-  // diffuses light. The single refracted tap is therefore the whole
-  // interior; the 4 cross taps form a faint halo whose weight fades out
-  // towards the capsule's centre, so sharpness and shimmer coexist
-  // without blurring content across the whole capsule.
+  // Real glass is optically CLEAR in the middle — text scrolling behind stays
+  // crisp — and only the curved rim frosts. So: one clear tap, plus an
+  // 8-tap RING for the frosted band. A ring, not a cross: four axis taps
+  // leave a visible plus-shaped block pattern behind the glass, and that is
+  // what read as "pixelated". R, G and B all bend by the same amount, so
+  // content keeps its real colours.
   vec4 clear = texture(uBackdrop, sampleUv(refracted));
-  vec4 soft = clear * 0.4 +
-              (texture(uBackdrop, sampleUv(refracted + vec2(uBlur, 0.0))) +
-               texture(uBackdrop, sampleUv(refracted - vec2(uBlur, 0.0))) +
-               texture(uBackdrop, sampleUv(refracted + vec2(0.0, uBlur))) +
-               texture(uBackdrop, sampleUv(refracted - vec2(0.0, uBlur)))) * 0.15;
+  vec4 sum = clear;
+  for (int i = 0; i < 8; i++) {
+    float a = float(i) * 0.7853981634; // 45 degrees
+    vec2 o = vec2(cos(a), sin(a)) * uBlur;
+    sum += texture(uBackdrop, sampleUv(refracted + o));
+  }
+  vec4 soft = sum / 9.0;
+
   // 1 in the capsule middle, 0 inside the refraction band.
   float interior = smoothstep(0.0, uEdge * 0.9, d);
-  vec4 col = mix(soft, clear, interior);
+  vec3 col = mix(soft.rgb, clear.rgb, interior);
 
-  // Specular rim, strongest where the normal faces the top-left light.
-  float rim = smoothstep(0.0, 2.5, -d) * (1.0 - smoothstep(2.5, 6.0, -d));
-  float lit = clamp(dot(normal, normalize(vec2(-0.7, -0.7))), 0.0, 1.0);
-  col.rgb += rim * mix(0.03, 0.42, lit);
+  // Reflections. Three cheap layers, all neutral white, and together they are
+  // what makes the capsule read as a solid slab of glass rather than a
+  // blurred rectangle:
+  //   * a broad rim (the curve catching the room),
+  //   * a tight bright line right at the very edge (the polished bevel),
+  //   * a sheen across the upper third plus a dark lower band (the slab's
+  //     thickness — light lands on top, shadow collects underneath).
+  float rim = 1.0 - smoothstep(0.0, 5.0, -d);
+  float bevel = 1.0 - smoothstep(0.0, 1.5, -d);
+  float key = clamp(dot(normal, normalize(vec2(-0.55, -0.78))), 0.0, 1.0);
+  float fillLight = clamp(dot(normal, normalize(vec2(0.65, 0.72))), 0.0, 1.0);
+  col += rim * (0.10 + 0.70 * key * key);
+  col += bevel * 0.40 * key;
+  col += rim * 0.16 * fillLight * fillLight * fillLight;
 
-  // Glass liveliness: a touch of saturation and brightness lift.
-  float luma = dot(col.rgb, vec3(0.299, 0.587, 0.114));
-  col.rgb = mix(vec3(luma), col.rgb, 1.04) * 1.02;
+  // vy: 0 at the capsule's top edge, 1 at its bottom.
+  float vy = (p.y + halfSize.y) / (2.0 * halfSize.y);
+  float inside = smoothstep(0.0, 5.0, d);
+  col += (1.0 - smoothstep(0.0, 0.38, vy)) * inside * 0.10;
+  col *= 1.0 - smoothstep(0.72, 1.0, vy) * inside * 0.12;
 
-  fragColor = col;
+  // A touch of saturation, then a sub-LSB dither: a smooth gradient across
+  // ~15 px bands badly in 8-bit on a wide dark screen, and the dither turns
+  // those rings back into a smooth sweep.
+  float luma = dot(col, vec3(0.299, 0.587, 0.114));
+  col = mix(vec3(luma), col, 1.04) * 1.02;
+  col += (hash21(floor(fragCoord)) - 0.5) * (1.6 / 255.0);
+
+  fragColor = vec4(col, clear.a);
 }

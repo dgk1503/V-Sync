@@ -32,12 +32,12 @@ class AppIconVariant {
   );
   static const AppIconVariant glassy = AppIconVariant._(
     'glassy',
-    'Glassy',
+    'Elyra',
     'assets/images/logo/vsync_foreground_glassy.png',
   );
   static const AppIconVariant rainbow = AppIconVariant._(
     'rainbow',
-    'Rainbow',
+    'Veyra',
     'assets/images/logo/vsync_foreground_rainbow.png',
   );
 

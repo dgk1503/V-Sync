@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:iconsax_flutter/iconsax_flutter.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:vit_ap_student_app/core/common/widget/accent_gradient_text.dart';
+import 'package:vit_ap_student_app/core/common/widget/app_card.dart';
 import 'package:vit_ap_student_app/core/providers/user_preferences_notifier.dart';
 import 'package:vit_ap_student_app/core/services/app_icon_service.dart';
 import 'package:vit_ap_student_app/core/utils/show_snackbar.dart';
 
-/// Per-entry visibility toggles for the Academics hub, plus the
+/// Per-entry visibility toggles for the Academics hub and Home, plus the
 /// experimental Liquid Glass navbar. Everything is visible by default, so
-/// users who never open this page get the full app; hiding an entry
-/// removes it from the Academics hub.
+/// users who never open this page get the full app.
 class CustomizationPage extends ConsumerWidget {
   const CustomizationPage({super.key});
 
@@ -20,39 +20,34 @@ class CustomizationPage extends ConsumerWidget {
     final colorScheme = Theme.of(context).colorScheme;
 
     Widget sectionHeading(String text) => Padding(
-          padding: const EdgeInsets.only(left: 4.0, bottom: 8.0),
-          child: Text(
-            text,
-            style: TextStyle(
-              fontFamily: 'Inter',
-              fontSize: 13,
-              letterSpacing: 0.2,
-              color: colorScheme.onSurfaceVariant,
-            ),
-          ),
-        );
+      padding: const EdgeInsets.only(left: 4.0, bottom: 8.0),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontFamily: 'Instrument Sans',
+          fontSize: 13,
+          letterSpacing: 0.2,
+          color: colorScheme.onSurfaceVariant,
+        ),
+      ),
+    );
 
     Widget sectionCard({required List<Widget> children}) {
       final tiles = <Widget>[];
       for (var i = 0; i < children.length; i++) {
         tiles.add(children[i]);
         if (i < children.length - 1) {
-          tiles.add(Divider(
-            height: 1,
-            thickness: 0.5,
-            indent: 16,
-            color: colorScheme.outlineVariant.withValues(alpha: 0.5),
-          ));
+          tiles.add(
+            Divider(
+              height: 1,
+              thickness: 0.5,
+              indent: 16,
+              color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+            ),
+          );
         }
       }
-      return Container(
-        decoration: BoxDecoration(
-          color: colorScheme.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: colorScheme.outlineVariant),
-        ),
-        child: Column(children: tiles),
-      );
+      return AppCard(borderRadius: 16, child: Column(children: tiles));
     }
 
     Widget tile({
@@ -60,43 +55,39 @@ class CustomizationPage extends ConsumerWidget {
       required bool value,
       required ValueChanged<bool> onChanged,
       String? subtitle,
-    }) =>
-        ListTile(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          title: Text(
-            title,
-            style: TextStyle(
-              fontSize: 15.5,
-              color: colorScheme.onSurface,
-              fontWeight: FontWeight.w500,
+    }) => ListTile(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: Text(
+        title,
+        style: TextStyle(
+          fontSize: 15.5,
+          color: colorScheme.onSurface,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+      subtitle: subtitle == null
+          ? null
+          : Text(
+              subtitle,
+              style: TextStyle(
+                fontFamily: 'Instrument Sans',
+                fontSize: 12,
+                color: colorScheme.onSurfaceVariant,
+              ),
             ),
-          ),
-          subtitle: subtitle == null
-              ? null
-              : Text(
-                  subtitle,
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 12,
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                ),
-          trailing: Transform.scale(
-            scale: 0.85,
-            child: Switch.adaptive(value: value, onChanged: onChanged),
-          ),
-        );
+      trailing: Transform.scale(
+        scale: 0.85,
+        child: Switch.adaptive(value: value, onChanged: onChanged),
+      ),
+    );
 
     return Scaffold(
       appBar: AppBar(
         title: AccentGradientText(
           'Customization',
-          style: Theme.of(context)
-              .textTheme
-              .headlineSmall
-              ?.copyWith(fontWeight: FontWeight.w600),
+          style: Theme.of(
+            context,
+          ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w500),
         ),
       ),
       body: ListView(
@@ -108,34 +99,51 @@ class CustomizationPage extends ConsumerWidget {
               tile(
                 title: 'Grades',
                 value: !userPreferences.hideGrades,
-                onChanged: (value) => userPreferencesNotifier
-                    .updatePreferences(
-                        userPreferences.copyWith(hideGrades: !value)),
+                onChanged: (value) => userPreferencesNotifier.updatePreferences(
+                  userPreferences.copyWith(hideGrades: !value),
+                ),
               ),
               tile(
                 title: 'Digital Assignments',
                 value: !userPreferences.hideDigitalAssignments,
                 onChanged: (value) => userPreferencesNotifier.updatePreferences(
-                    userPreferences.copyWith(hideDigitalAssignments: !value)),
+                  userPreferences.copyWith(hideDigitalAssignments: !value),
+                ),
               ),
               tile(
                 title: 'Outing',
                 value: !userPreferences.hideOuting,
-                onChanged: (value) => userPreferencesNotifier
-                    .updatePreferences(
-                        userPreferences.copyWith(hideOuting: !value)),
+                onChanged: (value) => userPreferencesNotifier.updatePreferences(
+                  userPreferences.copyWith(hideOuting: !value),
+                ),
               ),
               tile(
                 title: 'Faculty Info',
                 value: !userPreferences.hideFacultyInfo,
                 onChanged: (value) => userPreferencesNotifier.updatePreferences(
-                    userPreferences.copyWith(hideFacultyInfo: !value)),
+                  userPreferences.copyWith(hideFacultyInfo: !value),
+                ),
               ),
               tile(
                 title: 'Open VTOP',
                 value: !userPreferences.hideOpenVtop,
                 onChanged: (value) => userPreferencesNotifier.updatePreferences(
-                    userPreferences.copyWith(hideOpenVtop: !value)),
+                  userPreferences.copyWith(hideOpenVtop: !value),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          sectionHeading('Home page'),
+          sectionCard(
+            children: [
+              tile(
+                title: 'Class card slider',
+                subtitle: 'Show current and upcoming classes on Home',
+                value: userPreferences.classStackEnabled,
+                onChanged: (value) => userPreferencesNotifier.updatePreferences(
+                  userPreferences.copyWith(classStackEnabled: value),
+                ),
               ),
             ],
           ),
@@ -148,7 +156,8 @@ class CustomizationPage extends ConsumerWidget {
                 subtitle: 'May affect performance on low-end devices',
                 value: userPreferences.liquidGlassNavbar,
                 onChanged: (value) => userPreferencesNotifier.updatePreferences(
-                    userPreferences.copyWith(liquidGlassNavbar: value)),
+                  userPreferences.copyWith(liquidGlassNavbar: value),
+                ),
               ),
             ],
           ),
@@ -218,44 +227,42 @@ class _AppIconPickerState extends State<_AppIconPicker> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    return Container(
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: colorScheme.outlineVariant),
-      ),
-      padding: const EdgeInsets.all(12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              for (var i = 0; i < AppIconVariant.all.length; i++) ...[
-                if (i > 0) const SizedBox(width: 10),
-                Expanded(
-                  child: _IconPreviewTile(
-                    variant: AppIconVariant.all[i],
-                    selected: AppIconVariant.all[i].id == _current.id,
-                    dimmed: _loading || _switching,
-                    onTap: () => _pick(AppIconVariant.all[i]),
+    return AppCard(
+      borderRadius: 16,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (var i = 0; i < AppIconVariant.all.length; i++) ...[
+                  if (i > 0) const SizedBox(width: 10),
+                  Expanded(
+                    child: _IconPreviewTile(
+                      variant: AppIconVariant.all[i],
+                      selected: AppIconVariant.all[i].id == _current.id,
+                      dimmed: _loading || _switching,
+                      onTap: () => _pick(AppIconVariant.all[i]),
+                    ),
                   ),
-                ),
+                ],
               ],
-            ],
-          ),
-          const SizedBox(height: 10),
-          Text(
-            'changes the icon on your home screen. some launchers take a '
-            'moment to refresh.',
-            style: TextStyle(
-              fontFamily: 'Inter',
-              fontSize: 11,
-              height: 1.4,
-              color: colorScheme.onSurfaceVariant,
             ),
-          ),
-        ],
+            const SizedBox(height: 10),
+            Text(
+              'changes the icon on your home screen. some launchers take a '
+              'moment to refresh.',
+              style: TextStyle(
+                fontFamily: 'Instrument Sans',
+                fontSize: 11,
+                height: 1.4,
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -320,7 +327,7 @@ class _IconPreviewTile extends StatelessWidget {
                       ),
                       padding: const EdgeInsets.all(3),
                       child: Icon(
-                        Iconsax.tick_circle,
+                        LucideIcons.check,
                         size: 12,
                         color: colorScheme.onPrimary,
                       ),
@@ -334,9 +341,9 @@ class _IconPreviewTile extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                fontFamily: 'Inter',
+                fontFamily: 'Instrument Sans',
                 fontSize: 11.5,
-                fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                fontWeight: selected ? FontWeight.w500 : FontWeight.w400,
                 color: selected
                     ? colorScheme.onSurface
                     : colorScheme.onSurfaceVariant,

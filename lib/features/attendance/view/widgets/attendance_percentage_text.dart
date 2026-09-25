@@ -34,7 +34,7 @@ class AttendancePercentageText extends StatelessWidget {
                 ? lowAttendanceColor ?? Colors.red
                 : textColor ?? Theme.of(context).colorScheme.onSurface,
             fontSize: fontSize ?? 36,
-            fontWeight: textFontWeight ?? FontWeight.w600,
+            fontWeight: textFontWeight ?? FontWeight.w500,
           ),
         ),
         if (isLowAttendance) ...[
@@ -45,7 +45,7 @@ class AttendancePercentageText extends StatelessWidget {
               style: TextStyle(
                 color: lowAttendanceColor ?? Colors.red,
                 fontSize: 16,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ),

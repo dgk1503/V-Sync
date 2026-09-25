@@ -45,6 +45,9 @@ class UserPreferences {
   // Experimental Liquid Glass navbar (shader refraction). On by default.
   bool liquidGlassNavbar;
 
+  // Home class card slider. Disabled by default for new and existing rows.
+  bool classStackEnabled;
+
   UserPreferences({
     this.id,
     this.pfpPath = 'assets/images/pfp/default.png',
@@ -74,6 +77,7 @@ class UserPreferences {
     this.hideFacultyInfo = false,
     this.hideOpenVtop = false,
     this.liquidGlassNavbar = true,
+    this.classStackEnabled = false,
   });
 
   UserPreferences copyWith({
@@ -101,6 +105,7 @@ class UserPreferences {
     bool? hideFacultyInfo,
     bool? hideOpenVtop,
     bool? liquidGlassNavbar,
+    bool? classStackEnabled,
   }) {
     return UserPreferences(
       id: id ?? this.id,
@@ -135,6 +140,7 @@ class UserPreferences {
       hideFacultyInfo: hideFacultyInfo ?? this.hideFacultyInfo,
       hideOpenVtop: hideOpenVtop ?? this.hideOpenVtop,
       liquidGlassNavbar: liquidGlassNavbar ?? this.liquidGlassNavbar,
+      classStackEnabled: classStackEnabled ?? this.classStackEnabled,
     );
   }
 }

@@ -85,7 +85,7 @@ class _CourseDetailPageState extends ConsumerState<CourseDetailPage> {
               widget.courseCode,
               style: Theme.of(
                 context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w500),
             ),
             Text(
               widget.courseTitle,
@@ -127,7 +127,7 @@ class _CourseDetailPageState extends ConsumerState<CourseDetailPage> {
                 child: Text(
                   'Select Faculty/Slot',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w500,
                     color: Theme.of(context).colorScheme.primary,
                   ),
                 ),

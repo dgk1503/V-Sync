@@ -97,9 +97,9 @@ class _VSyncLogoState extends State<VSyncLogo> {
     return Text(
       widget.label,
       style: TextStyle(
-        fontFamily: 'Outfit',
+        fontFamily: 'Instrument Sans',
         fontSize: widget.fontSize,
-        fontWeight: FontWeight.w700,
+        fontWeight: FontWeight.w500,
         letterSpacing: widget.letterSpacing,
         color: color,
         height: 1,

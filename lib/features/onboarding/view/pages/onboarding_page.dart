@@ -81,9 +81,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
                   child: Text(
                     _currentPage == 0 ? "let's go" : 'got it',
                     style: const TextStyle(
-                      fontFamily: 'Outfit',
+                      fontFamily: 'Instrument Sans',
                       fontSize: 16,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ),
@@ -95,7 +95,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                 child: Text(
                   '${_currentPage + 1} of 2',
                   style: TextStyle(
-                    fontFamily: 'Inter',
+                    fontFamily: 'Instrument Sans',
                     fontSize: 12,
                     color: colorScheme.onSurfaceVariant,
                   ),
@@ -125,9 +125,9 @@ class _WelcomeScreen extends StatelessWidget {
           Text(
             'welcome to',
             style: TextStyle(
-              fontFamily: 'Outfit',
+              fontFamily: 'Instrument Sans',
               fontSize: 34,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w500,
               letterSpacing: -0.5,
               color: colorScheme.onSurface,
               height: 1.1,
@@ -143,7 +143,7 @@ class _WelcomeScreen extends StatelessWidget {
           RichText(
             text: TextSpan(
               style: TextStyle(
-                fontFamily: 'Outfit',
+                fontFamily: 'Instrument Sans',
                 fontSize: 16.5,
                 fontWeight: FontWeight.w500,
                 height: 1.45,
@@ -154,7 +154,7 @@ class _WelcomeScreen extends StatelessWidget {
                   text: 'vsync',
                   style: TextStyle(
                     color: colorScheme.onSurface,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
                 const TextSpan(
@@ -187,9 +187,9 @@ class _HowItWorksScreen extends StatelessWidget {
           Text(
             'how it works',
             style: TextStyle(
-              fontFamily: 'Outfit',
+              fontFamily: 'Instrument Sans',
               fontSize: 34,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w500,
               letterSpacing: -0.5,
               color: colorScheme.onSurface,
               height: 1.1,
@@ -199,7 +199,7 @@ class _HowItWorksScreen extends StatelessWidget {
           RichText(
             text: TextSpan(
               style: TextStyle(
-                fontFamily: 'Outfit',
+                fontFamily: 'Instrument Sans',
                 fontSize: 16.5,
                 fontWeight: FontWeight.w500,
                 height: 1.45,
@@ -210,7 +210,7 @@ class _HowItWorksScreen extends StatelessWidget {
                   text: 'to keep everything up to date,',
                   style: TextStyle(
                     color: colorScheme.onSurface,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
                 const TextSpan(
@@ -227,7 +227,7 @@ class _HowItWorksScreen extends StatelessWidget {
             'turns them into a simple, clear dashboard — so you always know '
             'exactly where you stand.',
             style: TextStyle(
-              fontFamily: 'Outfit',
+              fontFamily: 'Instrument Sans',
               fontSize: 16.5,
               fontWeight: FontWeight.w500,
               height: 1.45,

@@ -11,14 +11,14 @@ class FacultySearchBar extends StatelessWidget {
       child: TextField(
         controller: controller,
         style: TextStyle(
-          fontFamily: 'Outfit',
+          fontFamily: 'Instrument Sans',
           fontSize: 14,
           color: Theme.of(context).colorScheme.onSurface,
         ),
         decoration: InputDecoration(
           hintText: 'Search faculty name...',
           hintStyle: TextStyle(
-            fontFamily: 'Inter',
+            fontFamily: 'Instrument Sans',
             fontSize: 13,
             color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),

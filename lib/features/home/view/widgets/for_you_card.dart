@@ -101,7 +101,7 @@ class ForYouCard extends StatelessWidget {
                               : item.type == 'resource'
                                   ? Colors.green.shade700
                                   : Colors.blue.shade700,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ),
@@ -157,7 +157,7 @@ class ForYouCard extends StatelessWidget {
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.primary,
                       fontSize: 12,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                   const SizedBox(height: 6),

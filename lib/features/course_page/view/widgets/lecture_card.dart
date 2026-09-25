@@ -36,7 +36,7 @@ class LectureCard extends StatelessWidget {
                             : lecture.date,
                         style: TextStyle(
                           color: Theme.of(context).colorScheme.onSurface,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.w500,
                           fontSize: 14,
                         ),
                       ),
@@ -74,7 +74,7 @@ class LectureCard extends StatelessWidget {
                           style: const TextStyle(
                             color: Colors.green,
                             fontSize: 12,
-                            fontWeight: FontWeight.w600,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ],
@@ -109,14 +109,15 @@ class LectureCard extends StatelessWidget {
                         vertical: 8,
                       ),
                       decoration: BoxDecoration(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.tertiaryContainer.withValues(alpha: 0.5),
+                        color: Theme.of(context)
+                            .colorScheme
+                            .surfaceContainerHigh
+                            .withValues(alpha: 0.5),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
                           color: Theme.of(
                             context,
-                          ).colorScheme.tertiary.withValues(alpha: 0.3),
+                          ).colorScheme.outlineVariant.withValues(alpha: 0.45),
                         ),
                       ),
                       child: Row(
@@ -125,7 +126,9 @@ class LectureCard extends StatelessWidget {
                           Icon(
                             Iconsax.document_download,
                             size: 16,
-                            color: Theme.of(context).colorScheme.tertiary,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
                           ),
                           const SizedBox(width: 8),
                           Flexible(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:intl/intl.dart';
+import 'package:vit_ap_student_app/core/theme/app_theme.dart';
 
 String normalizeStatus(String status) {
   return status.toLowerCase().replaceAll('’', "'").trim();
@@ -15,18 +16,18 @@ bool isWaitingForWardenApproval(String status) {
 }
 
 Color getStatusColor(String status, BuildContext context) {
-  final isDark = Theme.of(context).brightness == Brightness.dark;
+  final statusColors = AppStatusColors.of(context);
   switch (status.toLowerCase().trim()) {
     case 'leave request accepted':
     case 'outing request accepted':
-      return isDark ? Colors.green.shade400 : Colors.green.shade600;
+      return statusColors.success;
     case 'waiting for warden\'s approval':
     case 'waiting for mentor\'s approval':
-      return isDark ? Colors.amber.shade400 : Colors.orange.shade700;
+      return statusColors.warning;
     case 'rejected':
-      return isDark ? Colors.red.shade400 : Colors.red.shade600;
+      return statusColors.danger;
     default:
-      return Theme.of(context).colorScheme.primary;
+      return statusColors.neutral;
   }
 }
 

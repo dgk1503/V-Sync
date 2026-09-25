@@ -53,21 +53,22 @@ class _LoginOtpSheetState extends ConsumerState<_LoginOtpSheet>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) return;
     // When the user leaves to read the OTP (e.g. Gmail) and returns, the soft
     // keyboard was dismissed and `autofocus` does not re-fire. Re-request focus
     // and force the keyboard back so they can type without tapping the field.
-    if (state == AppLifecycleState.resumed) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        if (_focusNode.hasFocus) {
-          // Focus was retained but the keyboard is hidden — reshow it.
-          SystemChannels.textInput.invokeMethod<void>('TextInput.show');
-        } else {
-          _focusNode.requestFocus();
-        }
-      });
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (_focusNode.hasFocus) {
+        // Focus was retained but the keyboard is hidden — reshow it.
+        SystemChannels.textInput.invokeMethod<void>('TextInput.show');
+      } else {
+        _focusNode.requestFocus();
+      }
+    });
   }
+
+  // -- Actions ----------------------------------------------------------------
 
   Future<void> _submit() async {
     final pin = _pinController.text.trim();
@@ -166,9 +167,9 @@ class _LoginOtpSheetState extends ConsumerState<_LoginOtpSheet>
       width: 46,
       height: 56,
       textStyle: TextStyle(
-        fontFamily: 'Outfit',
+        fontFamily: 'Instrument Sans',
         fontSize: 22,
-        fontWeight: FontWeight.w600,
+        fontWeight: FontWeight.w500,
         color: theme.colorScheme.onSurface,
       ),
       decoration: BoxDecoration(
@@ -197,7 +198,7 @@ class _LoginOtpSheetState extends ConsumerState<_LoginOtpSheet>
             Text(
               'Verification',
               style: theme.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w500,
               ),
             ),
             const SizedBox(height: 8),
@@ -230,7 +231,7 @@ class _LoginOtpSheetState extends ConsumerState<_LoginOtpSheet>
                       child: Text(
                         'OTP resent to your email',
                         style: TextStyle(
-                          fontFamily: 'Inter',
+                          fontFamily: 'Instrument Sans',
                           fontSize: 12.5,
                           fontWeight: FontWeight.w500,
                           color: theme.colorScheme.onSurface,
@@ -242,6 +243,7 @@ class _LoginOtpSheetState extends ConsumerState<_LoginOtpSheet>
               ),
               const SizedBox(height: 16),
             ],
+
             Center(
               child: Pinput(
                 controller: _pinController,
@@ -261,7 +263,7 @@ class _LoginOtpSheetState extends ConsumerState<_LoginOtpSheet>
                     child: Text(
                       errorText,
                       style: const TextStyle(
-                        fontFamily: 'Inter',
+                        fontFamily: 'Instrument Sans',
                         fontSize: 12.5,
                         fontWeight: FontWeight.w500,
                         color: Colors.red,
@@ -277,9 +279,9 @@ class _LoginOtpSheetState extends ConsumerState<_LoginOtpSheet>
                     border: Border.all(color: theme.colorScheme.primary),
                   ),
                   textStyle: TextStyle(
-                    fontFamily: 'Outfit',
+                    fontFamily: 'Instrument Sans',
                     fontSize: 22,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w500,
                     color: theme.colorScheme.onPrimary,
                   ),
                 ),
@@ -298,6 +300,7 @@ class _LoginOtpSheetState extends ConsumerState<_LoginOtpSheet>
               ),
             ),
             const SizedBox(height: 24),
+
             Row(
               children: [
                 Expanded(
@@ -306,9 +309,7 @@ class _LoginOtpSheetState extends ConsumerState<_LoginOtpSheet>
                     style: OutlinedButton.styleFrom(
                       foregroundColor: theme.colorScheme.onSurface,
                       minimumSize: const Size.fromHeight(48),
-                      side: BorderSide(
-                        color: theme.colorScheme.outlineVariant,
-                      ),
+                      side: BorderSide(color: theme.colorScheme.outlineVariant),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14),
                       ),
@@ -318,7 +319,7 @@ class _LoginOtpSheetState extends ConsumerState<_LoginOtpSheet>
                           ? 'Resend (${_remainingSeconds}s)'
                           : 'Resend OTP',
                       style: const TextStyle(
-                        fontFamily: 'Outfit',
+                        fontFamily: 'Instrument Sans',
                         fontSize: 14.5,
                         fontWeight: FontWeight.w500,
                       ),
@@ -343,15 +344,11 @@ class _LoginOtpSheetState extends ConsumerState<_LoginOtpSheet>
                       ),
                     ),
                     child: isLoading
-                        ? const SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: Loader(),
-                          )
+                        ? const SizedBox(width: 24, height: 24, child: Loader())
                         : const Text(
                             'Verify',
                             style: TextStyle(
-                              fontFamily: 'Outfit',
+                              fontFamily: 'Instrument Sans',
                               fontSize: 14.5,
                               fontWeight: FontWeight.w500,
                             ),
@@ -367,7 +364,7 @@ class _LoginOtpSheetState extends ConsumerState<_LoginOtpSheet>
                 child: Text(
                   'Cancel',
                   style: TextStyle(
-                    fontFamily: 'Inter',
+                    fontFamily: 'Instrument Sans',
                     fontSize: 13,
                     color: theme.colorScheme.onSurfaceVariant,
                   ),

@@ -153,9 +153,9 @@ class _SemesterSelectionPageState extends ConsumerState<SemesterSelectionPage> {
                         child: AccentGradientText(
                           'pick your semester',
                           style: TextStyle(
-                            fontFamily: 'Outfit',
+                            fontFamily: 'Instrument Sans',
                             fontSize: 34,
-                            fontWeight: FontWeight.w600,
+                            fontWeight: FontWeight.w500,
                             letterSpacing: -0.5,
                             height: 1.1,
                           ),
@@ -168,7 +168,7 @@ class _SemesterSelectionPageState extends ConsumerState<SemesterSelectionPage> {
                           'this helps vsync fetch the right academic data. '
                           'you can change it later anytime.',
                           style: TextStyle(
-                            fontFamily: 'Outfit',
+                            fontFamily: 'Instrument Sans',
                             fontSize: 15.5,
                             fontWeight: FontWeight.w500,
                             height: 1.45,
@@ -185,7 +185,7 @@ class _SemesterSelectionPageState extends ConsumerState<SemesterSelectionPage> {
                           child: Text(
                             inlineError!,
                             style: const TextStyle(
-                              fontFamily: 'Inter',
+                              fontFamily: 'Instrument Sans',
                               fontSize: 12.5,
                               fontWeight: FontWeight.w500,
                               color: Colors.red,
@@ -234,7 +234,7 @@ class _SemesterSelectionPageState extends ConsumerState<SemesterSelectionPage> {
                                       child: Text(
                                         semester.name,
                                         style: TextStyle(
-                                          fontFamily: 'Outfit',
+                                          fontFamily: 'Instrument Sans',
                                           fontSize: 15,
                                           fontWeight: FontWeight.w500,
                                           color: isSelected
@@ -250,7 +250,7 @@ class _SemesterSelectionPageState extends ConsumerState<SemesterSelectionPage> {
                                         child: Text(
                                           'current',
                                           style: TextStyle(
-                                            fontFamily: 'Inter',
+                                            fontFamily: 'Instrument Sans',
                                             fontSize: 11,
                                             fontWeight: FontWeight.w500,
                                             color: isSelected
@@ -304,9 +304,9 @@ class _SemesterSelectionPageState extends ConsumerState<SemesterSelectionPage> {
                                 : const Text(
                                     'continue',
                                     style: TextStyle(
-                                      fontFamily: 'Outfit',
+                                      fontFamily: 'Instrument Sans',
                                       fontSize: 16,
-                                      fontWeight: FontWeight.w600,
+                                      fontWeight: FontWeight.w500,
                                     ),
                                   ),
                           ),

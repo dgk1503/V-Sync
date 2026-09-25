@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:iconsax_flutter/iconsax_flutter.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:vit_ap_student_app/core/common/widget/accent_gradient_text.dart';
 import 'package:vit_ap_student_app/core/common/widget/app_card.dart';
 import 'package:vit_ap_student_app/core/providers/user_preferences_notifier.dart';
@@ -30,49 +30,51 @@ class AcademicsHubPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final prefs = ref.watch(userPreferencesProvider);
 
+    // One unique Lucide glyph per feature — no glyph is reused in this
+    // list, and each is chosen to read as its feature at a glance.
     final cards = <Widget>[
       _HubCard(
-        icon: Iconsax.tick_circle,
+        icon: LucideIcons.clipboardCheck,
         title: 'Attendance',
         onTap: () => _push(context, const AttendancePage()),
       ),
       _HubCard(
-        icon: Iconsax.document_text,
+        icon: LucideIcons.listChecks,
         title: 'Marks',
         onTap: () => _push(context, const MarksPage()),
       ),
       _HubCard(
-        icon: Iconsax.calendar_tick,
+        icon: LucideIcons.calendarClock,
         title: 'Exam Schedule',
         onTap: () => _push(context, const ExamSchedulePage()),
       ),
       if (!prefs.hideGrades)
         _HubCard(
-          icon: Iconsax.award,
+          icon: LucideIcons.graduationCap,
           title: 'Grades',
           onTap: () => _push(context, const GradeHistoryPage()),
         ),
       if (!prefs.hideDigitalAssignments)
         _HubCard(
-          icon: Iconsax.document_upload,
+          icon: LucideIcons.fileUp,
           title: 'Digital Assignment Upload',
           onTap: () => _push(context, const DigitalAssignmentPage()),
         ),
       if (!prefs.hideOuting)
         _HubCard(
-          icon: Iconsax.logout,
+          icon: LucideIcons.planeTakeoff,
           title: 'Outing',
           onTap: () => _push(context, const OutingPage()),
         ),
       if (!prefs.hideFacultyInfo)
         _HubCard(
-          icon: Iconsax.teacher,
+          icon: LucideIcons.users,
           title: 'Faculty Info',
           onTap: () => _push(context, const FacultiesPage()),
         ),
       if (!prefs.hideOpenVtop)
         _HubCard(
-          icon: Iconsax.global,
+          icon: LucideIcons.globe,
           title: 'Open VTOP',
           onTap: () => _push(context, const VtopWebViewPage()),
         ),
@@ -99,9 +101,9 @@ class AcademicsHubPage extends ConsumerWidget {
               const AccentGradientText(
                 'Academics',
                 style: TextStyle(
-                  fontFamily: 'Outfit',
+                  fontFamily: 'Instrument Sans',
                   fontSize: 26,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w500,
                   letterSpacing: -0.5,
                 ),
               ),
@@ -141,16 +143,15 @@ class _HubCard extends StatelessWidget {
         child: Row(
           children: [
             // Bare outlined icon — same sharp treatment as the settings
-            // tiles, no container behind it.
-            Icon(icon, size: 24, color: colorScheme.primary),
+            // tiles, no container behind it. The icon follows the active
+            // theme accent while the card and title stay monochrome.
+            Icon(icon, size: 24, color: colorScheme.tertiary),
             const SizedBox(width: 14),
             Expanded(
               child: Text(
                 title,
-                style: TextStyle(
-                  fontFamily: 'Outfit',
-                  fontSize: 19,
-                  fontWeight: FontWeight.w600,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontSize: 16,
                   color: colorScheme.onSurface,
                 ),
               ),

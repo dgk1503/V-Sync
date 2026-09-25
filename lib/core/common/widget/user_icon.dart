@@ -30,7 +30,7 @@ class UserIcon extends StatelessWidget {
               color: colorScheme.onSurface,
               fontSize: 20,
               fontWeight: FontWeight.w500,
-              fontFamily: 'Outfit',
+              fontFamily: 'Instrument Sans',
             ),
           ),
         ),

@@ -112,7 +112,7 @@ class _MessMenuSectionState extends ConsumerState<MessMenuSection>
               AccentGradientText(
                 'Mess Menu',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w500,
                   fontSize: 22,
                 ),
               ),
@@ -123,7 +123,7 @@ class _MessMenuSectionState extends ConsumerState<MessMenuSection>
                 child: Text(
                   menu?.monthName ?? 'Upload',
                   style: const TextStyle(
-                    fontFamily: 'Inter',
+                    fontFamily: 'Instrument Sans',
                     fontSize: 13.5,
                     fontWeight: FontWeight.w500,
                     color: Colors.blue,
@@ -160,7 +160,7 @@ class _MessMenuSectionState extends ConsumerState<MessMenuSection>
                   Text(
                     'Upload your mess menu',
                     style: TextStyle(
-                      fontFamily: 'Inter',
+                      fontFamily: 'Instrument Sans',
                       fontSize: 13,
                       color: colorScheme.onSurfaceVariant,
                     ),
@@ -176,6 +176,8 @@ class _MessMenuSectionState extends ConsumerState<MessMenuSection>
           const SizedBox(height: 6),
           _buildMenuItems(context, menu),
         ],
+        // Keep the last menu row clear of the floating navigation capsule.
+        const SizedBox(height: 88),
       ],
     );
   }
@@ -212,9 +214,9 @@ class _MessMenuSectionState extends ConsumerState<MessMenuSection>
           '${DateFormat('d MMM').format(_selectedDate)} · '
           '${DateFormat('EEE').format(_selectedDate)}',
           style: TextStyle(
-            fontFamily: 'Outfit',
+            fontFamily: 'Instrument Sans',
             fontSize: 16,
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w500,
             color: colorScheme.onSurface,
           ),
         ),
@@ -294,7 +296,7 @@ class _MessMenuSectionState extends ConsumerState<MessMenuSection>
                         ? 'No menu for this day'
                         : 'No ${_mealNames[selectedMeal].toLowerCase()} listed',
                     style: TextStyle(
-                      fontFamily: 'Inter',
+                      fontFamily: 'Instrument Sans',
                       fontSize: 13,
                       color: colorScheme.onSurfaceVariant,
                     ),
@@ -330,7 +332,7 @@ class _MessMenuSectionState extends ConsumerState<MessMenuSection>
                               child: Text(
                                 items[i],
                                 style: TextStyle(
-                                  fontFamily: 'Outfit',
+                                  fontFamily: 'Instrument Sans',
                                   fontSize: 15,
                                   fontWeight: FontWeight.w500,
                                   color: colorScheme.onSurface,
@@ -412,7 +414,7 @@ class _MessMenuManageSheet extends ConsumerWidget {
                 'Mess menu',
                 style: Theme.of(
                   context,
-                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w500),
               ),
               const SizedBox(height: 4),
               Text(
@@ -421,7 +423,7 @@ class _MessMenuManageSheet extends ConsumerWidget {
                     : '${menu.monthName} ${menu.year} · '
                           '${menu.days.length} days',
                 style: TextStyle(
-                  fontFamily: 'Inter',
+                  fontFamily: 'Instrument Sans',
                   fontSize: 13,
                   color: colorScheme.onSurfaceVariant,
                 ),
@@ -493,9 +495,9 @@ class _SheetAction extends StatelessWidget {
                   Text(
                     title,
                     style: TextStyle(
-                      fontFamily: 'Outfit',
+                      fontFamily: 'Instrument Sans',
                       fontSize: 15,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w500,
                       color: foreground,
                     ),
                   ),
@@ -503,7 +505,7 @@ class _SheetAction extends StatelessWidget {
                   Text(
                     subtitle,
                     style: TextStyle(
-                      fontFamily: 'Inter',
+                      fontFamily: 'Instrument Sans',
                       fontSize: 12,
                       color: colorScheme.onSurfaceVariant,
                     ),

@@ -7,6 +7,7 @@ import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:vit_ap_student_app/core/constants/app_constants.dart';
 import 'package:vit_ap_student_app/core/services/demo_service.dart';
 import 'package:vit_ap_student_app/core/services/notification_service.dart';
+import 'package:vit_ap_student_app/core/theme/app_theme.dart';
 import 'package:vit_ap_student_app/core/utils/file_saver.dart';
 import 'package:vit_ap_student_app/core/utils/file_type_detector.dart';
 import 'package:vit_ap_student_app/core/utils/show_snackbar.dart';
@@ -38,10 +39,11 @@ class _AssignmentTileState extends ConsumerState<AssignmentTile> {
       getSubmissionState(widget.detail.submissionStatus);
 
   Color _statusColor(BuildContext context) {
+    final statusColors = AppStatusColors.of(context);
     return switch (_status) {
-      SubmissionState.submitted => Colors.green,
-      SubmissionState.pending => Colors.orange,
-      SubmissionState.missed => Theme.of(context).colorScheme.error,
+      SubmissionState.submitted => statusColors.success,
+      SubmissionState.pending => statusColors.warning,
+      SubmissionState.missed => statusColors.danger,
     };
   }
 
@@ -87,7 +89,7 @@ class _AssignmentTileState extends ConsumerState<AssignmentTile> {
                 child: Text(
                   detail.assignmentTitle,
                   style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ),
@@ -109,7 +111,7 @@ class _AssignmentTileState extends ConsumerState<AssignmentTile> {
               style: TextStyle(
                 color: _statusColor(context),
                 fontSize: 12,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ),
@@ -143,8 +145,7 @@ class _AssignmentTileState extends ConsumerState<AssignmentTile> {
             children: [
               // Upload / Update button. Uploading is a write action to VTOP,
               // hidden for the demo account.
-              if (_status == SubmissionState.pending &&
-                  !DemoService.isDemoMode)
+              if (_status == SubmissionState.pending && !DemoService.isDemoMode)
                 AssignmentActionButton(
                   icon: Iconsax.document_upload,
                   label: 'Upload',
