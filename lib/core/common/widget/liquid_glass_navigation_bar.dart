@@ -46,17 +46,42 @@ class LiquidGlassNavigationBar extends StatefulWidget {
 }
 
 class _LiquidGlassNavigationBarState extends State<LiquidGlassNavigationBar>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   static const double _capsuleRadius = _navCapsuleRadius;
   static const double _capsuleHeight = 68;
   static const double _surfacePadding = _navSurfacePadding;
   static const Duration _holdDelay = Duration(milliseconds: 220);
+
+  // Pickup slide: when the hold engages, the lens glides from the resting
+  // selected tab to the finger instead of teleporting. This is the iOS
+  // sheet-style curve (fast lift, long glide, soft settle) run over a short
+  // window so the reposition reads as deliberate rather than a frame jump.
+  static const Duration _pickupDuration = Duration(milliseconds: 220);
+  static const Curve _pickupCurve = Cubic(0.32, 0.72, 0.0, 1.0);
+  // Below this the lens is already on the finger; skip the animation entirely.
+  static const double _pickupMinDistance = 2.0;
+  // Direct finger tracking only takes over once the finger genuinely departs
+  // from where the pickup slide is heading, so jitter never re-introduces a
+  // jump mid-slide.
+  static const double _pickupReleaseThreshold = 6.0;
+
+  // Pickup scale: the lens grows into its held size over a short, physical
+  // spring instead of stepping larger in a single frame. Damping sits just shy
+  // of critical so it eases into place with a whisper of organic settle, never
+  // a rubbery bounce.
+  static const SpringDescription _expansionSpring = SpringDescription(
+    mass: 1,
+    stiffness: 520,
+    damping: 42,
+  );
 
   final GlobalKey _capsuleKey = GlobalKey();
   final GlobalKey _surfaceKey = GlobalKey();
   final GlobalKey _stackKey = GlobalKey();
   final List<GlobalKey> _tabKeys = [];
   late final AnimationController _springController;
+  late final AnimationController _pickupController;
+  late final AnimationController _expansionController;
   Timer? _holdTimer;
 
   FragmentShader? _fragmentShader;
@@ -74,6 +99,10 @@ class _LiquidGlassNavigationBarState extends State<LiquidGlassNavigationBar>
   int? _pressedIndex;
   int? _activePointer;
   int _targetIndex = 0;
+  double _pickupFromX = 0;
+  double _pickupToX = 0;
+  bool _pickingUp = false;
+  double _expansion = 0;
 
   @override
   void initState() {
@@ -85,6 +114,64 @@ class _LiquidGlassNavigationBarState extends State<LiquidGlassNavigationBar>
         if (!mounted) return;
         setState(() => _lensX = _springController.value);
       });
+    _pickupController = AnimationController(
+      vsync: this,
+      duration: _pickupDuration,
+    )..addListener(_onPickupTick);
+    // Clear the pickup flag only after the final value listener has applied the
+    // destination, so the lens never stops one frame short of the finger.
+    _pickupController.addStatusListener((status) {
+      if (status == AnimationStatus.completed) _pickingUp = false;
+    });
+    _expansionController = AnimationController.unbounded(vsync: this)
+      ..addListener(() {
+        if (!mounted) return;
+        setState(
+          () => _expansion = _expansionController.value.clamp(0.0, 1.0),
+        );
+      });
+  }
+
+  void _onPickupTick() {
+    if (!mounted || !_pickingUp) return;
+    final t = _pickupCurve.transform(_pickupController.value);
+    setState(() {
+      _lensX = _pickupFromX + (_pickupToX - _pickupFromX) * t;
+    });
+  }
+
+  /// Slides the lens from its resting position to [targetX] with the tuned
+  /// pickup curve, or snaps when the finger is already on the lens.
+  void _beginPickup(double targetX) {
+    if (!mounted) return;
+    if ((targetX - _lensX).abs() < _pickupMinDistance) {
+      setState(() => _lensX = targetX);
+      return;
+    }
+    _pickupFromX = _lensX;
+    _pickupToX = targetX;
+    _pickingUp = true;
+    _pickupController
+      ..stop()
+      ..value = 0;
+    _pickupController.forward();
+  }
+
+  void _cancelPickup() {
+    if (!_pickingUp) return;
+    _pickupController.stop();
+    _pickingUp = false;
+  }
+
+  /// Grows or shrinks the lens toward [target] (0 = resting, 1 = held) with a
+  /// physical spring, so the size eases in and settles rather than stepping.
+  void _animateExpansion(double target) {
+    if (!mounted) return;
+    _expansionController.stop();
+    _expansionController.value = _expansion;
+    _expansionController.animateWith(
+      SpringSimulation(_expansionSpring, _expansion, target, 0),
+    );
   }
 
   Brightness? _lastBrightness;
@@ -133,6 +220,8 @@ class _LiquidGlassNavigationBarState extends State<LiquidGlassNavigationBar>
     _holdTimer?.cancel();
     _fragmentShader?.dispose();
     _springController.dispose();
+    _pickupController.dispose();
+    _expansionController.dispose();
     super.dispose();
   }
 
@@ -214,31 +303,52 @@ class _LiquidGlassNavigationBarState extends State<LiquidGlassNavigationBar>
       setState(() {
         _holding = true;
         _pressedIndex = null;
-        _lensX = _clampLensX(_lastPointerX);
       });
+      // Glide the lens to the finger rather than letting it appear there.
+      _beginPickup(_clampLensX(_lastPointerX));
+      // Grow into the held size with a spring instead of a single-frame step.
+      _animateExpansion(1.0);
     });
   }
 
   void _pointerMove(PointerMoveEvent event) {
     if (event.pointer != _activePointer || !_holding) return;
+    final localX = event.localPosition.dx - _surfacePadding;
+    final targetX = _clampLensX(localX);
     final elapsed = (event.timeStamp - _lastMoveAt).inMicroseconds;
     if (_lastMoveAt != Duration.zero && elapsed > 0) {
-      final velocity =
-          (event.localPosition.dx - _lastPointerX) * 1000000 / elapsed;
+      final velocity = (localX - _lastPointerX) * 1000000 / elapsed;
       _pointerVelocity = _pointerVelocity * 0.35 + velocity * 0.65;
     }
     _lastMoveAt = event.timeStamp;
-    _lastPointerX = event.localPosition.dx - _surfacePadding;
-    setState(() => _lensX = _clampLensX(_lastPointerX));
+    _lastPointerX = localX;
+    // While the pickup slide is running the finger already sits where the lens
+    // is heading, so micro-jitter is ignored and the curve is allowed to
+    // finish. Direct tracking resumes only once the finger genuinely departs,
+    // so a slide never snaps back to a jump.
+    if (_pickingUp) {
+      if ((targetX - _pickupToX).abs() > _pickupReleaseThreshold) {
+        _cancelPickup();
+        setState(() => _lensX = targetX);
+      }
+      return;
+    }
+    setState(() => _lensX = targetX);
   }
 
   void _pointerUp(PointerUpEvent event) {
     if (event.pointer != _activePointer) return;
     _holdTimer?.cancel();
-    final index = _holding
-        ? _indexAt(_lensX)
-        : _indexAt(event.localPosition.dx - _surfacePadding);
+    // Commit to where the pickup slide is heading, not to its mid-slide
+    // position, so releasing early still lands on the tab the finger chose.
+    final commitX = _holding
+        ? (_pickingUp ? _pickupToX : _lensX)
+        : event.localPosition.dx - _surfacePadding;
+    final index = _indexAt(commitX);
     final releaseVelocity = _pointerVelocity;
+    _cancelPickup();
+    // Let the lens ease back to its resting size as the page settles.
+    _animateExpansion(0.0);
     // The capsule listener owns real-pointer commits. The child tap
     // recognizer is retained for semantics/accessibility, but ignores this
     // pointer's duplicate release.
@@ -254,6 +364,8 @@ class _LiquidGlassNavigationBarState extends State<LiquidGlassNavigationBar>
   void _pointerCancel(PointerCancelEvent event) {
     if (event.pointer != _activePointer) return;
     _holdTimer?.cancel();
+    _cancelPickup();
+    _animateExpansion(0.0);
     setState(() {
       _activePointer = null;
       _holding = false;
@@ -332,7 +444,7 @@ class _LiquidGlassNavigationBarState extends State<LiquidGlassNavigationBar>
       size: _stackSize,
       tabWidth: minTabWidth,
       velocity: _holding ? _pointerVelocity : _springController.velocity,
-      interacting: _holding,
+      expansion: _expansion,
     );
     final lensCenter = _LiquidLensGeometry.centerFor(
       size: _stackSize,
@@ -442,7 +554,7 @@ class _LiquidGlassNavigationBarState extends State<LiquidGlassNavigationBar>
                                     velocity: _holding
                                         ? _pointerVelocity
                                         : _springController.velocity,
-                                    interacting: _holding,
+                                    expansion: _expansion,
                                     brightness: theme.brightness,
                                   ),
                                 ),
@@ -553,7 +665,7 @@ class _LiquidLensGeometry {
     required Size size,
     required double tabWidth,
     required double velocity,
-    required bool interacting,
+    required double expansion,
   }) {
     // Leave one logical pixel of breathing room inside the clipped stack.
     // This keeps the held lens expandable while its corner radius stays
@@ -564,8 +676,10 @@ class _LiquidLensGeometry {
       maxRadiusY,
     );
     final motionLift = (velocity.abs() / 1800).clamp(0.0, 1.0) * 1.5;
-    final holdHeightScale = interacting ? 1.16 : 1.0;
-    final holdWidthScale = interacting ? 1.32 : 1.0;
+    // The held pill eases between its resting and expanded size as the
+    // expansion spring runs, instead of snapping between the two scales.
+    final holdHeightScale = 1.0 + 0.16 * expansion;
+    final holdWidthScale = 1.0 + 0.32 * expansion;
     final velocityWidthScale =
         1.0 + (velocity.abs() / 1800).clamp(0.0, 1.0) * 0.06;
     final radiusY = math.min(
@@ -602,14 +716,14 @@ class _LiquidLensPainter extends CustomPainter {
   final double centerX;
   final double tabWidth;
   final double velocity;
-  final bool interacting;
+  final double expansion;
   final Brightness brightness;
 
   const _LiquidLensPainter({
     required this.centerX,
     required this.tabWidth,
     required this.velocity,
-    required this.interacting,
+    required this.expansion,
     required this.brightness,
   });
 
@@ -618,7 +732,7 @@ class _LiquidLensPainter extends CustomPainter {
       size: size,
       tabWidth: tabWidth,
       velocity: velocity,
-      interacting: interacting,
+      expansion: expansion,
     );
     final center = _LiquidLensGeometry.centerFor(
       size: size,
@@ -687,7 +801,7 @@ class _LiquidLensPainter extends CustomPainter {
   bool shouldRepaint(covariant _LiquidLensPainter oldDelegate) {
     return oldDelegate.centerX != centerX ||
         oldDelegate.velocity != velocity ||
-        oldDelegate.interacting != interacting ||
+        oldDelegate.expansion != expansion ||
         oldDelegate.brightness != brightness ||
         oldDelegate.tabWidth != tabWidth;
   }
