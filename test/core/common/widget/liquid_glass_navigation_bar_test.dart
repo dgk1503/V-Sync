@@ -107,9 +107,9 @@ void main() {
     expect(account.dx - forYou.dx, greaterThan(100));
 
     final gesture = await tester.startGesture(account);
-    // Let the hold engage and the pickup slide run partway.
+    // Let the hold engage, then sample partway through the slow pickup glide.
     await tester.pump(const Duration(milliseconds: 240));
-    await tester.pump(const Duration(milliseconds: 40));
+    await tester.pump(const Duration(milliseconds: 220));
     final midX = lensX();
 
     // The lens has begun moving off the resting tab...
@@ -124,6 +124,62 @@ void main() {
     await gesture.up();
     await tester.pumpAndSettle();
     expect(commits, [3]);
+  });
+
+  testWidgets('glass lags behind the finger instead of tracking it exactly', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(412, 800));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final commits = <int>[];
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: const SizedBox.expand(),
+          bottomNavigationBar: LiquidGlassNavigationBar(
+            destinations: _destinations,
+            selectedIndex: 0,
+            onSelected: commits.add,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    double lensX() {
+      final paint = tester.widget<CustomPaint>(
+        find.byKey(const ValueKey('liquid-glass-lens')),
+      );
+      return (paint.painter! as dynamic).centerX as double;
+    }
+
+    final forYou = tester.getCenter(find.byIcon(LucideIcons.house));
+    final account = tester.getCenter(find.byIcon(LucideIcons.userRound));
+    final restX = lensX();
+
+    final gesture = await tester.startGesture(account);
+    await tester.pump(const Duration(milliseconds: 240));
+    // Let the long pickup glide finish and the material come fully to rest on
+    // Account, so the next sample starts from a genuine standstill.
+    await tester.pumpAndSettle();
+    final atAccount = lensX();
+    expect(atAccount, greaterThan(restX + 100));
+
+    // Now jump the finger back to For You and look a few frames in.
+    await gesture.moveTo(forYou);
+    await tester.pump(const Duration(milliseconds: 50));
+    final oneFrameLater = lensX();
+    // The glass has started flowing toward the finger...
+    expect(oneFrameLater, lessThan(atAccount));
+    // ...but the material has mass, so it has NOT arrived yet.
+    expect(oneFrameLater, greaterThan(restX + 1));
+
+    await gesture.up();
+    await tester.pumpAndSettle();
+    // Releasing on the already-selected tab is not a change, so nothing fires.
+    expect(commits, isEmpty);
+    expect(lensX(), closeTo(restX, 0.5));
   });
 
   testWidgets('hold expansion eases the lens size instead of stepping', (
@@ -175,6 +231,59 @@ void main() {
     await gesture.up();
     await tester.pumpAndSettle();
     expect(expansion(), closeTo(0, 0.02));
+  });
+
+  testWidgets('a long frame stall cannot make the spring diverge', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(412, 800));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: const SizedBox.expand(),
+          bottomNavigationBar: LiquidGlassNavigationBar(
+            destinations: _destinations,
+            selectedIndex: 0,
+            onSelected: (_) {},
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    double lensX() {
+      final paint = tester.widget<CustomPaint>(
+        find.byKey(const ValueKey('liquid-glass-lens')),
+      );
+      return (paint.painter! as dynamic).centerX as double;
+    }
+
+    final restX = lensX();
+
+    // Hold on Account, then simulate a stalled frame (200ms) repeatedly. The
+    // integrator clamps the catch-up step, and an explicit damped spring goes
+    // unstable at that step size unless it is sub-stepped.
+    final account = tester.getCenter(find.byIcon(LucideIcons.userRound));
+    final gesture = await tester.startGesture(account);
+    await tester.pump(const Duration(milliseconds: 240));
+    for (var i = 0; i < 6; i++) {
+      await tester.pump(const Duration(milliseconds: 200));
+      final x = lensX();
+      expect(x.isFinite, isTrue, reason: 'lens position diverged on frame $i');
+    }
+
+    await tester.pumpAndSettle();
+    final settled = lensX();
+    expect(settled.isFinite, isTrue);
+    expect(settled, greaterThan(restX + 100));
+
+    // Releasing on the held tab keeps the lens there, still finite.
+    await gesture.up();
+    await tester.pumpAndSettle();
+    expect(lensX().isFinite, isTrue);
+    expect(lensX(), closeTo(settled, 0.5));
   });
 
   testWidgets('icon-only layout adapts to width and text scaling', (

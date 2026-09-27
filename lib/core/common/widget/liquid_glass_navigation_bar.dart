@@ -3,7 +3,7 @@ import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/physics.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 
 const double _navCapsuleRadius = 34;
@@ -22,10 +22,11 @@ class LiquidGlassNavigationDestination {
 
 /// Gesture-driven, iOS-style Liquid Glass navigation surface.
 ///
-/// A short press commits normally. Holding activates an oval lens;
-/// subsequent pointer moves place that lens between measured tab centres
-/// without changing the page. The destination is committed on release, then
-/// a spring settles the lens around it.
+/// A short press commits normally. Holding activates an oval lens; the lens
+/// target then glides to the finger while the glass itself chases that target
+/// through a critically damped spring, so the material lags, flows and settles
+/// softly instead of being pinned to the finger. The destination is committed
+/// on release and the same spring carries the lens into place.
 class LiquidGlassNavigationBar extends StatefulWidget {
   final List<LiquidGlassNavigationDestination> destinations;
   final int selectedIndex;
@@ -45,43 +46,51 @@ class LiquidGlassNavigationBar extends StatefulWidget {
       _LiquidGlassNavigationBarState();
 }
 
+/// Quintic smootherstep: zero velocity AND zero acceleration at both ends, so
+/// the lens eases away from rest and arrives without any perceptible "kick".
+double _smootherstep(double t) => t * t * t * (t * (t * 6 - 15) + 10);
+
 class _LiquidGlassNavigationBarState extends State<LiquidGlassNavigationBar>
-    with TickerProviderStateMixin {
+    with SingleTickerProviderStateMixin {
   static const double _capsuleRadius = _navCapsuleRadius;
   static const double _capsuleHeight = 68;
   static const double _surfacePadding = _navSurfacePadding;
   static const Duration _holdDelay = Duration(milliseconds: 220);
 
-  // Pickup slide: when the hold engages, the lens glides from the resting
-  // selected tab to the finger instead of teleporting. This is the iOS
-  // sheet-style curve (fast lift, long glide, soft settle) run over a short
-  // window so the reposition reads as deliberate rather than a frame jump.
-  static const Duration _pickupDuration = Duration(milliseconds: 220);
-  static const Curve _pickupCurve = Cubic(0.32, 0.72, 0.0, 1.0);
-  // Below this the lens is already on the finger; skip the animation entirely.
-  static const double _pickupMinDistance = 2.0;
-  // Direct finger tracking only takes over once the finger genuinely departs
-  // from where the pickup slide is heading, so jitter never re-introduces a
-  // jump mid-slide.
-  static const double _pickupReleaseThreshold = 6.0;
+  // ── Motion model ────────────────────────────────────────────────────────
+  // One critically damped spring (zeta = 1) drives the whole material, so
+  // position, deformation and size all share a single clock and settle
+  // together like one physical body instead of several overlapping tweens.
+  //
+  // omega is the undamped natural frequency in rad/s. For a critically damped
+  // system the 2% settling time is roughly 5.8/omega, which sets the feel:
+  //   settle 12.5 -> ~465ms  flowing move from one page to the next
+  //   drag   17.0 -> ~345ms  tracks the finger closely, but still lags
+  //   size   10.0 -> ~580ms  the pill grows/shrinks at its own slower tempo
+  //
+  // Settle and drag were trimmed from 9.0/14.0 so page-to-page movement no
+  // longer drags, while the gap between them is preserved so the glass keeps
+  // its lag under the finger and still settles more softly than it moves. The
+  // size spring and the hold pickup glide are deliberately untouched.
+  static const double _settleOmega = 12.5;
+  static const double _dragOmega = 17.0;
+  static const double _sizeOmega = 10.0;
+  static const double _zeta = 1.0;
 
-  // Pickup scale: the lens grows into its held size over a short, physical
-  // spring instead of stepping larger in a single frame. Damping sits just shy
-  // of critical so it eases into place with a whisper of organic settle, never
-  // a rubbery bounce.
-  static const SpringDescription _expansionSpring = SpringDescription(
-    mass: 1,
-    stiffness: 520,
-    damping: 42,
-  );
+  // The hold pickup: the target travels from the resting tab to the finger
+  // over ~520ms on a smootherstep. The target is slow to leave and slow to
+  // arrive; the spring above adds the material's own inertia on top.
+  static const Duration _pickupDuration = Duration(milliseconds: 520);
+
+  // Once the finger genuinely departs from where the pickup was headed, the
+  // target tracks it directly. Small jitter is absorbed by the spring.
+  static const double _pickupReleaseThreshold = 8.0;
 
   final GlobalKey _capsuleKey = GlobalKey();
   final GlobalKey _surfaceKey = GlobalKey();
   final GlobalKey _stackKey = GlobalKey();
   final List<GlobalKey> _tabKeys = [];
-  late final AnimationController _springController;
-  late final AnimationController _pickupController;
-  late final AnimationController _expansionController;
+  Ticker? _ticker;
   Timer? _holdTimer;
 
   FragmentShader? _fragmentShader;
@@ -89,89 +98,43 @@ class _LiquidGlassNavigationBarState extends State<LiquidGlassNavigationBar>
 
   List<double> _centers = const [];
   List<double> _tabWidths = const [];
-  double _lensX = 0;
   Size _stackSize = const Size(284, 58);
-  double _pointerVelocity = 0;
-  double _lastPointerX = 0;
-  Duration _lastMoveAt = Duration.zero;
   bool _hasMeasured = false;
   bool _holding = false;
   int? _pressedIndex;
   int? _activePointer;
   int _targetIndex = 0;
-  double _pickupFromX = 0;
-  double _pickupToX = 0;
-  bool _pickingUp = false;
+
+  // Lens position, velocity and the point it is chasing. The gap between
+  // _lensX and _targetX is the "liquid lag" that makes the glass feel like it
+  // has mass.
+  double _lensX = 0;
+  double _lensV = 0;
+  double _targetX = 0;
+  double _lastPointerX = 0;
+
+  // Held-pill size, likewise spring driven.
   double _expansion = 0;
+  double _expansionV = 0;
+  double _expansionTarget = 0;
+
+  // Pickup glide bookkeeping. Timed off the scheduler's vsync timestamp rather
+  // than Ticker.elapsed: restarting a Ticker from a pointer callback (i.e.
+  // between frames) can report a zero first delta, which would otherwise throw
+  // away the first frame of response. The frame timestamp keeps advancing
+  // across a stop/restart, so the delta is always meaningful.
+  double _pickupFrom = 0;
+  double _pickupTo = 0;
+  int? _pickupStartMicros;
+  int _lastTickMicros = 0;
 
   @override
   void initState() {
     super.initState();
     _ensureTabKeys();
     _targetIndex = widget.selectedIndex;
-    _springController = AnimationController.unbounded(vsync: this)
-      ..addListener(() {
-        if (!mounted) return;
-        setState(() => _lensX = _springController.value);
-      });
-    _pickupController = AnimationController(
-      vsync: this,
-      duration: _pickupDuration,
-    )..addListener(_onPickupTick);
-    // Clear the pickup flag only after the final value listener has applied the
-    // destination, so the lens never stops one frame short of the finger.
-    _pickupController.addStatusListener((status) {
-      if (status == AnimationStatus.completed) _pickingUp = false;
-    });
-    _expansionController = AnimationController.unbounded(vsync: this)
-      ..addListener(() {
-        if (!mounted) return;
-        setState(
-          () => _expansion = _expansionController.value.clamp(0.0, 1.0),
-        );
-      });
-  }
-
-  void _onPickupTick() {
-    if (!mounted || !_pickingUp) return;
-    final t = _pickupCurve.transform(_pickupController.value);
-    setState(() {
-      _lensX = _pickupFromX + (_pickupToX - _pickupFromX) * t;
-    });
-  }
-
-  /// Slides the lens from its resting position to [targetX] with the tuned
-  /// pickup curve, or snaps when the finger is already on the lens.
-  void _beginPickup(double targetX) {
-    if (!mounted) return;
-    if ((targetX - _lensX).abs() < _pickupMinDistance) {
-      setState(() => _lensX = targetX);
-      return;
-    }
-    _pickupFromX = _lensX;
-    _pickupToX = targetX;
-    _pickingUp = true;
-    _pickupController
-      ..stop()
-      ..value = 0;
-    _pickupController.forward();
-  }
-
-  void _cancelPickup() {
-    if (!_pickingUp) return;
-    _pickupController.stop();
-    _pickingUp = false;
-  }
-
-  /// Grows or shrinks the lens toward [target] (0 = resting, 1 = held) with a
-  /// physical spring, so the size eases in and settles rather than stepping.
-  void _animateExpansion(double target) {
-    if (!mounted) return;
-    _expansionController.stop();
-    _expansionController.value = _expansion;
-    _expansionController.animateWith(
-      SpringSimulation(_expansionSpring, _expansion, target, 0),
-    );
+    _lastTickMicros = _nowMicros;
+    _ticker = createTicker(_onTick);
   }
 
   Brightness? _lastBrightness;
@@ -198,7 +161,13 @@ class _LiquidGlassNavigationBarState extends State<LiquidGlassNavigationBar>
     _ensureTabKeys();
     if (widget.selectedIndex != _targetIndex) {
       _targetIndex = widget.selectedIndex;
-      if (_activePointer == null) _scheduleSpring(widget.selectedIndex);
+      if (_activePointer == null && _centers.isNotEmpty) {
+        // Flow to the new tab instead of jumping.
+        _pickupStartMicros = null;
+        _targetX = _centers[_safeIndex(_targetIndex)];
+        _expansionTarget = 0;
+        _ensureTicker();
+      }
     }
     // Re-measure after route/theme rebuilds as well as tab changes. This
     // prevents a stale lens centre from flashing when returning from a
@@ -218,12 +187,93 @@ class _LiquidGlassNavigationBarState extends State<LiquidGlassNavigationBar>
   @override
   void dispose() {
     _holdTimer?.cancel();
+    _ticker?.dispose();
     _fragmentShader?.dispose();
-    _springController.dispose();
-    _pickupController.dispose();
-    _expansionController.dispose();
     super.dispose();
   }
+
+  // ── Motion loop ──────────────────────────────────────────────────────────
+
+  void _ensureTicker() {
+    final ticker = _ticker;
+    if (ticker == null || ticker.isActive) return;
+    ticker.start();
+  }
+
+  static int get _nowMicros =>
+      SchedulerBinding.instance.currentSystemFrameTimeStamp.inMicroseconds;
+
+  // Explicit integration of a damped spring goes unstable once omega*dt
+  // approaches 1, so a single large catch-up step (frame drop, app resume)
+  // can make the lens diverge. Integrating in fixed sub-steps no larger than a
+  // 120Hz frame keeps it stable for any dt while staying allocation free.
+  static const double _maxSubStep = 1 / 120;
+
+  void _onTick(Duration elapsed) {
+    final micros = _nowMicros;
+    var dt = (micros - _lastTickMicros) / 1000000.0;
+    _lastTickMicros = micros;
+    // A duplicate frame carries no new time; a long stall is clamped so the
+    // spring catches up smoothly instead of exploding.
+    if (dt <= 0) return;
+    if (dt > 0.05) dt = 0.05;
+
+    // 1. Advance the pickup glide on the *target*.
+    final pickupStart = _pickupStartMicros;
+    if (pickupStart != null) {
+      final t = (micros - pickupStart) / _pickupDuration.inMicroseconds;
+      if (t >= 1.0) {
+        _targetX = _pickupTo;
+        _pickupStartMicros = null;
+      } else {
+        _targetX = _pickupFrom + (_pickupTo - _pickupFrom) * _smootherstep(t);
+      }
+    }
+
+    // 2. Critically damped followers for position and held-pill size, stepped
+    //    in fixed sub-steps for unconditional numerical stability.
+    final omega = _holding ? _dragOmega : _settleOmega;
+    final kPos = omega * omega;
+    final cPos = 2 * _zeta * omega;
+    final kSize = _sizeOmega * _sizeOmega;
+    final cSize = 2 * _zeta * _sizeOmega;
+    var remaining = dt;
+    while (remaining > 0) {
+      final h = remaining > _maxSubStep ? _maxSubStep : remaining;
+      _lensV += (-kPos * (_lensX - _targetX) - cPos * _lensV) * h;
+      _lensX += _lensV * h;
+      _expansionV +=
+          (-kSize * (_expansion - _expansionTarget) - cSize * _expansionV) * h;
+      _expansion += _expansionV * h;
+      remaining -= h;
+    }
+
+    // 4. Rest only once everything has genuinely come to rest.
+    final positionSettled =
+        (_targetX - _lensX).abs() < 0.05 && _lensV.abs() < 0.5;
+    final sizeSettled =
+        (_expansionTarget - _expansion).abs() < 0.0005 && _expansionV.abs() < 0.005;
+    if (positionSettled && sizeSettled && _pickupStartMicros == null) {      _lensX = _targetX;
+      _lensV = 0;
+      _expansion = _expansionTarget;
+      _expansionV = 0;
+      _ticker?.stop();
+      setState(() {});
+      return;
+    }
+
+    setState(() {});
+  }
+
+
+  void _beginPickup(double to) {
+    _pickupFrom = _targetX;
+    _pickupTo = to;
+    _pickupStartMicros = _nowMicros;
+    _ensureTicker();
+  }
+
+  // ── Geometry ─────────────────────────────────────────────────────────────
 
   bool _sameGeometry(List<double> centers, List<double> widths) {
     if (centers.length != _centers.length ||
@@ -257,18 +307,32 @@ class _LiquidGlassNavigationBarState extends State<LiquidGlassNavigationBar>
     if (_sameGeometry(centers, widths) && _stackSize == surfaceBox.size) {
       return;
     }
+    final firstMeasurement = !_hasMeasured;
     setState(() {
       _centers = centers;
       _tabWidths = widths;
       _stackSize = surfaceBox.size;
       _hasMeasured = true;
-      if (_activePointer == null) _lensX = centers[_safeIndex(_targetIndex)];
+      if (firstMeasurement || _activePointer == null) {
+        final centre = centers[_safeIndex(_targetIndex)];
+        _targetX = centre;
+        if (firstMeasurement) {
+          // Snap on the very first layout so the bar does not fly in.
+          _lensX = centre;
+          _lensV = 0;
+          _expansion = 0;
+          _expansionV = 0;
+          _pickupStartMicros = null;
+        } else {
+          _ensureTicker();
+        }
+      }
     });
   }
 
   int _safeIndex(int index) => index.clamp(0, widget.destinations.length - 1);
 
-  double _clampLensX(double localX) {
+  double _clampTargetX(double localX) {
     if (_centers.isEmpty) return localX;
     return localX.clamp(_centers.first, _centers.last);
   }
@@ -285,15 +349,14 @@ class _LiquidGlassNavigationBarState extends State<LiquidGlassNavigationBar>
     return _centers.length - 1;
   }
 
+  // ── Gesture ──────────────────────────────────────────────────────────────
+
   void _pointerDown(PointerDownEvent event) {
     if (widget.destinations.isEmpty) return;
     _holdTimer?.cancel();
-    _springController.stop();
     _activePointer = event.pointer;
     _holding = false;
-    _pointerVelocity = 0;
     _lastPointerX = event.localPosition.dx - _surfacePadding;
-    _lastMoveAt = Duration.zero;
     _pressedIndex = _indexAt(_lastPointerX);
     HapticFeedback.selectionClick();
     setState(() {});
@@ -304,101 +367,76 @@ class _LiquidGlassNavigationBarState extends State<LiquidGlassNavigationBar>
         _holding = true;
         _pressedIndex = null;
       });
-      // Glide the lens to the finger rather than letting it appear there.
-      _beginPickup(_clampLensX(_lastPointerX));
-      // Grow into the held size with a spring instead of a single-frame step.
-      _animateExpansion(1.0);
+      // Glide the target to the finger; the spring turns that into mass.
+      _beginPickup(_clampTargetX(_lastPointerX));
+      _expansionTarget = 1.0;
+      _ensureTicker();
     });
   }
 
   void _pointerMove(PointerMoveEvent event) {
     if (event.pointer != _activePointer || !_holding) return;
-    final localX = event.localPosition.dx - _surfacePadding;
-    final targetX = _clampLensX(localX);
-    final elapsed = (event.timeStamp - _lastMoveAt).inMicroseconds;
-    if (_lastMoveAt != Duration.zero && elapsed > 0) {
-      final velocity = (localX - _lastPointerX) * 1000000 / elapsed;
-      _pointerVelocity = _pointerVelocity * 0.35 + velocity * 0.65;
-    }
-    _lastMoveAt = event.timeStamp;
-    _lastPointerX = localX;
-    // While the pickup slide is running the finger already sits where the lens
-    // is heading, so micro-jitter is ignored and the curve is allowed to
-    // finish. Direct tracking resumes only once the finger genuinely departs,
-    // so a slide never snaps back to a jump.
-    if (_pickingUp) {
-      if ((targetX - _pickupToX).abs() > _pickupReleaseThreshold) {
-        _cancelPickup();
-        setState(() => _lensX = targetX);
-      }
+    final target = _clampTargetX(event.localPosition.dx - _surfacePadding);
+    _lastPointerX = event.localPosition.dx - _surfacePadding;
+    // While the pickup glide is running the finger already sits where the
+    // target is heading, so only a real departure hands control over.
+    final pickup = _pickupStartMicros;
+    if (pickup != null && (target - _pickupTo).abs() <= _pickupReleaseThreshold) {
       return;
     }
-    setState(() => _lensX = targetX);
+    _pickupStartMicros = null;
+    _targetX = target;
+    _ensureTicker();
   }
 
   void _pointerUp(PointerUpEvent event) {
     if (event.pointer != _activePointer) return;
     _holdTimer?.cancel();
-    // Commit to where the pickup slide is heading, not to its mid-slide
-    // position, so releasing early still lands on the tab the finger chose.
+    // Commit to the tab the finger chose. If the pickup glide is still in
+    // flight the finger has not moved yet, so its destination is the intent.
     final commitX = _holding
-        ? (_pickingUp ? _pickupToX : _lensX)
+        ? (_pickupStartMicros != null ? _pickupTo : _targetX)
         : event.localPosition.dx - _surfacePadding;
     final index = _indexAt(commitX);
-    final releaseVelocity = _pointerVelocity;
-    _cancelPickup();
-    // Let the lens ease back to its resting size as the page settles.
-    _animateExpansion(0.0);
+    _pickupStartMicros = null;
     // The capsule listener owns real-pointer commits. The child tap
     // recognizer is retained for semantics/accessibility, but ignores this
     // pointer's duplicate release.
-    if (_activePointer != null) _commit(index, velocity: releaseVelocity);
+    if (_activePointer != null) _commit(index);
     setState(() {
       _activePointer = null;
       _holding = false;
       _pressedIndex = null;
-      _pointerVelocity = 0;
     });
   }
 
   void _pointerCancel(PointerCancelEvent event) {
     if (event.pointer != _activePointer) return;
     _holdTimer?.cancel();
-    _cancelPickup();
-    _animateExpansion(0.0);
+    _pickupStartMicros = null;
     setState(() {
       _activePointer = null;
       _holding = false;
       _pressedIndex = null;
-      _pointerVelocity = 0;
     });
-    _scheduleSpring(_safeIndex(widget.selectedIndex));
+    if (_centers.isNotEmpty) {
+      _targetX = _centers[_safeIndex(widget.selectedIndex)];
+    }
+    _expansionTarget = 0;
+    _ensureTicker();
   }
 
-  void _commit(int index, {double velocity = 0}) {
+  void _commit(int index) {
     if (widget.destinations.isEmpty) return;
     final safeIndex = _safeIndex(index);
     _targetIndex = safeIndex;
+    if (_centers.isNotEmpty) _targetX = _centers[safeIndex];
+    _expansionTarget = 0;
+    _ensureTicker();
     if (safeIndex != widget.selectedIndex) widget.onSelected(safeIndex);
-    _springTo(safeIndex, velocity: velocity * 0.18);
   }
 
-  void _scheduleSpring(int index) => _springTo(_safeIndex(index));
-
-  void _springTo(int index, {double velocity = 0}) {
-    if (!mounted || !_hasMeasured) return;
-    _targetIndex = _safeIndex(index);
-    _springController.stop();
-    _springController.value = _lensX;
-    _springController.animateWith(
-      SpringSimulation(
-        const SpringDescription(mass: 1, stiffness: 420, damping: 31),
-        _lensX,
-        _centers[_targetIndex],
-        velocity.clamp(-2400.0, 2400.0),
-      ),
-    );
-  }
+  // ── Shader ───────────────────────────────────────────────────────────────
 
   ImageFilter _backdropFilter(BuildContext context) {
     final program = widget.shaderProgram;
@@ -440,10 +478,12 @@ class _LiquidGlassNavigationBarState extends State<LiquidGlassNavigationBar>
     final hasShader =
         widget.shaderProgram != null && ImageFilter.isShaderFilterSupported;
     final minTabWidth = _tabWidths.isEmpty ? 64.0 : _tabWidths.reduce(math.min);
+    // The lens deforms from its OWN velocity, so the stretch is continuous
+    // and decays as the material comes to rest.
     final lensSize = _LiquidLensGeometry.resolve(
       size: _stackSize,
       tabWidth: minTabWidth,
-      velocity: _holding ? _pointerVelocity : _springController.velocity,
+      velocity: _lensV,
       expansion: _expansion,
     );
     final lensCenter = _LiquidLensGeometry.centerFor(
@@ -551,9 +591,7 @@ class _LiquidGlassNavigationBarState extends State<LiquidGlassNavigationBar>
                                   painter: _LiquidLensPainter(
                                     centerX: _lensX,
                                     tabWidth: minTabWidth,
-                                    velocity: _holding
-                                        ? _pointerVelocity
-                                        : _springController.velocity,
+                                    velocity: _lensV,
                                     expansion: _expansion,
                                     brightness: theme.brightness,
                                   ),
@@ -646,8 +684,10 @@ class _LiquidGlassNavItem extends StatelessWidget {
                 : interacting && proximity > 0.35
                 ? 1.06
                 : 1,
-            duration: Duration(milliseconds: pressed ? 90 : 220),
-            curve: pressed ? Curves.easeOut : Curves.easeOutBack,
+            // Softer and slower than the default snap: a gentle ease-out with
+            // no overshoot, so the glyph settles rather than bouncing.
+            duration: Duration(milliseconds: pressed ? 120 : 380),
+            curve: pressed ? Curves.easeOut : Curves.easeOutCubic,
             child: Icon(
               destination.icon,
               size: 22,
@@ -675,13 +715,15 @@ class _LiquidLensGeometry {
       (tabWidth * 0.34).clamp(22.0, 27.0),
       maxRadiusY,
     );
-    final motionLift = (velocity.abs() / 1800).clamp(0.0, 1.0) * 1.5;
-    // The held pill eases between its resting and expanded size as the
-    // expansion spring runs, instead of snapping between the two scales.
+    // Normalised against the smoothed lens velocity rather than raw pointer
+    // speed, so the glass stretches into a movement and relaxes out of it.
+    final speed = (velocity.abs() / 900).clamp(0.0, 1.0);
+    final motionLift = speed * 1.8;
+    // The held pill eases between its resting and expanded size as the size
+    // spring runs, instead of snapping between the two scales.
     final holdHeightScale = 1.0 + 0.16 * expansion;
     final holdWidthScale = 1.0 + 0.32 * expansion;
-    final velocityWidthScale =
-        1.0 + (velocity.abs() / 1800).clamp(0.0, 1.0) * 0.06;
+    final velocityWidthScale = 1.0 + speed * 0.10;
     final radiusY = math.min(
       (restingRadiusY + motionLift) * holdHeightScale,
       maxRadiusY,
