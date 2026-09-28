@@ -60,6 +60,33 @@ float hash21(vec2 p) {
   return fract(p.x * p.y);
 }
 
+// Samples the backdrop over a filled DISK rather than a single ring.
+//
+// The earlier version used one 8-tap ring at a single radius. With uBlur
+// around 14 physical px the taps were 14 px apart, so linear filtering could
+// not bridge the gaps: thin glyphs were either hit or missed by each tap,
+// which speckled and read as "pixelated" text sitting behind the glass.
+//
+// A golden-angle spiral gives area-uniform spacing (no clumping at the
+// centre), and a Gaussian weighting puts most of the energy near the middle
+// so the band still looks like a soft frost rather than a smeared disc.
+vec4 sampleDisk(vec2 p, float radius) {
+  vec4 sum = vec4(0.0);
+  float weightSum = 0.0;
+  for (int i = 0; i < 20; i++) {
+    float fi = float(i) + 0.5;
+    // sqrt() on the normalised index spreads taps uniformly by AREA, which
+    // is what keeps the disk evenly covered from centre to edge.
+    float t = sqrt(fi / 20.0);
+    float angle = fi * 2.39996323; // golden angle, 137.507 degrees
+    vec2 offset = vec2(cos(angle), sin(angle)) * (t * radius);
+    float weight = exp(-2.2 * t * t);
+    sum += texture(uBackdrop, sampleUv(p + offset)) * weight;
+    weightSum += weight;
+  }
+  return sum / weightSum;
+}
+
 void main() {
   vec2 fragCoord = FlutterFragCoord().xy;
   vec2 uv = sampleUv(fragCoord);
@@ -88,23 +115,31 @@ void main() {
   vec2 refracted = fragCoord - normal * (bend * uEdge * 0.85);
 
   // Real glass is optically CLEAR in the middle — text scrolling behind stays
-  // crisp — and only the curved rim frosts. So: one clear tap, plus an
-  // 8-tap RING for the frosted band. A ring, not a cross: four axis taps
-  // leave a visible plus-shaped block pattern behind the glass, and that is
-  // what read as "pixelated". R, G and B all bend by the same amount, so
-  // content keeps its real colours.
+  // crisp — and only the curved rim frosts. So: one clear tap, plus a filled
+  // disk of taps for the frosted band (see sampleDisk), and per-channel
+  // refraction so the rim shows a faint chromatic edge. That dispersion is
+  // what separates glass from frosted plastic.
   vec4 clear = texture(uBackdrop, sampleUv(refracted));
-  vec4 sum = clear;
-  for (int i = 0; i < 8; i++) {
-    float a = float(i) * 0.7853981634; // 45 degrees
-    vec2 o = vec2(cos(a), sin(a)) * uBlur;
-    sum += texture(uBackdrop, sampleUv(refracted + o));
-  }
-  vec4 soft = sum / 9.0;
 
   // 1 in the capsule middle, 0 inside the refraction band.
   float interior = smoothstep(0.0, uEdge * 0.9, d);
-  vec3 col = mix(soft.rgb, clear.rgb, interior);
+
+  vec3 col = clear.rgb;
+  // The middle of the capsule is optically clear, so skip the whole disk
+  // there. bend is already zero by this point, which means the extra taps
+  // would contribute nothing — the branch just avoids paying for them.
+  if (interior < 0.999) {
+    vec4 soft = sampleDisk(refracted, uBlur);
+
+    // Chromatic dispersion: red bends hardest, blue least. Only two extra
+    // samples, and they matter only near the rim where bend is non-zero.
+    float k = bend * uEdge * 0.85;
+    float r = texture(uBackdrop, sampleUv(fragCoord - normal * (k * 1.10))).r;
+    float b = texture(uBackdrop, sampleUv(fragCoord - normal * (k * 0.90))).b;
+    vec3 prismatic = vec3(r, clear.g, b);
+
+    col = mix(soft.rgb, prismatic, interior);
+  }
 
   // Reflections. Three cheap layers, all neutral white, and together they are
   // what makes the capsule read as a solid slab of glass rather than a

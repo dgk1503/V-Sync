@@ -3,6 +3,7 @@ import 'package:vit_ap_student_app/core/common/app_route_transition_state.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:vit_ap_student_app/core/common/widget/liquid_glass_navigation_bar.dart';
+import 'package:vit_ap_student_app/core/common/widget/static_capsule_nav_bar.dart';
 import 'package:vit_ap_student_app/core/providers/bottom_nav_provider.dart';
 import 'package:vit_ap_student_app/core/providers/liquid_glass_provider.dart';
 import 'package:vit_ap_student_app/core/providers/user_preferences_notifier.dart';
@@ -89,7 +90,21 @@ class _FloatingCapsuleNavBar extends ConsumerWidget {
     final enabled = ref.watch(
       userPreferencesProvider.select((prefs) => prefs.liquidGlassNavbar),
     );
-    final shader = enabled ? ref.watch(liquidGlassProgramProvider).value : null;
+
+    // Liquid Glass is opt-in (Settings > Customization). When it is off the
+    // navbar is not a degraded glass surface but the plain static capsule the
+    // app used before the effect existed — no shader, no lens, no blob.
+    if (!enabled) {
+      return StaticCapsuleNavBar(
+        destinations: liquidGlassDestinations,
+        selectedIndex: selectedIndex,
+        onSelected: (index) {
+          ref.read(bottomNavIndexProvider.notifier).state = index;
+        },
+      );
+    }
+
+    final shader = ref.watch(liquidGlassProgramProvider).value;
     return ValueListenableBuilder<bool>(
       valueListenable: AppRouteTransitionState.isActive,
       builder: (context, isRouteTransitioning, child) {

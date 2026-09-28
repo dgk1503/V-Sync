@@ -465,7 +465,10 @@ class _LiquidGlassNavigationBarState extends State<LiquidGlassNavigationBar>
     shader.setFloat(5, size.height);
     shader.setFloat(6, _capsuleRadius * dpr);
     shader.setFloat(7, 15 * dpr);
-    shader.setFloat(8, 5 * dpr);
+    // Disk radius for the frosted rim. Smaller than before because the disk is
+    // now filled with 20 taps instead of 8 on a single ring, so the same
+    // visual frost needs a tighter radius to stay smooth over glyphs.
+    shader.setFloat(8, 4 * dpr);
     return ImageFilter.shader(shader);
   }
 
