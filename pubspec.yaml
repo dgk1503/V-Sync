@@ -1,7 +1,7 @@
 name: vit_ap_student_app
 description: "vsync"
 publish_to: "none"
-version: 1.2.0+6
+version: 1.2.0+7
 
 environment:
   sdk: ">=3.8.0 <4.0.0"
