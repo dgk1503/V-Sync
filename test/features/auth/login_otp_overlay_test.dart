@@ -210,6 +210,62 @@ void main() {
       await unmount(tester, container);
     });
 
+    testWidgets('the OTP boxes stay inside the card on a narrow phone', (
+      tester,
+    ) async {
+      // Six fixed 46dp boxes plus gaps need 306dp, which does not fit inside the
+      // card on a 360dp screen: the row overflowed it. Guards the width.
+      tester.view.physicalSize = const Size(360 * 3, 640 * 3);
+      tester.view.devicePixelRatio = 3.0;
+      addTearDown(tester.view.reset);
+
+      final container = await mountApp(tester);
+      container.read(loginOtpChallengeProvider.notifier).requestOtp();
+      await tester.pump();
+
+      expect(tester.takeException(), isNull, reason: 'no overflow on 360dp');
+
+      // Every box must sit within the card's own horizontal bounds.
+      final card = tester.getRect(
+        find.ancestor(
+          of: find.byType(TextField),
+          matching: find.byType(Container),
+        ).first,
+      );
+      final field = tester.getRect(find.byType(TextField));
+      expect(
+        field.left,
+        greaterThanOrEqualTo(card.left),
+        reason: 'the boxes must not start left of the card',
+      );
+      expect(
+        field.right,
+        lessThanOrEqualTo(card.right),
+        reason: 'the boxes must not run past the card edge',
+      );
+      await unmount(tester, container);
+    });
+
+    testWidgets('the minimise control is present and collapses the prompt', (
+      tester,
+    ) async {
+      // The user should not have to guess at a bare dash.
+      final handle = tester.ensureSemantics();
+      final container = await mountApp(tester);
+      container.read(loginOtpChallengeProvider.notifier).requestOtp();
+      await tester.pump();
+
+      expect(find.byIcon(Icons.minimize_rounded), findsOneWidget);
+      expect(find.bySemanticsLabel('Minimise'), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('otp-minimise')));
+      await tester.pump();
+      expect(find.text('Verification'), findsNothing);
+      expect(find.byIcon(Icons.shield_outlined), findsOneWidget);
+      await unmount(tester, container);
+      handle.dispose();
+    });
+
     testWidgets('the card lifts above the keyboard', (tester) async {
       final container = await mountApp(tester);
       container.read(loginOtpChallengeProvider.notifier).requestOtp();

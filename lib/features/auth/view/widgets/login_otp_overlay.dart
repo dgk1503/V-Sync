@@ -220,7 +220,13 @@ class _ExpandedState extends ConsumerState<_Expanded> {
                               ),
                             ),
                           ),
+                          // `container` and `excludeSemantics` matter here:
+                          // IconButton emits its own semantics node, so a plain
+                          // wrapper's label is discarded and the control reads
+                          // as an unlabelled button to a screen reader.
                           Semantics(
+                            container: true,
+                            excludeSemantics: true,
                             label: 'Minimise',
                             button: true,
                             child: IconButton(
@@ -422,18 +428,33 @@ class _OtpField extends ConsumerWidget {
                 ),
               ),
             ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                for (var i = 0; i < _length; i++) ...[
-                  if (i > 0) const SizedBox(width: 6),
-                  _Box(
-                    digit: i < digits.length ? digits[i] : '',
-                    active: focused && i == digits.length,
-                    error: hasError,
-                  ),
-                ],
-              ],
+            // The boxes share whatever width is available rather than sitting
+            // at a fixed 46 each: six fixed boxes plus gaps need 306px, which
+            // does not fit inside the card on a 360dp screen, and the row
+            // overflowed it. Centred and capped so it does not stretch across
+            // a tablet either.
+            Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 320),
+                child: Row(
+                  children: [
+                    for (var i = 0; i < _length; i++) ...[
+                      if (i > 0) const SizedBox(width: 6),
+                      // Width flexes, height is fixed. An AspectRatio here is
+                      // not an option: this Row is a non-positioned child of a
+                      // Stack, which hands it loose constraints, and
+                      // AspectRatio cannot size itself against unbounded width.
+                      Expanded(
+                        child: _Box(
+                          digit: i < digits.length ? digits[i] : '',
+                          active: focused && i == digits.length,
+                          error: hasError,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
             ),
           ],
         );
@@ -455,7 +476,6 @@ class _Box extends StatelessWidget {
     final filled = digit.isNotEmpty && !error;
 
     return Container(
-      width: 46,
       height: 56,
       alignment: Alignment.center,
       decoration: BoxDecoration(
