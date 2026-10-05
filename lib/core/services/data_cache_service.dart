@@ -65,6 +65,18 @@ class DataCacheService {
     );
   }
 
+  /// Removes every row whose key satisfies [test]. Used to bound the calendar
+  /// cache to the semesters still in play.
+  void removeWhere(bool Function(String key) test) {
+    final doomed = _box
+        .getAll()
+        .where((row) => test(row.cacheKey))
+        .map((row) => row.id)
+        .whereType<int>()
+        .toList();
+    if (doomed.isNotEmpty) _box.removeMany(doomed);
+  }
+
   void remove(String key) {
     final id = _box
         .query(DataCache_.cacheKey.equals(key))

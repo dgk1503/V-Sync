@@ -3,7 +3,10 @@ import 'dart:convert';
 import 'package:fpdart/fpdart.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:vit_ap_student_app/core/error/failure.dart';
+import 'package:vit_ap_student_app/core/models/semester_cache.dart';
 import 'package:vit_ap_student_app/core/providers/current_user.dart';
+import 'package:vit_ap_student_app/init_dependencies.dart';
+import 'package:vit_ap_student_app/objectbox.g.dart';
 import 'package:vit_ap_student_app/core/services/data_cache_service.dart';
 import 'package:vit_ap_student_app/features/calendar/model/calendar_chip.dart';
 import 'package:vit_ap_student_app/features/calendar/repository/calendar_remote_repository.dart';
@@ -58,9 +61,19 @@ class CalendarMonth {
 
 @riverpod
 class CalendarViewmodel extends _$CalendarViewmodel {
-  /// Cache key for the semester calendar. Not namespaced by semester because
-  /// the box is wiped on logout, which is how `SemesterCache` is handled too.
+  /// Fallback key, used only before a semester is known.
   static const String cacheKey = 'calendar';
+
+  static const String _prefix = 'calendar:';
+
+  /// The cache key for [semesterId].
+  ///
+  /// Keyed by semester so switching semesters cannot serve the previous
+  /// semester's calendar, and so returning to an old one is instant. The
+  /// un-suffixed key is the one written before this was keyed, and is still
+  /// read as a fallback so an existing install is not left with nothing.
+  static String cacheKeyFor(String? semesterId) =>
+      semesterId == null || semesterId.isEmpty ? cacheKey : '$_prefix$semesterId';
 
   /// How stale a cached calendar may get before VTOP is asked again.
   ///
@@ -75,12 +88,43 @@ class CalendarViewmodel extends _$CalendarViewmodel {
   /// mean two full chains of VTOP requests for one calendar.
   Future<void>? _inFlight;
 
+  String? _lastSemesterId;
+
+  /// Set when the selected semester changed since the last fetch, so the TTL
+  /// is bypassed once: the user explicitly moved to a different semester, and
+  /// a five-day-old cache for it is exactly what they are trying to leave
+  /// behind.
+  bool _semesterChanged = false;
+
   /// Whether the user's countdowns belong on the grid. Lives in
   /// Customisation only, so this is watched: flipping it there has to re-fold
   /// the months already on screen, and a parameter passed in by the page could
   /// not do that.
   bool get _countdownsOn =>
       !ref.watch(userPreferencesProvider).hideCalendarCountdowns;
+
+  /// The selected semester, read straight from ObjectBox.
+  ///
+  /// Synchronous on purpose: the calendar has to paint from cache on the first
+  /// frame, and the credentials that also carry this live in secure storage,
+  /// which cannot be awaited there. `SemesterCache` already records the choice.
+  /// The cache key this semester's calendar is stored under. Public so the page
+  /// can report how old the copy it is showing actually is.
+  String? get resolvedCacheKey => cacheKeyFor(_semesterId);
+
+  String? get _semesterId {
+    try {
+      final box = serviceLocator<Store>().box<SemesterCache>();
+      final selected = box
+          .query(SemesterCache_.isSelected.equals(true))
+          .build()
+          .findFirst();
+      return selected?.semesterId;
+    } on Object {
+      // No store, or no semester chosen yet. The un-keyed fallback covers it.
+      return null;
+    }
+  }
 
   @override
   AsyncValue<List<CalendarMonth>> build() {
@@ -94,6 +138,15 @@ class CalendarViewmodel extends _$CalendarViewmodel {
     // Watching the preference rebuilds `build` when it flips, which re-folds
     // the cached months with or without the countdowns.
     final withCountdowns = _countdownsOn;
+
+    // A semester switch has to invalidate what is on screen, not just the
+    // cache read: the months belong to the old semester and must not linger.
+    final semesterId = _semesterId;
+    if (semesterId != _lastSemesterId) {
+      _lastSemesterId = semesterId;
+      _semesterChanged = true;
+    }
+
     final cached = _readCache();
     if (cached == null) return const AsyncValue.data(<CalendarMonth>[]);
     return AsyncValue.data(
@@ -109,7 +162,9 @@ class CalendarViewmodel extends _$CalendarViewmodel {
   /// then the TTL below would see a recent timestamp, skip the fetch, and the
   /// page would sit empty for the whole five days.
   List<CalendarMonth>? _readCache() {
-    final entry = ref.read(dataCacheServiceProvider).readEntry(cacheKey);
+    final entry = ref
+        .read(dataCacheServiceProvider)
+        .readEntry(cacheKeyFor(_semesterId));
     if (entry == null) return null;
 
     final months = _tryUnwrap(entry.payload);
@@ -133,8 +188,16 @@ class CalendarViewmodel extends _$CalendarViewmodel {
 
     // A readable cache that is still fresh is the whole point: no request, no
     // spinner, no flash. Anything else goes to VTOP.
-    final entry = ref.read(dataCacheServiceProvider).readEntry(cacheKey);
-    if (_readCache() != null && entry != null && !entry.isOlderThan(maxAge)) {
+    final entry = ref
+        .read(dataCacheServiceProvider)
+        .readEntry(cacheKeyFor(_semesterId));
+    final staleBySwitch = _semesterChanged;
+    _semesterChanged = false;
+
+    if (!staleBySwitch &&
+        _readCache() != null &&
+        entry != null &&
+        !entry.isOlderThan(maxAge)) {
       return;
     }
 
@@ -191,9 +254,16 @@ class CalendarViewmodel extends _$CalendarViewmodel {
         );
       },
       (snapshot) {
-        ref
-            .read(dataCacheServiceProvider)
-            .write(cacheKey, _wrap(snapshot.rawJson, credentials.semSubId));
+        final cache = ref.read(dataCacheServiceProvider);
+        final key = cacheKeyFor(credentials.semSubId);
+        cache
+          ..write(key, _wrap(snapshot.rawJson, credentials.semSubId))
+          // Bound the table: one row per semester a student has ever opened is
+          // small, but there is no reason to keep the ones they have left.
+          ..removeWhere(
+            (other) => other.startsWith(_prefix) && other != key,
+          );
+        _lastSemesterId = credentials.semSubId;
         final months = _toMonths(snapshot.calendar);
         state = AsyncValue.data(
           _countdownsOn

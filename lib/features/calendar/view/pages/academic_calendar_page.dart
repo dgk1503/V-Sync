@@ -81,10 +81,10 @@ class _AcademicCalendarPageState extends ConsumerState<AcademicCalendarPage> {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final monthsAsync = ref.watch(calendarViewmodelProvider);
-    final updatedAt = ref
-        .watch(dataCacheServiceProvider)
-        .readEntry(CalendarViewmodel.cacheKey)
-        ?.updatedAt;
+    final cacheKey = ref.watch(calendarViewmodelProvider.notifier).resolvedCacheKey;
+    final updatedAt = cacheKey == null
+        ? null
+        : ref.watch(dataCacheServiceProvider).readEntry(cacheKey)?.updatedAt;
 
     return Scaffold(
       backgroundColor: colors.surface,
