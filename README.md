@@ -48,11 +48,7 @@ digital assignment uploads, and a web view for anything else.
 Profile, credential management, appearance (five accent themes, dark mode, font
 scale), and toggles for which cards appear on each tab.
 
-### Verification
 
-When VTOP demands an OTP, the prompt floats above the app rather than blocking
-it: collapse it to a capsule, carry on using the app, tap it back open. Your
-login can wait for the code instead of the app waiting for you.
 
 ## Built with
 
@@ -60,9 +56,9 @@ Flutter, with a Rust scraper ([`lib_vtop`](rust/)) bridged in through
 `flutter_rust_bridge` and cargokit. The scraper owns one authenticated VTOP
 session and exposes typed structs; the app never parses HTML.
 
-- Offline cache — ObjectBox
-- State — Riverpod
-- Design — Material 3, Instrument Sans
+- Offline cache-  ObjectBox
+- State- Riverpod
+- Design - Material 3, Instrument Sans
 
 ## Building
 
