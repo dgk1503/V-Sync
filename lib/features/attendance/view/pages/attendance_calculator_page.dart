@@ -3,7 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vit_ap_student_app/core/models/attendance.dart';
 import 'package:vit_ap_student_app/core/providers/color_theme_notifier.dart';
 import 'package:vit_ap_student_app/core/theme/app_theme.dart';
+import 'package:vit_ap_student_app/features/attendance/model/attendance_projection.dart';
 import 'package:vit_ap_student_app/features/attendance/view/widgets/attendance_bottom_sheet.dart';
+import 'package:vit_ap_student_app/features/attendance/view/widgets/attendance_calendar_card.dart';
+import 'package:vit_ap_student_app/features/attendance/viewmodel/detailed_attendance_viewmodel.dart';
+import 'package:vit_ap_student_app/features/calendar/model/calendar_chip.dart';
+import 'package:vit_ap_student_app/features/calendar/viewmodel/calendar_viewmodel.dart';
+import 'package:vit_ap_student_app/features/timetable/viewmodel/timetable_viewmodel.dart';
 
 class AttendanceCalculatorPage extends ConsumerStatefulWidget {
   final Attendance attendance;
@@ -19,8 +25,6 @@ class _AttendanceCalculatorPageState
     extends ConsumerState<AttendanceCalculatorPage> {
   late int attended;
   late int total;
-  late int futureAttend;
-  late int futureSkip;
   bool editCurrent = false;
 
   @override
@@ -28,31 +32,27 @@ class _AttendanceCalculatorPageState
     super.initState();
     attended = int.tryParse(widget.attendance.attendedClasses) ?? 0;
     total = int.tryParse(widget.attendance.totalClasses) ?? 0;
-    final plan = _getDefaultFuturePlan(attended, total);
-    futureAttend = plan.$1;
-    futureSkip = plan.$2;
-  }
-
-  /// Auto-suggest: if ≥75% → how many you can skip; if <75% → how many to attend.
-  (int, int) _getDefaultFuturePlan(int attended, int total) {
-    if (total <= 0) return (0, 0);
-    final currentPct = (attended / total) * 100;
-    if (currentPct >= 75) {
-      final maxSkip = ((4 * attended - 3 * total) / 3).floor();
-      return (0, maxSkip > 0 ? maxSkip : 0);
-    }
-    final needAttend = 3 * total - 4 * attended;
-    return (needAttend > 0 ? needAttend : 0, 0);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      // Always ask for this course's records: the viewmodel paints the cached
+      // copy first and then refreshes, so this costs nothing on a warm start.
+      ref
+          .read(detailedAttendanceViewmodelProvider.notifier)
+          .fetchDetailedAttendance(
+            courseId: widget.attendance.courseId,
+            courseType: widget.attendance.courseTypeCode,
+          );
+      // The calendar below is a different provider that nothing else warms, so
+      // without this the "N left until FAT" count is blank until the user
+      // happens to open Academics > Calendar first. `ensureLoaded` is a no-op
+      // when the cache is still fresh.
+      ref
+          .read(calendarViewmodelProvider.notifier)
+          .ensureLoaded(includeCountdowns: false);
+    });
   }
 
   double get _currentPercentage => total == 0 ? 0.0 : (attended / total) * 100;
-
-  double get _predictedPercentage {
-    final newTotal = total + futureAttend + futureSkip;
-    final newAttended = attended + futureAttend;
-    if (newTotal == 0) return 0.0;
-    return (newAttended / newTotal) * 100;
-  }
 
   Color _pctColor(double pct, ColorScheme cs) {
     if (pct >= 75) return const Color(0xFF2E7D32);
@@ -141,17 +141,8 @@ class _AttendanceCalculatorPageState
             ),
             const SizedBox(height: 16),
 
-            // ── Future prediction card ──
-            _buildFutureCard(
-              cs,
-              cardBg,
-              cardBorder,
-              captionColor,
-              presentColor,
-              absentColor,
-              isDark,
-            ),
-            const SizedBox(height: 16),
+            // ── Day-wise attendance, month by month ──
+            _buildCalendarCard(cs, cardBg, cardBorder, captionColor),
 
             // ── Attendance Details (inline) ──
             _buildDetailsHeader(cs, captionColor),
@@ -354,19 +345,61 @@ class _AttendanceCalculatorPageState
     );
   }
 
-  Widget _buildFutureCard(
+  /// Day-wise attendance as month grids, plus how many classes are left before
+  /// the next FAT. Both need data the calculator does not hold, so they are
+  /// watched here rather than threaded through the route.
+  Widget _buildCalendarCard(
     ColorScheme cs,
     Color cardBg,
     Color cardBorder,
     Color caption,
-    Color presentColor,
-    Color absentColor,
-    bool isDark,
   ) {
-    final hasPlan = futureAttend > 0 || futureSkip > 0;
+    final courseCode = widget.attendance.courseCode.trim();
+    // The calendar viewmodel already exposes the flattened, date-ordered months.
+    final months =
+        ref.watch(calendarViewmodelProvider).asData?.value ??
+        const <CalendarMonth>[];
+    final timetable = ref.watch(timetableViewModelProvider)?.asData?.value;
+    final detailsState = ref.watch(detailedAttendanceViewmodelProvider);
+    final details = detailsState?.asData?.value;
+    // "Still fetching", "VTOP could not be reached" and "nothing posted" all
+    // used to render as the same line of text, so a broken fetch looked
+    // identical to an empty course.
+    final emptyReason = switch (detailsState) {
+      null => EmptyReason.loading,
+      AsyncLoading() => EmptyReason.loading,
+      AsyncError() => EmptyReason.failed,
+      _ => EmptyReason.notPosted,
+    };
+    // VTOP marks a FAT day as an exam, but only says "FAT" in the entry's
+    // description. Fall back to the next exam of any kind so the count still
+    // appears when VTOP words the entry differently.
+    final fatDate = months.isEmpty
+        ? null
+        : (AttendanceProjection.firstDayWhere(
+                months,
+                DateTime.now(),
+                (kind, text) =>
+                    kind == CalendarDayKind.exam && text.contains('fat'),
+              ) ??
+              AttendanceProjection.firstDayWhere(
+                months,
+                DateTime.now(),
+                (kind, _) => kind == CalendarDayKind.exam,
+              ));
+    final classesLeft = (fatDate == null || timetable == null || courseCode.isEmpty)
+        ? null
+        : AttendanceProjection.classesLeftUntil(
+            courseCode: courseCode,
+            timetable: timetable,
+            months: months,
+            now: DateTime.now(),
+            until: fatDate,
+          );
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(14, 16, 14, 18),
       decoration: BoxDecoration(
         color: cardBg,
         borderRadius: BorderRadius.circular(16),
@@ -375,126 +408,21 @@ class _AttendanceCalculatorPageState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(Icons.calculate_outlined, size: 18, color: caption),
-              const SizedBox(width: 8),
-              Text(
-                'Future Prediction',
-                style: TextStyle(
-                  fontFamily: 'Instrument Sans',
-                  fontSize: 15,
-                  fontWeight: FontWeight.w500,
-                  color: cs.onSurface,
-                ),
-              ),
-              const Spacer(),
-              if (hasPlan)
-                GestureDetector(
-                  onTap: () => setState(() {
-                    futureAttend = 0;
-                    futureSkip = 0;
-                  }),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: cardBorder),
-                    ),
-                    child: Text(
-                      'Reset',
-                      style: TextStyle(
-                        fontFamily: 'Instrument Sans',
-                        fontSize: 12,
-                        color: cs.onSurface,
-                      ),
-                    ),
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(height: 20),
-
-          Row(
-            children: [
-              Expanded(
-                child: _buildCounter(
-                  cs: cs,
-                  cardBg: cardBg,
-                  cardBorder: cardBorder,
-                  label: 'Will Attend',
-                  value: futureAttend,
-                  color: presentColor,
-                  onInc: () => setState(() => futureAttend++),
-                  onDec: () {
-                    if (futureAttend > 0) setState(() => futureAttend--);
-                  },
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildCounter(
-                  cs: cs,
-                  cardBg: cardBg,
-                  cardBorder: cardBorder,
-                  label: 'Will Skip',
-                  value: futureSkip,
-                  color: absentColor,
-                  onInc: () => setState(() => futureSkip++),
-                  onDec: () {
-                    if (futureSkip > 0) setState(() => futureSkip--);
-                  },
-                ),
-              ),
-            ],
-          ),
-
-          if (hasPlan) ...[
-            const SizedBox(height: 16),
-            _buildPredictedBanner(cs, cardBorder, caption),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPredictedBanner(
-    ColorScheme cs,
-    Color cardBorder,
-    Color caption,
-  ) {
-    final pct = _predictedPercentage;
-    final pctCol = _pctColor(pct, cs);
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: pctCol, width: 1.5),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
           Text(
-            'Predicted Attendance',
+            'Attendance Calendar',
             style: TextStyle(
               fontFamily: 'Instrument Sans',
-              fontSize: 13,
+              fontSize: 15,
               fontWeight: FontWeight.w500,
-              color: caption,
+              color: cs.onSurface,
             ),
           ),
-          Text(
-            '${pct.toStringAsFixed(1)}%',
-            style: TextStyle(
-              fontFamily: 'Instrument Sans',
-              fontSize: 20,
-              fontWeight: FontWeight.w500,
-              color: pctCol,
-            ),
+          const SizedBox(height: 14),
+          ClassesLeftCaption(classesLeft: classesLeft),
+          if ((classesLeft ?? 0) > 0) const SizedBox(height: 14),
+          AttendanceMonthCard(
+            details: details ?? const [],
+            emptyReason: emptyReason,
           ),
         ],
       ),

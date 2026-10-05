@@ -1,139 +1,36 @@
-# ============================================================================
-# V-Sync (vit_ap_student_app) — Git ignore rules
-# Flutter + Dart + Rust (flutter_rust_bridge / cargokit) + Android
-# ============================================================================
-
-# ---------------------------------------------------------------------------
-# Secrets & machine-local config — NEVER commit
-# ---------------------------------------------------------------------------
-.env
-.env.*
-!.env.example
-android/local.properties
-android/key.properties
-*.jks
-*.keystore
-*.p12
-*.pem
-*.cer
-*.der
-
-# ---------------------------------------------------------------------------
-# AI / agent tooling — local scratch, never pushed
-# ---------------------------------------------------------------------------
-AGENTS.md
-CLAUDE.md
-GEMINI.md
-.freebuff/
-.cursor/
-.claude/
-*.mdc
-
-# ---------------------------------------------------------------------------
-# Flutter / Dart build output
-# ---------------------------------------------------------------------------
-# Top-level Flutter build dir. Matches any dir named "build" at any depth,
-# which also covers android/app/build and cargokit's build output.
+# Build output
 build/
 .dart_tool/
 .flutter-plugins
 .flutter-plugins-dependencies
-.pub-cache/
-.pub/
 .packages
-.flutter-plugins-dependencies
-
-# Dart compile/test caches
-**/*.dill
-**/*.dill.*
-.dart_tool/flutter_build/
-coverage/
-*.lcov
-lcov.info
-
-# ---------------------------------------------------------------------------
-# Rust (cargo) build output
-# ---------------------------------------------------------------------------
-# Only build output is ignored. rust/src/**, rust/Cargo.toml and
-# rust/Cargo.lock are intentionally NOT ignored and remain tracked.
-target/
-**/target/
-rust/target/
-rust_builder/**/target/
-.cargo/
-**/*.rlib
-**/*.rmeta
-
-# ---------------------------------------------------------------------------
-# Android / Gradle
-# ---------------------------------------------------------------------------
-android/.gradle/
-android/build/
-android/app/build/
-android/app/.cxx/
-android/.cxx/
-android/local.properties
 *.iml
-captures/
-.cxx/
-
-# ---------------------------------------------------------------------------
-# iOS / CocoaPods
-# ---------------------------------------------------------------------------
-ios/Pods/
-ios/.symlinks/
-ios/Flutter/Flutter.framework/
-ios/Flutter/Flutter.podspec
-ios/Flutter/Generated.xcconfig
-ios/Flutter/flutter_export_environment.sh
-ios/Flutter/app.flx
-ios/Flutter/app.zip
-ios/Flutter/ephemeral/
-
-# ---------------------------------------------------------------------------
-# IDE / editor
-# ---------------------------------------------------------------------------
 .idea/
 .vscode/
-*.iml
-*.ipr
-*.iws
-*.sublime-project
-*.sublime-workspace
-.project
-.classpath
-.settings/
-*.swp
-*.swo
-*~
-.history/
 
-# ---------------------------------------------------------------------------
-# OS noise
-# ---------------------------------------------------------------------------
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-Thumbs.db
-ehthumbs.db
-desktop.ini
+# Rust
+rust/target/
 
-# ---------------------------------------------------------------------------
-# Dev artifacts
-# ---------------------------------------------------------------------------
-*.log
-*.tmp
-*.bak
-*.orig
-*.pid
-*.seed
-*.tgz
+# Never commit secrets or signing material.
+.env
+*.jks
+*.keystore
+key.properties
+
+# Local scratch notes for coding agents; gitignored on purpose.
+AGENTS.md
+
+# A separate checkout vendored inside this repo for reference. Not ours.
+vitmate/
+
+# Coverage and test output
+coverage/
+test_cache/
+# Screenshots written by render tests
 .screenshots/
-.tern-port
-node_modules/
 
-# NOTE: pubspec.lock is intentionally NOT ignored.
-# For an application (not a published package) the lockfile must be
-# committed so builds are reproducible.
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.log

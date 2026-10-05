@@ -49,7 +49,7 @@ final class DetailedAttendanceViewmodelProvider
 }
 
 String _$detailedAttendanceViewmodelHash() =>
-    r'69dccda6f231cff5a56dfd3cb19f2117997fecd8';
+    r'e095878ebca1f33220178278bc0b2acc48f43c69';
 
 abstract class _$DetailedAttendanceViewmodel
     extends $Notifier<AsyncValue<List<AttendanceDetail>>?> {

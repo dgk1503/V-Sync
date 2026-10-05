@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:vit_ap_student_app/core/models/credentials.dart';
+import 'package:vit_ap_student_app/core/models/data_cache.dart';
 import 'package:vit_ap_student_app/core/models/semester_cache.dart';
 import 'package:vit_ap_student_app/core/models/user.dart';
 import 'package:vit_ap_student_app/core/services/demo_service.dart';
@@ -134,6 +135,10 @@ class CurrentUserNotifier extends _$CurrentUserNotifier {
 
     // Clear semester cache
     serviceLocator.get<Store>().box<SemesterCache>().removeAll();
+
+    // Clear scraped payloads held for offline-first rendering, so the next
+    // account never sees the previous one's calendar or attendance history.
+    serviceLocator.get<Store>().box<DataCache>().removeAll();
   }
 
   bool get isLoggedIn => state != null;

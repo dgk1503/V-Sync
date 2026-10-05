@@ -3,6 +3,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:vit_ap_student_app/core/models/credentials.dart';
 import 'package:vit_ap_student_app/core/models/user.dart';
 import 'package:vit_ap_student_app/core/providers/current_user.dart';
+import 'package:vit_ap_student_app/features/calendar/viewmodel/calendar_viewmodel.dart';
 import 'package:vit_ap_student_app/core/services/demo_service.dart';
 import 'package:vit_ap_student_app/features/auth/repository/auth_remote_repository.dart';
 
@@ -95,6 +96,18 @@ class AuthViewModel extends _$AuthViewModel {
 
   AsyncValue<User> _getDataSuccess(User user, Credentials credentials) {
     _currentUserNotifier.loginUser(user, credentials);
+    // Warm the semester calendar while the user is still on the login screen
+    // completing the flow. It is the slowest thing the app fetches - a request
+    // for the month list plus one per month - and nothing else needs it until
+    // the calendar page, so fetching it here means that page is already warm.
+    //
+    // Deliberately not awaited: login must not wait on the calendar, and a
+    // failure here is reported by the page that actually needs it.
+    Future.microtask(
+      () => ref.read(calendarViewmodelProvider.notifier).ensureLoaded(
+        includeCountdowns: false,
+      ),
+    );
     return state = AsyncValue.data(user);
   }
 

@@ -15,6 +15,7 @@ import 'package:objectbox/objectbox.dart' as obx;
 import 'package:objectbox_flutter_libs/objectbox_flutter_libs.dart';
 
 import 'core/models/attendance.dart';
+import 'core/models/data_cache.dart';
 import 'core/models/exam_schedule.dart';
 import 'core/models/grade_history.dart';
 import 'core/models/mark.dart';
@@ -729,7 +730,7 @@ final _entities = <obx_int.ModelEntity>[
   obx_int.ModelEntity(
     id: const obx_int.IdUid(12, 8803805611900482677),
     name: 'UserPreferences',
-    lastPropertyId: const obx_int.IdUid(28, 6130767091723589936),
+    lastPropertyId: const obx_int.IdUid(30, 4969028335929346733),
     flags: 0,
     properties: <obx_int.ModelProperty>[
       obx_int.ModelProperty(
@@ -879,6 +880,18 @@ final _entities = <obx_int.ModelEntity>[
       obx_int.ModelProperty(
         id: const obx_int.IdUid(28, 6130767091723589936),
         name: 'classStackEnabled',
+        type: 1,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(29, 2901579268362217266),
+        name: 'hideAcademicCalendar',
+        type: 1,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(30, 4969028335929346733),
+        name: 'hideCalendarCountdowns',
         type: 1,
         flags: 0,
       ),
@@ -1161,6 +1174,41 @@ final _entities = <obx_int.ModelEntity>[
     relations: <obx_int.ModelRelation>[],
     backlinks: <obx_int.ModelBacklink>[],
   ),
+  obx_int.ModelEntity(
+    id: const obx_int.IdUid(17, 5045905080224116891),
+    name: 'DataCache',
+    lastPropertyId: const obx_int.IdUid(4, 2679413804696207654),
+    flags: 0,
+    properties: <obx_int.ModelProperty>[
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(1, 3642398789986935856),
+        name: 'id',
+        type: 6,
+        flags: 1,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(2, 7977566598422868979),
+        name: 'cacheKey',
+        type: 9,
+        flags: 2080,
+        indexId: const obx_int.IdUid(7, 5984931339982934100),
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(3, 8039803398705452932),
+        name: 'payload',
+        type: 9,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(4, 2679413804696207654),
+        name: 'updatedAt',
+        type: 6,
+        flags: 0,
+      ),
+    ],
+    relations: <obx_int.ModelRelation>[],
+    backlinks: <obx_int.ModelBacklink>[],
+  ),
 ];
 
 /// Shortcut for [obx.Store.new] that passes [getObjectBoxModel] and for Flutter
@@ -1206,8 +1254,8 @@ obx_int.ModelDefinition getObjectBoxModel() {
     // Typically, this is done with `dart run build_runner build`.
     generatorVersion: obx_int.GeneratorVersion.v2025_12_16,
     entities: _entities,
-    lastEntityId: const obx_int.IdUid(16, 5508427552556485326),
-    lastIndexId: const obx_int.IdUid(6, 2116973012509574290),
+    lastEntityId: const obx_int.IdUid(17, 5045905080224116891),
+    lastIndexId: const obx_int.IdUid(7, 5984931339982934100),
     lastRelationId: const obx_int.IdUid(13, 8949173924576356692),
     lastSequenceId: const obx_int.IdUid(0, 0),
     retiredEntityUids: const [],
@@ -2144,7 +2192,7 @@ obx_int.ModelDefinition getObjectBoxModel() {
         final appThemeOffset = object.appTheme == null
             ? null
             : fbb.writeString(object.appTheme!);
-        fbb.startTable(29);
+        fbb.startTable(31);
         fbb.addInt64(0, object.id ?? 0);
         fbb.addOffset(1, pfpPathOffset);
         fbb.addBool(2, object.isTimetableNotificationsEnabled);
@@ -2170,6 +2218,8 @@ obx_int.ModelDefinition getObjectBoxModel() {
         fbb.addBool(23, object.liquidGlassNavbar);
         fbb.addBool(24, object.hasUserChosenTheme);
         fbb.addBool(27, object.classStackEnabled);
+        fbb.addBool(28, object.hideAcademicCalendar);
+        fbb.addBool(29, object.hideCalendarCountdowns);
         fbb.finish(fbb.endTable());
         return object.id ?? 0;
       },
@@ -2288,6 +2338,18 @@ obx_int.ModelDefinition getObjectBoxModel() {
           48,
           false,
         );
+        final hideAcademicCalendarParam = const fb.BoolReader().vTableGet(
+          buffer,
+          rootOffset,
+          60,
+          false,
+        );
+        final hideCalendarCountdownsParam = const fb.BoolReader().vTableGet(
+          buffer,
+          rootOffset,
+          62,
+          false,
+        );
         final liquidGlassNavbarParam = const fb.BoolReader().vTableGet(
           buffer,
           rootOffset,
@@ -2325,6 +2387,8 @@ obx_int.ModelDefinition getObjectBoxModel() {
           hideOuting: hideOutingParam,
           hideFacultyInfo: hideFacultyInfoParam,
           hideOpenVtop: hideOpenVtopParam,
+          hideAcademicCalendar: hideAcademicCalendarParam,
+          hideCalendarCountdowns: hideCalendarCountdownsParam,
           liquidGlassNavbar: liquidGlassNavbarParam,
           classStackEnabled: classStackEnabledParam,
         );
@@ -2667,6 +2731,55 @@ obx_int.ModelDefinition getObjectBoxModel() {
           semesterId: semesterIdParam,
           semesterName: semesterNameParam,
           isSelected: isSelectedParam,
+          updatedAt: updatedAtParam,
+        );
+
+        return object;
+      },
+    ),
+    DataCache: obx_int.EntityDefinition<DataCache>(
+      model: _entities[16],
+      toOneRelations: (DataCache object) => [],
+      toManyRelations: (DataCache object) => {},
+      getId: (DataCache object) => object.id,
+      setId: (DataCache object, int id) {
+        object.id = id;
+      },
+      objectToFB: (DataCache object, fb.Builder fbb) {
+        final cacheKeyOffset = fbb.writeString(object.cacheKey);
+        final payloadOffset = fbb.writeString(object.payload);
+        fbb.startTable(5);
+        fbb.addInt64(0, object.id ?? 0);
+        fbb.addOffset(1, cacheKeyOffset);
+        fbb.addOffset(2, payloadOffset);
+        fbb.addInt64(3, object.updatedAt);
+        fbb.finish(fbb.endTable());
+        return object.id ?? 0;
+      },
+      objectFromFB: (obx.Store store, ByteData fbData) {
+        final buffer = fb.BufferContext(fbData);
+        final rootOffset = buffer.derefObject(0);
+        final idParam = const fb.Int64Reader().vTableGetNullable(
+          buffer,
+          rootOffset,
+          4,
+        );
+        final cacheKeyParam = const fb.StringReader(
+          asciiOptimization: true,
+        ).vTableGet(buffer, rootOffset, 6, '');
+        final payloadParam = const fb.StringReader(
+          asciiOptimization: true,
+        ).vTableGet(buffer, rootOffset, 8, '');
+        final updatedAtParam = const fb.Int64Reader().vTableGet(
+          buffer,
+          rootOffset,
+          10,
+          0,
+        );
+        final object = DataCache(
+          id: idParam,
+          cacheKey: cacheKeyParam,
+          payload: payloadParam,
           updatedAt: updatedAtParam,
         );
 
@@ -3303,6 +3416,15 @@ class UserPreferences_ {
   static final classStackEnabled = obx.QueryBooleanProperty<UserPreferences>(
     _entities[11].properties[24],
   );
+
+  /// See [UserPreferences.hideAcademicCalendar].
+  static final hideAcademicCalendar = obx.QueryBooleanProperty<UserPreferences>(
+    _entities[11].properties[25],
+  );
+
+  /// See [UserPreferences.hideCalendarCountdowns].
+  static final hideCalendarCountdowns =
+      obx.QueryBooleanProperty<UserPreferences>(_entities[11].properties[26]);
 }
 
 /// [Course] entity fields to define ObjectBox queries.
@@ -3506,5 +3628,28 @@ class SemesterCache_ {
   /// See [SemesterCache.updatedAt].
   static final updatedAt = obx.QueryIntegerProperty<SemesterCache>(
     _entities[15].properties[4],
+  );
+}
+
+/// [DataCache] entity fields to define ObjectBox queries.
+class DataCache_ {
+  /// See [DataCache.id].
+  static final id = obx.QueryIntegerProperty<DataCache>(
+    _entities[16].properties[0],
+  );
+
+  /// See [DataCache.cacheKey].
+  static final cacheKey = obx.QueryStringProperty<DataCache>(
+    _entities[16].properties[1],
+  );
+
+  /// See [DataCache.payload].
+  static final payload = obx.QueryStringProperty<DataCache>(
+    _entities[16].properties[2],
+  );
+
+  /// See [DataCache.updatedAt].
+  static final updatedAt = obx.QueryIntegerProperty<DataCache>(
+    _entities[16].properties[3],
   );
 }

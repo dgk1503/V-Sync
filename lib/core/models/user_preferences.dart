@@ -42,6 +42,15 @@ class UserPreferences {
   bool hideFacultyInfo;
   bool hideOpenVtop;
 
+  // Academic calendar card on the Academics hub.
+  bool hideAcademicCalendar;
+
+  // Whether the academic calendar merges the user's own countdowns into its day
+  // chips. Stored inverted for the same reason as the hide* flags above: a new
+  // bool column reads as false on existing ObjectBox rows, so a positive
+  // "includeCountdowns" would silently start OFF for every current install.
+  bool hideCalendarCountdowns;
+
   // Experimental Liquid Glass navbar (shader refraction). On by default.
   bool liquidGlassNavbar;
 
@@ -76,6 +85,8 @@ class UserPreferences {
     this.hideOuting = false,
     this.hideFacultyInfo = false,
     this.hideOpenVtop = false,
+    this.hideAcademicCalendar = false,
+    this.hideCalendarCountdowns = false,
     this.liquidGlassNavbar = true,
     this.classStackEnabled = false,
   });
@@ -104,6 +115,8 @@ class UserPreferences {
     bool? hideOuting,
     bool? hideFacultyInfo,
     bool? hideOpenVtop,
+    bool? hideAcademicCalendar,
+    bool? hideCalendarCountdowns,
     bool? liquidGlassNavbar,
     bool? classStackEnabled,
   }) {
@@ -139,6 +152,8 @@ class UserPreferences {
       hideOuting: hideOuting ?? this.hideOuting,
       hideFacultyInfo: hideFacultyInfo ?? this.hideFacultyInfo,
       hideOpenVtop: hideOpenVtop ?? this.hideOpenVtop,
+      hideAcademicCalendar: hideAcademicCalendar ?? this.hideAcademicCalendar,
+      hideCalendarCountdowns: hideCalendarCountdowns ?? this.hideCalendarCountdowns,
       liquidGlassNavbar: liquidGlassNavbar ?? this.liquidGlassNavbar,
       classStackEnabled: classStackEnabled ?? this.classStackEnabled,
     );

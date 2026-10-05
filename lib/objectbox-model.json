@@ -606,7 +606,7 @@
     },
     {
       "id": "12:8803805611900482677",
-      "lastPropertyId": "28:6130767091723589936",
+      "lastPropertyId": "30:4969028335929346733",
       "name": "UserPreferences",
       "properties": [
         {
@@ -733,6 +733,16 @@
         {
           "id": "28:6130767091723589936",
           "name": "classStackEnabled",
+          "type": 1
+        },
+        {
+          "id": "29:2901579268362217266",
+          "name": "hideAcademicCalendar",
+          "type": 1
+        },
+        {
+          "id": "30:4969028335929346733",
+          "name": "hideCalendarCountdowns",
           "type": 1
         }
       ],
@@ -970,10 +980,41 @@
         }
       ],
       "relations": []
+    },
+    {
+      "id": "17:5045905080224116891",
+      "lastPropertyId": "4:2679413804696207654",
+      "name": "DataCache",
+      "properties": [
+        {
+          "id": "1:3642398789986935856",
+          "name": "id",
+          "type": 6,
+          "flags": 1
+        },
+        {
+          "id": "2:7977566598422868979",
+          "name": "cacheKey",
+          "indexId": "7:5984931339982934100",
+          "type": 9,
+          "flags": 2080
+        },
+        {
+          "id": "3:8039803398705452932",
+          "name": "payload",
+          "type": 9
+        },
+        {
+          "id": "4:2679413804696207654",
+          "name": "updatedAt",
+          "type": 6
+        }
+      ],
+      "relations": []
     }
   ],
-  "lastEntityId": "16:5508427552556485326",
-  "lastIndexId": "6:2116973012509574290",
+  "lastEntityId": "17:5045905080224116891",
+  "lastIndexId": "7:5984931339982934100",
   "lastRelationId": "13:8949173924576356692",
   "lastSequenceId": "0:0",
   "modelVersion": 5,

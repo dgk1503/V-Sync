@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:vit_ap_student_app/core/common/widget/bottom_navigation_bar.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:vit_ap_student_app/core/common/widget/accent_gradient_text.dart';
 import 'package:vit_ap_student_app/core/common/widget/app_card.dart';
 import 'package:vit_ap_student_app/core/providers/user_preferences_notifier.dart';
 import 'package:vit_ap_student_app/features/attendance/view/pages/attendance_page.dart';
+import 'package:vit_ap_student_app/features/calendar/view/pages/academic_calendar_page.dart';
 import 'package:vit_ap_student_app/features/digital_assignment/view/pages/digital_assignment_page.dart';
 import 'package:vit_ap_student_app/features/home/view/pages/exam_schedule_page.dart';
 import 'package:vit_ap_student_app/features/home/view/pages/faculty_page.dart';
@@ -48,6 +50,12 @@ class AcademicsHubPage extends ConsumerWidget {
         title: 'Exam Schedule',
         onTap: () => _push(context, const ExamSchedulePage()),
       ),
+      if (!prefs.hideAcademicCalendar)
+        _HubCard(
+          icon: LucideIcons.calendarRange,
+          title: 'Academic Calendar',
+          onTap: () => _push(context, const AcademicCalendarPage()),
+        ),
       if (!prefs.hideGrades)
         _HubCard(
           icon: LucideIcons.graduationCap,
@@ -92,7 +100,8 @@ class AcademicsHubPage extends ConsumerWidget {
             16,
             0,
             16,
-            MediaQuery.paddingOf(context).bottom + 12,
+            kFloatingNavBarClearance +
+                MediaQuery.paddingOf(context).bottom,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

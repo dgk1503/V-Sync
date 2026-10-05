@@ -131,6 +131,21 @@ class CustomizationPage extends ConsumerWidget {
                   userPreferences.copyWith(hideOpenVtop: !value),
                 ),
               ),
+              tile(
+                title: 'Academic Calendar',
+                value: !userPreferences.hideAcademicCalendar,
+                onChanged: (value) => userPreferencesNotifier.updatePreferences(
+                  userPreferences.copyWith(hideAcademicCalendar: !value),
+                ),
+              ),
+              tile(
+                title: 'Calendar countdowns',
+                subtitle: 'Merge your countdowns into the calendar',
+                value: !userPreferences.hideCalendarCountdowns,
+                onChanged: (value) => userPreferencesNotifier.updatePreferences(
+                  userPreferences.copyWith(hideCalendarCountdowns: !value),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 24),

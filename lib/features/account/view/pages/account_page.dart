@@ -117,7 +117,8 @@ class _AccountPageState extends ConsumerState<AccountPage> {
             16,
             0,
             16,
-            MediaQuery.paddingOf(context).bottom + 12,
+            kFloatingNavBarClearance +
+                MediaQuery.paddingOf(context).bottom,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

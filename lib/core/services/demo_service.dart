@@ -34,11 +34,11 @@ class DemoService {
 
   static final DemoService instance = DemoService._();
 
-  /// Registration number reviewers enter to trigger the demo experience.
-  static const String demoRegistrationNumber = '21BCE7625';
+  /// Username reviewers enter to trigger the demo experience.
+  static const String demoRegistrationNumber = '25VSYNC';
 
   /// Password reviewers enter to trigger the demo experience.
-  static const String demoPassword = 'Demo@1234';
+  static const String demoPassword = 'dgklynx';
 
   /// Placeholder semester id stored alongside the demo credentials.
   static const String demoSemesterId = 'DEMOSEM2526';

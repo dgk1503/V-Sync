@@ -11,7 +11,8 @@ import 'package:vit_ap_student_app/core/services/notification_service.dart';
 import 'package:vit_ap_student_app/core/services/app_update_service.dart';
 import 'package:vit_ap_student_app/core/services/vtop_service.dart';
 import 'package:vit_ap_student_app/features/auth/view/widgets/auth_failure_bottom_sheet.dart';
-import 'package:vit_ap_student_app/features/auth/view/widgets/login_otp_bottom_sheet.dart';
+import 'package:vit_ap_student_app/features/auth/view/widgets/login_otp_overlay.dart';
+import 'package:vit_ap_student_app/features/auth/viewmodel/login_otp_challenge.dart';
 import 'package:vit_ap_student_app/features/onboarding/view/pages/onboarding_page.dart';
 import 'package:vit_ap_student_app/init_dependencies.dart';
 
@@ -38,7 +39,6 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
   StreamSubscription<void>? _otpSubscription;
   StreamSubscription<String>? _authFailureSubscription;
-  bool _isOtpSheetShowing = false;
   bool _isAuthFailureSheetShowing = false;
 
   @override
@@ -68,24 +68,10 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
     super.dispose();
   }
 
+  /// An OTP challenge started. The prompt itself is mounted permanently in
+  /// `build`, so this only has to raise the challenge in state.
   void _showGlobalOtpSheet() {
-    if (_isOtpSheetShowing) return;
-    final navigatorState = _navigatorKey.currentState;
-    if (navigatorState == null) return;
-    final overlay = navigatorState.overlay;
-    if (overlay == null) return;
-
-    _isOtpSheetShowing = true;
-    showLoginOtpBottomSheet(context: overlay.context).whenComplete(() {
-      _isOtpSheetShowing = false;
-      // Safety net: if the sheet closed without resolving OTP
-      // (e.g. unexpected dismissal), cancel the pending completer
-      // so the blocked operation doesn't hang forever.
-      final vtopService = serviceLocator<VtopClientService>();
-      if (vtopService.isOtpPending) {
-        vtopService.cancelOtp();
-      }
-    });
+    ref.read(loginOtpChallengeProvider.notifier).requestOtp();
   }
 
   void _showGlobalAuthFailureSheet(String message) {
@@ -125,7 +111,17 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
           data: MediaQuery.of(context).copyWith(
             textScaler: TextScaler.linear(userPreferences.fontScale ?? 1.0),
           ),
-          child: child!,
+          // The OTP prompt lives ABOVE the Navigator rather than in it.
+          //
+          // It used to be an `OverlayEntry` inserted on demand, which tied the
+          // prompt to a navigator that might not exist yet: an OTP required
+          // during startup was dropped on the floor and the pending request
+          // hung forever. Being an unconditional child of the app shell means
+          // it is mounted from the first frame, survives route changes and
+          // rebuilds, and renders nothing while no challenge is active.
+          child: LoginOtpOverlay(
+            child: Stack(children: [child!]),
+          ),
         );
       },
       home: isLoggedIn ? const BottomNavBar() : const OnboardingPage(),

@@ -120,3 +120,12 @@ class _FloatingCapsuleNavBar extends ConsumerWidget {
     );
   }
 }
+
+/// Vertical space a scrolling page must leave free at its bottom so the last
+/// row clears the floating capsule navbar.
+///
+/// The navbar sits in the body layer with `extendBody: true` rather than in
+/// Scaffold's `bottomNavigationBar` slot, so nothing reserves room for it and
+/// every page has to. This is the capsule's own height (12 + 50 + 12) plus its
+/// bottom margin (14), with a little breathing room on top.
+const double kFloatingNavBarClearance = 96;

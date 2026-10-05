@@ -8,6 +8,13 @@ use chrono::Utc;
 /// VTOP's default class group, "All Class Group (Combined)".
 pub const DEFAULT_CLASS_GROUP: &str = "COMB";
 
+/// How many month requests to have in flight at once.
+///
+/// Four keeps a six-month semester to two waves while staying well short of
+/// what would look like hammering VTOP. Going higher would only shave a little
+/// more off a fetch that is already down to two round-trips.
+const MAX_CONCURRENT_MONTH_REQUESTS: usize = 4;
+
 impl VtopClient {
     /// Posts one of the calendar's AJAX lookups.
     ///
@@ -78,11 +85,15 @@ impl VtopClient {
         class_group_id: &str,
     ) -> VtopResult<Vec<CalendarMonthRef>> {
         validate_semester_id(semester_id)?;
+        // `getDateForSemesterPreview` is the one page that carries BOTH the
+        // class-group dropdown and every month button, so this shares its
+        // request with `get_calendar_class_groups` instead of asking VTOP for a
+        // second page that only differs in a `paramReturnId`.
         let text = self
             .post_calendar(
-                "/vtop/getListForSemester",
+                "/vtop/getDateForSemesterPreview",
                 &format!(
-                    "paramReturnId=getListForSemester&semSubId={semester_id}&classGroupId={class_group_id}"
+                    "paramReturnId=getDateForSemesterPreview&semSubId={semester_id}&classGroupId={class_group_id}"
                 ),
             )
             .await?;
@@ -144,13 +155,77 @@ impl VtopClient {
             .get_calendar_months(semester_id, class_group_id)
             .await?;
 
+        // Each month is an independent request, and VTOP serves them one at a
+        // time, so fetching them in sequence made a six-month semester seven
+        // serial round-trips before the app could show anything. They carry no
+        // shared state, so they go out in waves instead.
+        //
+        // The CSRF token is read once up front. `getDateForSemesterPreview`
+        // does not hand back a fresh one, and neither do the month pages, so
+        // there is nothing to refresh between requests. A session that dies
+        // mid-flight is not repaired here either: `&mut self` cannot be shared
+        // across the spawned tasks, and re-logging in is the caller's job via
+        // the session-expiry retry that wraps this call.
+        let csrf = self
+            .session
+            .get_csrf_token()
+            .ok_or(VtopError::SessionExpired)?;
+        let http = self.client.clone();
+        let base_url = self.config.base_url.clone();
+        let username = self.username.clone();
+
         let mut days: Vec<CalendarDay> = Vec::new();
-        for month in &months {
-            if let Ok(month_days) = self
-                .get_calendar_month(semester_id, &month.cal_date, class_group_id)
-                .await
-            {
-                days.extend(month_days);
+        for wave in months.chunks(MAX_CONCURRENT_MONTH_REQUESTS) {
+            let mut tasks = tokio::task::JoinSet::new();
+
+            for month in wave {
+                let http = http.clone();
+                let base_url = base_url.clone();
+                let username = username.clone();
+                let csrf = csrf.clone();
+                let semester_id = semester_id.to_string();
+                let cal_date = month.cal_date.clone();
+                let class_group_id = class_group_id.to_string();
+
+                tasks.spawn(async move {
+                    let body = format!(
+                        "_csrf={csrf}&authorizedID={username}&x={}&calDate={}&semSubId={semester_id}&classGroupId={class_group_id}",
+                        Utc::now().format("%a, %d %b %Y %H:%M:%S GMT"),
+                        urlencoding::encode(&cal_date),
+                    );
+                    let url = format!("{base_url}/vtop/processViewCalendar");
+
+                    let outcome = async {
+                        let res = http
+                            .post(&url)
+                            .body(body)
+                            .send()
+                            .await
+                            .map_err(map_response_read_error)?;
+                        // A redirect back to the login page is VTOP saying the
+                        // session died, not that the month is missing.
+                        if !res.status().is_success()
+                            || res.url().to_string().contains("login")
+                        {
+                            return Err(VtopError::SessionExpired);
+                        }
+                        res.text().await.map_err(map_response_read_error)
+                    }
+                    .await;
+
+                    outcome.map(|html| {
+                        parser::calendar_parser::parse_calendar_month(html, cal_date)
+                    })
+                });
+            }
+
+            // A month that fails is skipped, not fatal: a calendar missing one
+            // month still beats an empty screen. `join_next` collects each task
+            // as it lands, so a slow month does not hold up the wave.
+            while let Some(joined) = tasks.join_next().await {
+                if let Ok(Ok(month_days)) = joined {
+                    days.extend(month_days);
+                }
             }
         }
 

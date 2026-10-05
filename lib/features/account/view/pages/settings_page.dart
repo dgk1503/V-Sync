@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:vit_ap_student_app/core/common/widget/accent_gradient_text.dart';
 import 'package:vit_ap_student_app/core/common/widget/app_card.dart';
+import 'package:vit_ap_student_app/core/common/widget/bottom_navigation_bar.dart';
 import 'package:vit_ap_student_app/core/providers/color_theme_notifier.dart';
 import 'package:vit_ap_student_app/core/providers/custom_accent_provider.dart';
 import 'package:vit_ap_student_app/core/providers/theme_mode_notifier.dart';
@@ -58,7 +59,14 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         ],
       ),
       body: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+        // The navbar floats over the body, so the bottom padding is what keeps
+        // the logout tile reachable instead of sitting behind the capsule.
+        padding: EdgeInsets.fromLTRB(
+          16.0,
+          8.0,
+          16.0,
+          kFloatingNavBarClearance + MediaQuery.paddingOf(context).bottom,
+        ),
         children: [
           // One single settings section. Everything (dark mode, colour
           // theme, font size) lives in this one card, and every block gets

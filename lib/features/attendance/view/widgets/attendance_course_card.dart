@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:vit_ap_student_app/core/models/attendance.dart';
+import 'package:vit_ap_student_app/features/attendance/model/attendance_standing.dart';
 import 'package:vit_ap_student_app/features/attendance/view/pages/attendance_calculator_page.dart';
+import 'package:vit_ap_student_app/features/attendance/view/widgets/attendance_advice_text.dart';
 import 'package:vit_ap_student_app/features/attendance/view/widgets/attendance_percentage_text.dart';
 
 class AttendanceCourseCard extends StatelessWidget {
@@ -27,6 +29,7 @@ class AttendanceCourseCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDebarred = _isOnlyDebarred();
     final showDebarStatus = _shouldShowDebarStatus();
+    final standing = AttendanceStanding.of(attendance);
 
     return ListTile(
       tileColor: isDebarred
@@ -38,9 +41,23 @@ class AttendanceCourseCard extends StatelessWidget {
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          AttendancePercentageText(
-            attendancePercentage:
-                double.tryParse(attendance.attendancePercentage) ?? 0.0,
+          // Percentage on the left, guidance on the right of the same row.
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: AttendancePercentageText(
+                  attendancePercentage:
+                      double.tryParse(attendance.attendancePercentage) ?? 0.0,
+                ),
+              ),
+              Padding(
+                // Optically centres the small caption against the large
+                // percentage beside it.
+                padding: const EdgeInsets.only(top: 10, left: 12),
+                child: AttendanceAdviceText(standing: standing),
+              ),
+            ],
           ),
           const SizedBox(height: 12),
           Text(
