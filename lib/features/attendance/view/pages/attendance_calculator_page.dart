@@ -46,9 +46,7 @@ class _AttendanceCalculatorPageState
       // without this the "N left until FAT" count is blank until the user
       // happens to open Academics > Calendar first. `ensureLoaded` is a no-op
       // when the cache is still fresh.
-      ref
-          .read(calendarViewmodelProvider.notifier)
-          .ensureLoaded(includeCountdowns: false);
+      ref.read(calendarViewmodelProvider.notifier).ensureLoaded();
     });
   }
 

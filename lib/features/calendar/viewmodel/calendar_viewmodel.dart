@@ -7,6 +7,7 @@ import 'package:vit_ap_student_app/core/providers/current_user.dart';
 import 'package:vit_ap_student_app/core/services/data_cache_service.dart';
 import 'package:vit_ap_student_app/features/calendar/model/calendar_chip.dart';
 import 'package:vit_ap_student_app/features/calendar/repository/calendar_remote_repository.dart';
+import 'package:vit_ap_student_app/core/providers/user_preferences_notifier.dart';
 import 'package:vit_ap_student_app/features/home/model/milestone.dart';
 import 'package:vit_ap_student_app/features/home/viewmodel/milestones_viewmodel.dart';
 import 'package:vit_ap_student_app/src/rust/api/vtop/types/academic_calendar.dart';
@@ -74,6 +75,13 @@ class CalendarViewmodel extends _$CalendarViewmodel {
   /// mean two full chains of VTOP requests for one calendar.
   Future<void>? _inFlight;
 
+  /// Whether the user's countdowns belong on the grid. Lives in
+  /// Customisation only, so this is watched: flipping it there has to re-fold
+  /// the months already on screen, and a parameter passed in by the page could
+  /// not do that.
+  bool get _countdownsOn =>
+      !ref.watch(userPreferencesProvider).hideCalendarCountdowns;
+
   @override
   AsyncValue<List<CalendarMonth>> build() {
     // Synchronous on purpose. An `async` build puts the provider in its loading
@@ -83,9 +91,14 @@ class CalendarViewmodel extends _$CalendarViewmodel {
     // async build puts the provider in AsyncLoading for a frame first, which
     // is a spinner flash even when the cache is warm. Keeping the AsyncValue
     // return type is what preserves refresh()'s ability to publish an error.
+    // Watching the preference rebuilds `build` when it flips, which re-folds
+    // the cached months with or without the countdowns.
+    final withCountdowns = _countdownsOn;
     final cached = _readCache();
     if (cached == null) return const AsyncValue.data(<CalendarMonth>[]);
-    return AsyncValue.data(_applyCountdowns(cached));
+    return AsyncValue.data(
+      withCountdowns ? _applyCountdowns(cached) : cached,
+    );
   }
 
   /// The cached months, or null when there is no cache or it cannot be read.
@@ -114,9 +127,9 @@ class CalendarViewmodel extends _$CalendarViewmodel {
   /// Paints whatever is cached, then refreshes only when the cache has actually
   /// gone stale. That keeps repeat visits instant and stops the app from asking
   /// VTOP for the same calendar on every single navigation.
-  Future<void> ensureLoaded({bool includeCountdowns = true}) async {
+  Future<void> ensureLoaded() async {
     final shown = state.asData?.value ?? const <CalendarMonth>[];
-    if (shown.isEmpty) _paintFromCache(includeCountdowns);
+    if (shown.isEmpty) _paintFromCache();
 
     // A readable cache that is still fresh is the whole point: no request, no
     // spinner, no flash. Anything else goes to VTOP.
@@ -125,24 +138,24 @@ class CalendarViewmodel extends _$CalendarViewmodel {
       return;
     }
 
-    await refresh(includeCountdowns: includeCountdowns);
+    await refresh();
   }
 
   /// Forces a re-read from VTOP, e.g. pull to refresh. Concurrent callers share
   /// one request rather than each starting their own.
-  Future<void> refresh({bool includeCountdowns = true}) {
-    return _inFlight ??= _refresh(includeCountdowns: includeCountdowns)
+  Future<void> refresh() {
+    return _inFlight ??= _refresh()
             .whenComplete(() {
       _inFlight = null;
     });
   }
 
-  Future<void> _refresh({required bool includeCountdowns}) async {
+  Future<void> _refresh() async {
     // Only fall back to a full-screen loader when there is nothing to show.
     // This is the same `silentRefresh` idea `refreshAttendance` already uses:
     // a background refresh must not blank a screen the user is reading.
     final shown = state.asData?.value ?? const <CalendarMonth>[];
-    if (shown.isEmpty) _paintFromCache(includeCountdowns);
+    if (shown.isEmpty) _paintFromCache();
     if ((state.asData?.value ?? const <CalendarMonth>[]).isEmpty) {
       state = const AsyncValue<List<CalendarMonth>>.loading();
     }
@@ -183,7 +196,7 @@ class CalendarViewmodel extends _$CalendarViewmodel {
             .write(cacheKey, _wrap(snapshot.rawJson, credentials.semSubId));
         final months = _toMonths(snapshot.calendar);
         state = AsyncValue.data(
-          includeCountdowns
+          _countdownsOn
               ? _withCountdowns(months, ref.read(milestonesProvider))
               : months,
         );
@@ -193,11 +206,11 @@ class CalendarViewmodel extends _$CalendarViewmodel {
 
   /// Shows the cached months, if there are any. Kept separate so `build` and
   /// both refresh paths agree on how a cache hit is turned into state.
-  void _paintFromCache(bool includeCountdowns) {
+  void _paintFromCache() {
     final months = _readCache();
     if (months == null) return;
     state = AsyncValue.data(
-      includeCountdowns ? _applyCountdowns(months) : months,
+      _countdownsOn ? _applyCountdowns(months) : months,
     );
   }
 
@@ -220,16 +233,6 @@ class CalendarViewmodel extends _$CalendarViewmodel {
 
   List<CalendarMonth> _applyCountdowns(List<CalendarMonth> months) =>
       _withCountdowns(months, ref.read(milestonesProvider));
-
-  /// Re-renders the already-fetched months with or without countdowns, without
-  /// hitting VTOP again.
-  void setIncludeCountdowns(List<Milestone> milestones, bool includeCountdowns) {
-    final current = state.asData?.value;
-    if (current == null) return;
-    state = AsyncValue.data(
-      includeCountdowns ? _withCountdowns(current, milestones) : current,
-    );
-  }
 
   List<CalendarMonth> _toMonths(AcademicCalendar calendar) {
     final byMonth = <String, List<CalendarChip>>{};

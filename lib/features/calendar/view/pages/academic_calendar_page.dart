@@ -4,9 +4,7 @@ import 'package:vit_ap_student_app/core/theme/app_theme.dart';
 import 'package:vit_ap_student_app/features/calendar/viewmodel/calendar_viewmodel.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vit_ap_student_app/core/common/widget/accent_gradient_text.dart';
-import 'package:vit_ap_student_app/core/providers/user_preferences_notifier.dart';
 import 'package:vit_ap_student_app/features/calendar/model/calendar_chip.dart';
-import 'package:vit_ap_student_app/features/home/viewmodel/milestones_viewmodel.dart';
 
 /// The semester's academic calendar: a month grid whose day chips are coloured
 /// by what the day is, with the month's events listed underneath.
@@ -39,7 +37,7 @@ class _AcademicCalendarPageState extends ConsumerState<AcademicCalendarPage> {
     if (!mounted) return;
     ref
         .read(calendarViewmodelProvider.notifier)
-        .ensureLoaded(includeCountdowns: _includeCountdowns);
+        .ensureLoaded();
   }
 
   /// The month to show, preferring the one containing today.
@@ -78,23 +76,6 @@ class _AcademicCalendarPageState extends ConsumerState<AcademicCalendarPage> {
     return text;
   }
 
-  bool get _includeCountdowns =>
-      !ref.read(userPreferencesProvider).hideCalendarCountdowns;
-
-  void _setIncludeCountdowns(bool value) {
-    ref
-        .read(userPreferencesProvider.notifier)
-        .updatePreferences(
-          ref
-              .read(userPreferencesProvider)
-              .copyWith(hideCalendarCountdowns: !value),
-        );
-    // Re-fold the months in place rather than re-fetching from VTOP.
-    ref
-        .read(calendarViewmodelProvider.notifier)
-        .setIncludeCountdowns(ref.read(milestonesProvider), value);
-    setState(() {});
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -147,9 +128,7 @@ class _AcademicCalendarPageState extends ConsumerState<AcademicCalendarPage> {
             month: month,
             months: months,
             monthIndex: index,
-            includeCountdowns: _includeCountdowns,
             updatedAt: updatedAt,
-            onIncludeCountdownsChanged: _setIncludeCountdowns,
             onMonthChanged: (value) => setState(() => _monthIndex = value),
           );
         },
@@ -162,18 +141,14 @@ class _Body extends StatelessWidget {
   final CalendarMonth month;
   final List<CalendarMonth> months;
   final int monthIndex;
-  final bool includeCountdowns;
   final int? updatedAt;
-  final ValueChanged<bool> onIncludeCountdownsChanged;
   final ValueChanged<int> onMonthChanged;
 
   const _Body({
     required this.month,
     required this.months,
     required this.monthIndex,
-    required this.includeCountdowns,
     required this.updatedAt,
-    required this.onIncludeCountdownsChanged,
     required this.onMonthChanged,
   });
 
@@ -194,28 +169,6 @@ class _Body extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Include countdowns ──
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'Include countdowns',
-                  style: TextStyle(
-                    fontFamily: 'Instrument Sans',
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: colors.onSurface,
-                  ),
-                ),
-              ),
-              Switch(
-                value: includeCountdowns,
-                onChanged: onIncludeCountdownsChanged,
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-
           // ── Month grid ──
           _MonthCard(
             month: month,

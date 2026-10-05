@@ -104,9 +104,7 @@ class AuthViewModel extends _$AuthViewModel {
     // Deliberately not awaited: login must not wait on the calendar, and a
     // failure here is reported by the page that actually needs it.
     Future.microtask(
-      () => ref.read(calendarViewmodelProvider.notifier).ensureLoaded(
-        includeCountdowns: false,
-      ),
+      () => ref.read(calendarViewmodelProvider.notifier).ensureLoaded(),
     );
     return state = AsyncValue.data(user);
   }
