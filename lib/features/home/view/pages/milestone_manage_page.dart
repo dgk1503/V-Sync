@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:intl/intl.dart';
@@ -454,9 +455,39 @@ class _AddMilestoneSheetState extends ConsumerState<_AddMilestoneSheet> {
                     child: Switch.adaptive(
                       value: _remindMe,
                       onChanged: (value) async {
-                        if (value) await requestNotificationPermission();
+                        if (!value) {
+                          if (!mounted) return;
+                          setState(() => _remindMe = false);
+                          return;
+                        }
+
+                        // The one place the app asks for notification
+                        // permission: the user has just switched on a reminder
+                        // for a specific countdown, so the reason is obvious.
+                        final granted = await requestNotificationPermission();
                         if (!mounted) return;
-                        setState(() => _remindMe = value);
+
+                        if (!granted) {
+                          // Do not leave the switch on for a reminder that can
+                          // never fire. Say why, and point at Settings.
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: const Text(
+                                'Notifications are blocked, so this reminder '
+                                'cannot fire. Enable them for V-Sync in '
+                                'Settings.',
+                              ),
+                              action: SnackBarAction(
+                                label: 'Settings',
+                                onPressed: openAppSettings,
+                              ),
+                              duration: const Duration(seconds: 6),
+                            ),
+                          );
+                          return;
+                        }
+
+                        setState(() => _remindMe = true);
                       },
                     ),
                   ),

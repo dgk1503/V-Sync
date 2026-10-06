@@ -9,7 +9,6 @@ import 'package:vit_ap_student_app/core/models/exam_schedule.dart';
 import 'package:vit_ap_student_app/core/models/timetable.dart' as td;
 import 'package:vit_ap_student_app/core/models/user.dart';
 import 'package:vit_ap_student_app/core/models/user_preferences.dart';
-import 'package:vit_ap_student_app/core/utils/request_notification_permission.dart';
 import 'package:vit_ap_student_app/features/home/model/milestone.dart';
 
 /// Type of file download for notification display
@@ -64,7 +63,15 @@ class NotificationService {
     // to block main() before runApp and stuck the app on the splash screen).
     try {
       tz.initializeTimeZones();
-      await requestNotificationPermission();
+      // Deliberately no permission request here. Asking on first launch put a
+      // system dialog in front of someone who had not yet seen what the app
+      // does, and a notification prompt with no context is the easiest one to
+      // dismiss permanently.
+      //
+      // It is requested at the point of use instead - when a countdown's
+      // "Remind me before" is switched on - where the reason is obvious.
+      // Registering the plugin does not need the permission; only showing
+      // something does.
       const android = AndroidInitializationSettings('app_icon');
 
       // Request iOS to show "Configure in App" button in system notification settings
