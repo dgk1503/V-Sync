@@ -134,7 +134,12 @@ impl VtopClient {
             );
             let client = reqwest::Client::builder()
                 .default_headers(headers)
-                .danger_accept_invalid_certs(true)
+                .pool_max_idle_per_host(POOL_MAX_IDLE_PER_HOST)
+                .pool_idle_timeout(POOL_IDLE_TIMEOUT)
+                .tcp_keepalive(TCP_KEEPALIVE)
+                .tcp_nodelay(true)
+                .connect_timeout(CONNECT_TIMEOUT)
+                .timeout(REQUEST_TIMEOUT)
                 .build()
                 .unwrap();
             Self {
@@ -233,7 +238,26 @@ impl VtopClient {
             .default_headers(headers)
             .cookie_store(true)
             .cookie_provider(cookie_store)
+            // VTOP is a single host hit constantly across features, so keeping
+            // its connections warm is most of the latency. reqwest's default
+            // idle pool is small and short-lived, which meant a fresh TLS
+            // handshake on nearly every cold fetch.
+            .pool_max_idle_per_host(POOL_MAX_IDLE_PER_HOST)
+            .pool_idle_timeout(POOL_IDLE_TIMEOUT)
+            .tcp_keepalive(TCP_KEEPALIVE)
+            .tcp_nodelay(true)
+            // Bound a hung request. Without these the defaults apply and a
+            // stalled connection can leave a feature spinning indefinitely.
+            .connect_timeout(CONNECT_TIMEOUT)
+            .timeout(REQUEST_TIMEOUT)
             .build()
             .unwrap()
     }
 }
+
+/// Idle connections kept per host. VTOP is one host, hit by every feature.
+const POOL_MAX_IDLE_PER_HOST: usize = 32;
+const POOL_IDLE_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(90);
+const TCP_KEEPALIVE: std::time::Duration = std::time::Duration::from_secs(60);
+const CONNECT_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(15);
+const REQUEST_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(45);

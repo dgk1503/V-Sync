@@ -1,12 +1,18 @@
 use crate::api::vtop::types::academic_calendar::*;
 use regex::Regex;
+use std::sync::LazyLock;
 use scraper::{ElementRef, Html, Selector};
 
 /// Month buttons call `processViewCalendar('01-AUG-2026')`. VTOP HTML-escapes
 /// the quotes, so the raw markup carries `&#39;` — the attribute is read
 /// through the parser, which unescapes it, rather than off the raw string.
-fn cal_date_regex() -> Regex {
-    Regex::new(r"processViewCalendar\(\s*'([^']+)'\s*\)").unwrap()
+/// Compiled once. `Regex::new` walks and compiles the pattern every call, and
+/// this runs once per month button.
+static CAL_DATE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"processViewCalendar\(\s*'([^']+)'\s*\)").unwrap());
+
+fn cal_date_regex() -> &'static Regex {
+    &CAL_DATE
 }
 
 /// VTOP writes months as the three letter English abbreviation.
@@ -32,6 +38,20 @@ fn month_number(abbreviation: &str) -> Option<u32> {
         .find(|(name, _)| *name == upper)
         .map(|(_, number)| *number)
 }
+
+/// Compiled once. `Selector::parse` builds a fresh matcher every call, and
+/// these five used to be rebuilt for every month page parsed - including once
+/// per cell list within it.
+static CLASS_GROUP_OPTION: LazyLock<Selector> = LazyLock::new(|| {
+    Selector::parse("select#classGroupId option, select[name='classGroupId'] option").unwrap()
+});
+static ANCHOR: LazyLock<Selector> = LazyLock::new(|| Selector::parse("a").unwrap());
+static CALENDAR_TABLE: LazyLock<Selector> =
+    LazyLock::new(|| Selector::parse("table.calendar-table, table").unwrap());
+static ROW: LazyLock<Selector> = LazyLock::new(|| Selector::parse("tr").unwrap());
+static HEADER_CELL: LazyLock<Selector> = LazyLock::new(|| Selector::parse("th, td").unwrap());
+static CELL: LazyLock<Selector> = LazyLock::new(|| Selector::parse("td").unwrap());
+static SPAN: LazyLock<Selector> = LazyLock::new(|| Selector::parse("span").unwrap());
 
 /// Collapses the heavy tab/newline whitespace VTOP pads cells with.
 fn clean(element: &ElementRef) -> String {
@@ -67,13 +87,11 @@ fn clean(element: &ElementRef) -> String {
 /// ```
 pub fn parse_class_groups(html: String) -> Vec<ClassGroup> {
     let document = Html::parse_document(&html);
-    let selector =
-        Selector::parse("select#classGroupId option, select[name='classGroupId'] option").unwrap();
 
     let mut groups = Vec::new();
     let mut seen = Vec::new();
 
-    for option in document.select(&selector) {
+    for option in document.select(&CLASS_GROUP_OPTION) {
         let id = option
             .value()
             .attr("value")
@@ -115,13 +133,12 @@ pub fn parse_class_groups(html: String) -> Vec<ClassGroup> {
 /// ```
 pub fn parse_calendar_months(html: String) -> Vec<CalendarMonthRef> {
     let document = Html::parse_document(&html);
-    let anchor_selector = Selector::parse("a").unwrap();
     let regex = cal_date_regex();
 
     let mut months = Vec::new();
     let mut seen = Vec::new();
 
-    for anchor in document.select(&anchor_selector) {
+    for anchor in document.select(&ANCHOR) {
         let Some(onclick) = anchor.value().attr("onclick") else {
             continue;
         };
@@ -155,11 +172,10 @@ pub fn parse_calendar_months(html: String) -> Vec<CalendarMonthRef> {
 /// The parenthesised span qualifies the one before it, so lines are folded that
 /// way — which also handles a day carrying more than one entry.
 fn parse_events(cell: &ElementRef) -> Vec<CalendarEvent> {
-    let span_selector = Selector::parse("span").unwrap();
     let mut events: Vec<CalendarEvent> = Vec::new();
 
     // The first span is the day number.
-    for span in cell.select(&span_selector).skip(1) {
+    for span in cell.select(&SPAN).skip(1) {
         let line = clean(&span);
         if line.is_empty() {
             continue;
@@ -223,30 +239,25 @@ pub fn parse_calendar_month(html: String, cal_date: String) -> Vec<CalendarDay> 
     };
 
     let document = Html::parse_document(&html);
-    let table_selector = Selector::parse("table.calendar-table, table").unwrap();
-    let Some(table) = document.select(&table_selector).next() else {
+    let Some(table) = document.select(&CALENDAR_TABLE).next() else {
         return Vec::new();
     };
 
-    let row_selector = Selector::parse("tr").unwrap();
-    let header_selector = Selector::parse("th, td").unwrap();
-    let cell_selector = Selector::parse("td").unwrap();
-    let span_selector = Selector::parse("span").unwrap();
 
-    let rows: Vec<_> = table.select(&row_selector).collect();
+    let rows: Vec<_> = table.select(&ROW).collect();
     let Some(header_row) = rows.first() else {
         return Vec::new();
     };
     let weekdays: Vec<String> = header_row
-        .select(&header_selector)
+        .select(&HEADER_CELL)
         .map(|cell| clean(&cell))
         .collect();
 
     let mut days = Vec::new();
 
     for row in &rows[1..] {
-        for (index, cell) in row.select(&cell_selector).enumerate() {
-            let Some(number_span) = cell.select(&span_selector).next() else {
+        for (index, cell) in row.select(&CELL).enumerate() {
+            let Some(number_span) = cell.select(&SPAN).next() else {
                 continue;
             };
             // Blank cells pad the start and end of the grid.

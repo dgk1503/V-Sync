@@ -1,19 +1,28 @@
 use regex::Regex;
+use std::sync::LazyLock;
+/// Compiled once. The attendance tables are the largest pages the app parses,
+/// and these were rebuilt per row rather than per page.
+static ROWS: LazyLock<Selector> = LazyLock::new(|| Selector::parse("tr").unwrap());
+static ATTENDANCE_ROWS: LazyLock<Selector> =
+    LazyLock::new(|| Selector::parse("#StudentAttendanceDetailDataTable tbody tr").unwrap());
+static CELL: LazyLock<Selector> = LazyLock::new(|| Selector::parse("td").unwrap());
+static BUTTON: LazyLock<Selector> = LazyLock::new(|| Selector::parse("button").unwrap());
+
 use scraper::{Html, Selector};
 
 use super::super::types::*;
 
 pub fn parse_attendance(html: String) -> Vec<AttendanceRecord> {
     let document = Html::parse_document(&html);
-    let rows_selector = Selector::parse("tr").unwrap();
+
     let mut courses: Vec<AttendanceRecord> = Vec::new();
 
     // Regex to extract course_id and course_type from onclick attribute
     // Pattern: callStudentAttendanceDetailDisplay('AP2025264','23BCEXXXX','AM_CSE1008_00200','TH')
     let onclick_regex = Regex::new(r"callStudentAttendanceDetailDisplay\s*\(\s*'[^']*'\s*,\s*'[^']*'\s*,\s*'([^']*)'\s*,\s*'([^']*)'\s*\)").unwrap();
 
-    for row in document.select(&rows_selector).skip(1) {
-        let cells: Vec<_> = row.select(&Selector::parse("td").unwrap()).collect();
+    for row in document.select(&ROWS).skip(1) {
+        let cells: Vec<_> = row.select(&CELL).collect();
         if cells.len() > 9 {
             // Extract course_id and course_type_code from the onclick attribute in the last cell
             let info_cell_index = if cells.len() >= 11 {
@@ -141,11 +150,11 @@ pub fn parse_full_attendance(html: String) -> Vec<AttendanceDetailRecord> {
     let document = Html::parse_document(&html);
 
     // Target the specific table with attendance details
-    let table_selector = Selector::parse("#StudentAttendanceDetailDataTable tbody tr").unwrap();
+
     let mut attendance_lists: Vec<AttendanceDetailRecord> = Vec::new();
 
-    for row in document.select(&table_selector) {
-        let cells: Vec<_> = row.select(&Selector::parse("td").unwrap()).collect();
+    for row in document.select(&ATTENDANCE_ROWS) {
+        let cells: Vec<_> = row.select(&CELL).collect();
         if cells.len() >= 6 {
             let attendance_list = AttendanceDetailRecord {
                 serial: cells[0]
@@ -218,9 +227,9 @@ pub fn parse_full_attendance(html: String) -> Vec<AttendanceDetailRecord> {
 /// ```
 pub fn has_capstone_attendance(html: &str) -> bool {
     let document = Html::parse_document(html);
-    let button_selector = Selector::parse("button").unwrap();
 
-    document.select(&button_selector).any(|button| {
+
+    document.select(&BUTTON).any(|button| {
         let label = button
             .text()
             .collect::<String>()

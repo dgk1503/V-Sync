@@ -30,6 +30,17 @@ class VtopClientService {
   String? _currentPasswordDigest;
   DateTime? _sessionCreatedAt;
   Completer<void>? _otpCompleter;
+
+  /// Serialises client creation so two features fetching at once cannot both
+  /// log in.
+  ///
+  /// Without this, a cold start where Home and Academics fetch together has
+  /// both see `_client == null`, both call `_initializeClient`, and VTOP gets
+  /// two logins for one session - which is exactly what triggers rate limiting
+  /// and account lockouts. The re-check after acquiring the lock is what makes
+  /// it a dedupe rather than a queue: the loser of the race finds the winner's
+  /// client already valid and does no work.
+  Future<void>? _initializationInFlight;
   final StreamController<void> _otpRequiredController =
       StreamController<void>.broadcast();
   final StreamController<String> _authFailureController =
@@ -95,7 +106,7 @@ class VtopClientService {
         _isSessionNearExpiry();
 
     if (needsNewClient) {
-      await _initializeClient(username: username, password: password);
+      await _ensureInitialized(username: username, password: password);
     }
 
     return _client!;
@@ -140,6 +151,31 @@ class VtopClientService {
   /// When OTP is required, pauses and waits for the user to verify via the
   /// global OTP bottom sheet. The operation that triggered this call
   /// transparently resumes once OTP is verified.
+  /// Ensures a live client, sharing one initialisation between concurrent
+  /// callers.
+  Future<void> _ensureInitialized({
+    required String username,
+    required String password,
+  }) async {
+    final inFlight = _initializationInFlight;
+    if (inFlight != null) {
+      // Someone is already logging in with these credentials. Wait for them
+      // rather than starting a second login.
+      await inFlight;
+      if (_client != null && _isInitialized) return;
+    }
+
+    final attempt = _initializeClient(username: username, password: password);
+    _initializationInFlight = attempt;
+    try {
+      await attempt;
+    } finally {
+      // Cleared whatever happened, so a failed login does not wedge every
+      // later fetch on a future that already completed with an error.
+      _initializationInFlight = null;
+    }
+  }
+
   Future<void> _initializeClient({
     required String username,
     required String password,
