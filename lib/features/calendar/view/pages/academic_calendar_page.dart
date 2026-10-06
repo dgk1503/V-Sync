@@ -155,8 +155,16 @@ class _Body extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    // Plain teaching days are noise, and so are VTOP's filler Sundays: it
+    // marks every Sunday as a holiday with the note "Holiday", which put eight
+    // identical rows in every month. Both are dropped; named holidays and real
+    // closures stay.
     final events = month.chips
-        .where((chip) => chip.kind != CalendarDayKind.instructional)
+        .where(
+          (chip) =>
+              chip.kind != CalendarDayKind.instructional &&
+              !CalendarEventClassifier.isOrdinarySunday(chip),
+        )
         .toList(growable: false);
 
     return SingleChildScrollView(
@@ -275,10 +283,10 @@ class _MonthCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          // Monday-first weekday header, matching the timetable.
+          // Sunday-first, matching VTOP's own calendar grid.
           Row(
             children: [
-              for (final letter in const ['M', 'T', 'W', 'T', 'F', 'S', 'S'])
+              for (final letter in const ['S', 'M', 'T', 'W', 'T', 'F', 'S'])
                 Expanded(
                   child: Center(
                     child: Text(
@@ -328,7 +336,9 @@ class _MonthGrid extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
     final first = month.firstDay;
     // Monday-first index: DateTime.monday == 1.
-    final leadingBlanks = first.weekday - 1;
+    // Sunday-first: DateTime.sunday == 7, so the first column is 0 for a
+    // Sunday and 6 for a Saturday. Monday-first was `weekday - 1`.
+    final leadingBlanks = first.weekday % 7;
     final dayCount = DateTime(month.year, month.month + 1, 0).day;
     final totalCells = ((leadingBlanks + dayCount + 6) ~/ 7) * 7;
     final today = DateTime.now();

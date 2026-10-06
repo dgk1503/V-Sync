@@ -186,15 +186,28 @@ class CalendarEventClassifier {
     for (final chip in chips) {
       if (chip.kind == CalendarDayKind.countdown) return CalendarDayKind.countdown;
     }
+    final markable = chips.where((chip) => !isOrdinarySunday(chip)).toList();
     // Highest precedence wins rather than first-in-list, so the result does not
     // quietly depend on the caller having sorted the chips.
     CalendarChip? best;
-    for (final chip in chips) {
+    for (final chip in markable) {
       if (!isMarked(chip.kind)) continue;
       if (best == null || chip.precedence > best.precedence) best = chip;
     }
     return best?.kind;
   }
+
+  /// Whether a chip is VTOP's filler for an ordinary Sunday.
+  ///
+  /// VTOP marks every Sunday as a holiday with the note "Holiday", so ring them
+  /// all and roughly a seventh of the grid is green for no reason - and the
+  /// real closures stop standing out. A *named* Sunday holiday is still a
+  /// closure and is still marked, which is why the title has to be the exact
+  /// generic word.
+  static bool isOrdinarySunday(CalendarChip chip) =>
+      chip.kind == CalendarDayKind.holiday &&
+      chip.date.weekday == DateTime.sunday &&
+      chip.title.trim().toLowerCase() == 'holiday';
 
   /// Builds the chips for one VTOP day.
   static List<CalendarChip> chipsFor(CalendarDay day) {
