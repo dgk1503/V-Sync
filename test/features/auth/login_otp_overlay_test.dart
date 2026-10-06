@@ -255,7 +255,7 @@ void main() {
       container.read(loginOtpChallengeProvider.notifier).requestOtp();
       await tester.pump();
 
-      expect(find.byIcon(Icons.minimize_rounded), findsOneWidget);
+      expect(find.byIcon(Icons.keyboard_double_arrow_down_rounded), findsOneWidget);
       expect(find.bySemanticsLabel('Minimise'), findsOneWidget);
 
       await tester.tap(find.byKey(const Key('otp-minimise')));

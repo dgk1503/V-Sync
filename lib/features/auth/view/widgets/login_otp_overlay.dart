@@ -233,10 +233,13 @@ class _ExpandedState extends ConsumerState<_Expanded> {
                               key: const Key('otp-minimise'),
                               onPressed: notifier.minimize,
                               visualDensity: VisualDensity.compact,
+                              // Sized up from the neighbouring 15px body text
+                              // so the collapse control reads as a control and
+                              // not as punctuation.
                               icon: Icon(
-                                Icons.minimize_rounded,
-                                size: 20,
-                                color: colors.onSurfaceVariant,
+                                Icons.keyboard_double_arrow_down_rounded,
+                                size: 26,
+                                color: colors.onSurface,
                               ),
                             ),
                           ),
