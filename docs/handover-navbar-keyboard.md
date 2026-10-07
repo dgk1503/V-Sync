@@ -1,12 +1,46 @@
 # Handover: navbar rides up with the keyboard
 
 **Repo:** `C:\Users\dkart\StudioProjects\vitap_student_app`
-**Branch:** `main` · **Version:** 1.3.0+9 · **Tests:** 164 Dart, all passing
-**Status:** bug is open, diagnosed but NOT fixed. Do not trust any prior claim that it was fixed — it was attempted twice and failed twice. Details below so you don't repeat it.
+**Branch:** `main` · **Version:** 1.3.0+9 · **Tests:** 166 Dart, all passing
+**Status:** FIXED (2026-10). Verified by `test/core/common/widget/navbar_keyboard_inset_test.dart` — both navbars hold the same icon rect at keyboard insets 0 and ~320 physical px (dpr 3.0). Read the fix note below before touching the shell again; the original diagnosis and the two failed attempts are kept for context.
 
 ---
 
-## The symptom
+## How it was actually fixed (2026-10)
+
+In `bottom_navigation_bar.dart`, `BottomNavBarState.build` — a context **above** the
+Scaffold — reads the real inset (`MediaQuery.viewInsetsOf(context).bottom`) and
+extends the nav layer **down** by it instead of `Positioned.fill`:
+
+```dart
+Stack(
+  fit: StackFit.expand,
+  clipBehavior: Clip.none,               // the layer may paint below the body
+  children: [
+    Positioned.fill(child: AnimatedSwitcher(...)),
+    Positioned(
+      left: 0, right: 0, top: 0,
+      bottom: -keyboardInset,            // re-anchor to the physical bottom
+      child: _FloatingCapsuleNavBar(),
+    ),
+  ],
+)
+```
+
+With the keyboard open the capsule sits behind the IME, exactly like any other
+screen-bottom surface, and returns when it closes. The navbars themselves are
+**untouched** — no `keyboardInset` parameter, no padding math in either file.
+
+⚠️ **Why not approach A as written?** Adding the captured inset to the navbar's
+bottom padding is wrong and makes the jump **2×** the keyboard height (verified:
+closed 823.0 → 609.67 logical at inset 106.67). The padding is measured from the
+bottom of the *already resized* body, so a bigger bottom padding pushes the
+capsule further UP. The compensation must move the layer DOWN relative to the
+resized body, which a padding cannot do (negative EdgeInsets are illegal).
+Capture-above-Scaffold is still the right idea — the capture happens exactly
+where this doc said it must — but it is spent on a `Positioned` offset, not on
+padding. The test shell replicates this nesting; keep it in sync if the shell
+changes.
 
 When the OTP prompt appears and the keyboard opens, the floating capsule navbar jumps **up** to roughly the middle of the screen and sits there, overlapping page content. It returns to the bottom when the keyboard closes. Cosmetic — no crash, no data loss — but very visible.
 

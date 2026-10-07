@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vit_ap_student_app/core/common/widget/bottom_navigation_bar.dart';
 import 'package:vit_ap_student_app/core/providers/current_user.dart';
@@ -100,6 +101,27 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
     final themeMode = ref.watch(themeModeProvider);
     final userPreferences = ref.watch(userPreferencesProvider);
 
+    // Transparent system bars for every phone, with icon brightness that
+    // follows the app theme (dark theme → light icons, light theme → dark
+    // icons). The app draws edge to edge (SystemUiMode.edgeToEdge, set in
+    // initDependencies), so the surface behind both bars is the app itself;
+    // without this the icons would sit on whatever the platform defaults to
+    // and be unreadable or invisible.
+    final systemOverlayStyle =
+        themeMode.brightness == Brightness.dark
+        ? SystemUiOverlayStyle.light.copyWith(
+            statusBarColor: Colors.transparent,
+            systemNavigationBarColor: Colors.transparent,
+            systemNavigationBarDividerColor: Colors.transparent,
+            systemNavigationBarIconBrightness: Brightness.light,
+          )
+        : SystemUiOverlayStyle.dark.copyWith(
+            statusBarColor: Colors.transparent,
+            systemNavigationBarColor: Colors.transparent,
+            systemNavigationBarDividerColor: Colors.transparent,
+            systemNavigationBarIconBrightness: Brightness.dark,
+          );
+
     return MaterialApp(
       navigatorKey: _navigatorKey,
       themeAnimationCurve: Curves.easeInOut,
@@ -119,8 +141,11 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
           // hung forever. Being an unconditional child of the app shell means
           // it is mounted from the first frame, survives route changes and
           // rebuilds, and renders nothing while no challenge is active.
-          child: LoginOtpOverlay(
-            child: Stack(children: [child!]),
+          child: AnnotatedRegion<SystemUiOverlayStyle>(
+            value: systemOverlayStyle,
+            child: LoginOtpOverlay(
+              child: Stack(children: [child!]),
+            ),
           ),
         );
       },

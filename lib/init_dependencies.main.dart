@@ -18,11 +18,14 @@ Future<void> initDependencies() async {
     DeviceOrientation.portraitUp,
   ]);
 
-  // explicitly restore the status bar after initialization
-  await SystemChrome.setEnabledSystemUIMode(
-    SystemUiMode.manual,
-    overlays: [SystemUiOverlay.bottom, SystemUiOverlay.top],
-  );
+  // Draw edge to edge behind both system bars for every phone. The status
+  // bar becomes transparent so the app's own surface reaches the top of the
+  // screen and no opaque (usually black) bar obstructs the top section, while
+  // the clock and battery icons stay visible — their brightness is set from
+  // the app theme via `AnnotatedRegion<SystemUiOverlayStyle>` in `main.dart`.
+  // Android 15+ enforces this mode anyway; doing it explicitly keeps older
+  // versions identical instead of black-barred.
+  await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
 
   // Register the InterceptedClient
   serviceLocator.registerSingleton<http.Client>(Client());

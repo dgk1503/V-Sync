@@ -40,20 +40,14 @@ class StaticCapsuleNavBar extends StatelessWidget {
           24,
           0,
           24,
-          // Known bug: this navbar rides up with the keyboard.
-          //
-          // The navbar lives in the body Stack and `extendBody: true` means the
-          // Scaffold still resizes that body for the IME, so the capsule ends up
-          // at the bottom of the *resized* area - roughly the keyboard height
-          // above the real screen bottom - while any keyboard is open.
-          //
-          // It cannot be fixed from in here. `Scaffold` wraps a resizing body in
-          // `MediaQuery.removeViewInsets`, so `MediaQuery.viewInsetsOf(context)`
-          // is 0 at this point, and `View.of(context)` does not reach the root
-          // view from this subtree either. The inset has to be captured above
-          // the Scaffold - in `bottom_navigation_bar.dart`, where
-          // `MaterialApp.builder` still sees the real value - and passed down.
-14 + MediaQuery.paddingOf(context).bottom,
+          // The keyboard does not move this bar: the shell
+          // (`bottom_navigation_bar.dart`) extends the nav layer below the
+          // keyboard-resized body by the IME inset, pinning the capsule to the
+          // physical screen bottom. The inset cannot be read in here —
+          // `Scaffold` strips the bottom viewInset from the body's MediaQuery
+          // — and adding it to this padding would push the capsule UP, so the
+          // compensation belongs to the shell, not to this file.
+          14 + MediaQuery.paddingOf(context).bottom,
         ),
         child: Container(
           decoration: BoxDecoration(

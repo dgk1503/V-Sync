@@ -3,7 +3,10 @@
     <!-- Theme applied to the Android Window while the process is starting when the OS's Dark Mode setting is off -->
     <style name="LaunchTheme" parent="@android:style/Theme.Light.NoTitleBar">
         <item name="android:forceDarkAllowed">false</item>
-        <item name="android:windowFullscreen">true</item>
+        <!-- Draw edge to edge: a transparent status bar so no opaque black
+             bar obstructs the app's top section. Icon brightness is managed
+             from Dart (SystemUiOverlayStyle) once Flutter takes over. -->
+        <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:windowDrawsSystemBarBackgrounds">true</item>
         <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
         <item name="android:windowSplashScreenBackground">#f5f5f5</item>
@@ -18,6 +21,10 @@
          This Theme is only used starting with V2 of Flutter's Android embedding. -->
     <style name="NormalTheme" parent="@android:style/Theme.Light.NoTitleBar">
         <item name="android:windowBackground">@color/app_window_background</item>
+        <!-- Match the edge-to-edge Dart code from the very first frame so the
+             status bar never flashes black between window start and Flutter. -->
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
     </style>
     <style name="Widget.Android.AppWidget.Container" parent="android:Widget">
         <item name="android:id">@android:id/background</item>

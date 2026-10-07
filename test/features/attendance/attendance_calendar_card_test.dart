@@ -277,6 +277,44 @@ void main() {
     });
   });
 
+  group('opening month', () {
+    testWidgets('the grid opens on the month the header names', (tester) async {
+      // Aug–Oct 2026, so the header resolves to October (the current month,
+      // or the latest one once the semester is over). The slider must be ON
+      // that month: it used to park on page 0 — the earliest month — while
+      // the header, the "N of M attended" line and the grid height all
+      // described October, so the calendar opened showing another month's
+      // marks under October's title and only a swipe synced the two.
+      final records = <AttendanceDetail>[
+        _record('05/08/2026', 'Present'),
+        _record('07/08/2026', 'Present'),
+        _record('10/08/2026', 'Present'),
+        _record('03/09/2026', 'Absent'),
+        _record('05/10/2026', 'Present'),
+      ];
+
+      await host(tester, AttendanceMonthCard(details: records));
+      await tester.pump();
+      await tester.pumpAndSettle();
+
+      expect(find.text('October 2026'), findsOneWidget);
+
+      final controller =
+          tester.widget<PageView>(find.byType(PageView)).controller!;
+      expect(controller.hasClients, isTrue);
+      expect(
+        controller.page,
+        2,
+        reason: 'the slider must be on October, not the earliest month',
+      );
+
+      // The rings on screen must be October's single record, not August's
+      // three — this is the data the user actually reads.
+      expect(_visibleRings(tester), 1);
+      expect(tester.takeException(), isNull);
+    });
+  });
+
   group('empty states are distinguishable', () {
     testWidgets('not posted', (tester) async {
       await host(

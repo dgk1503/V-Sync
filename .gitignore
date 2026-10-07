@@ -29,6 +29,9 @@ test_cache/
 # Screenshots written by render tests
 .screenshots/
 
+# Local tooling scratch
+.freebuff/
+
 # OS / editor cruft
 .DS_Store
 Thumbs.db

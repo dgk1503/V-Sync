@@ -46,6 +46,13 @@ class BottomNavBarState extends ConsumerState<BottomNavBar> {
   @override
   Widget build(BuildContext context) {
     final currentIndex = ref.watch(bottomNavIndexProvider);
+    // This context sits ABOVE the Scaffold, so `MediaQuery` still carries the
+    // real IME inset here — the same value the Scaffold uses to resize its
+    // body. Inside the body Stack the inset is stripped
+    // (`MediaQuery.removeViewInsets`), so it must be captured here and used
+    // to re-anchor the nav layer below, which would otherwise ride up with
+    // the keyboard.
+    final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
     return PopScope(
       canPop: currentIndex == 0,
       onPopInvokedWithResult: (didPop, _) {
@@ -57,6 +64,9 @@ class BottomNavBarState extends ConsumerState<BottomNavBar> {
         extendBody: true,
         body: Stack(
           fit: StackFit.expand,
+          // The nav layer deliberately extends below the resized body when the
+          // keyboard is open, so it must be allowed to paint outside.
+          clipBehavior: Clip.none,
           children: [
             Positioned.fill(
               child: AnimatedSwitcher(
@@ -73,7 +83,24 @@ class BottomNavBarState extends ConsumerState<BottomNavBar> {
             // Scaffold's bottomNavigationBar slot. That makes the capsule
             // genuinely float over the content instead of appearing attached
             // to the bottom layout edge.
-            const Positioned.fill(child: _FloatingCapsuleNavBar()),
+            //
+            // The Scaffold resizes this body for the IME and strips the
+            // bottom inset from the body's MediaQuery, so a capsule pinned to
+            // the body's bottom edge rides up with the keyboard. Extending
+            // the nav layer DOWN by the inset (captured above the Scaffold)
+            // re-anchors it to the physical screen bottom: with the keyboard
+            // open the capsule simply sits behind the IME, as any bottom
+            // surface would, and returns the moment the keyboard closes.
+            // Adding the inset to the capsule's bottom padding instead would
+            // push it further UP — the padding is measured from the already
+            // raised body bottom.
+            Positioned(
+              left: 0,
+              right: 0,
+              top: 0,
+              bottom: -keyboardInset,
+              child: _FloatingCapsuleNavBar(),
+            ),
           ],
         ),
       ),

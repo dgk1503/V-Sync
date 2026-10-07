@@ -29,7 +29,15 @@ class AttendanceMonthCard extends StatefulWidget {
 }
 
 class _AttendanceMonthCardState extends State<AttendanceMonthCard> {
-  final _controller = PageController();
+  /// Created lazily, on the first build that has records, so the slider can
+  /// OPEN on the month [_resolveIndex] picked.
+  ///
+  /// Created eagerly it starts on page 0 — the earliest month — while the
+  /// header, the "N of M attended" line and the grid height all describe the
+  /// resolved month: the calendar opened with October's title over a
+  /// different month's marks, and only swiping to another month and back let
+  /// `onPageChanged` resync the two.
+  PageController? _controller;
 
   /// Null until the first month is chosen, so the grid can open on the current
   /// month rather than whichever one the records happen to start in. Once the
@@ -38,7 +46,7 @@ class _AttendanceMonthCardState extends State<AttendanceMonthCard> {
 
   @override
   void dispose() {
-    _controller.dispose();
+    _controller?.dispose();
     super.dispose();
   }
 
@@ -117,6 +125,9 @@ class _AttendanceMonthCardState extends State<AttendanceMonthCard> {
     // A real semester spans several months, so listing every grid pushed the
     // summary off the page. One month at a time, opened on the current month.
     final index = _resolveIndex(keys);
+    // First build with records: the controller is born on the resolved month
+    // so the visible grid matches the header from the very first frame.
+    _controller ??= PageController(initialPage: index);
     final key = keys[index];
     final monthDays = months[key]!;
     final attendedCount = monthDays.where((d) => byDay[d] ?? false).length;
@@ -129,7 +140,8 @@ class _AttendanceMonthCardState extends State<AttendanceMonthCard> {
               icon: Icons.chevron_left,
               onTap: index > 0
                   ? () {
-                      _controller.previousPage(
+                      // Created further up in this build; never null here.
+                      _controller!.previousPage(
                         duration: const Duration(milliseconds: 220),
                         curve: Curves.easeOutCubic,
                       );
@@ -154,7 +166,8 @@ class _AttendanceMonthCardState extends State<AttendanceMonthCard> {
               icon: Icons.chevron_right,
               onTap: index < keys.length - 1
                   ? () {
-                      _controller.nextPage(
+                      // Created further up in this build; never null here.
+                      _controller!.nextPage(
                         duration: const Duration(milliseconds: 220),
                         curve: Curves.easeOutCubic,
                       );
