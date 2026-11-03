@@ -63,21 +63,117 @@ class _OtpHostState extends ConsumerState<_OtpHost> {
   Widget build(BuildContext context) => Overlay(initialEntries: [_entry]);
 }
 
-/// Chooses between the expanded card and the collapsed capsule.
-class _Prompt extends ConsumerWidget {
+/// Chooses between the expanded card and the collapsed capsule, and owns the
+/// digits typed into the boxes.
+class _Prompt extends ConsumerStatefulWidget {
   const _Prompt();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_Prompt> createState() => _PromptState();
+}
+
+class _PromptState extends ConsumerState<_Prompt> with WidgetsBindingObserver {
+  /// The code typed so far. Held here, above the card/capsule switch, because
+  /// [_Expanded] is unmounted every time the prompt collapses — which now
+  /// includes every time the app is backgrounded.
+  final _controller = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _controller.dispose();
+    super.dispose();
+  }
+
+  /// Leaving the app collapses the prompt, deliberately.
+  ///
+  /// The card depends on things the platform takes away while the app is not in
+  /// front of the user — the IME connection above all — so returning to a card
+  /// whose keyboard is gone reads as "the prompt disappeared". The capsule is
+  /// the state that keeps working across a trip to the mail app: it needs no
+  /// keyboard, it carries the countdown, and one tap brings the card back.
+  ///
+  /// `inactive` is deliberately not included: Android reports it for transient
+  /// interruptions — the notification shade, a permission dialog — where
+  /// collapsing the prompt would be surprising.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.hidden &&
+        state != AppLifecycleState.paused) {
+      return;
+    }
+
+    final challenge = ref.read(loginOtpChallengeProvider);
+    if (!challenge.isActive || challenge.isMinimized) return;
+    ref.read(loginOtpChallengeProvider.notifier).minimize();
+  }
+
+  Widget build(BuildContext context) {
     final challenge = ref.watch(loginOtpChallengeProvider);
 
     return Stack(
       children: [
         if (challenge.isMinimized)
-          const Positioned(right: 16, bottom: 96, child: _Capsule())
+          _DraggableCapsule()
         else
-          const Positioned.fill(child: _Expanded()),
+          Positioned.fill(child: _Expanded(controller: _controller)),
       ],
+    );
+  }
+}
+
+/// The capsule, draggable to anywhere on screen.
+///
+/// The offset lives here rather than inside the capsule so it survives the
+/// card-to-capsule switch: minimising and restoring must not send the capsule
+/// back to its corner, because the user moved it somewhere on purpose.
+///
+/// It is clamped to the screen and lifted clear of the keyboard, so the capsule
+/// can never be dragged somewhere it cannot be reached from again.
+class _DraggableCapsule extends StatefulWidget {
+  @override
+  State<_DraggableCapsule> createState() => _DraggableCapsuleState();
+}
+
+class _DraggableCapsuleState extends State<_DraggableCapsule> {
+  Offset _offset = Offset.zero;
+
+  static const double _edge = 16;
+  static const double _capsuleWidth = 140;
+  static const double _capsuleHeight = 44;
+
+  @override
+  Widget build(BuildContext context) {
+    final size = MediaQuery.sizeOf(context);
+    final keyboard = MediaQuery.viewInsetsOf(context).bottom;
+
+    final maxLeft = (size.width - _capsuleWidth - _edge).clamp(0.0, size.width);
+    final maxTop = (size.height - _capsuleHeight - _edge - keyboard)
+        .clamp(0.0, size.height);
+    final left = _offset.dx.clamp(0.0, maxLeft);
+    final top = _offset.dy.clamp(0.0, maxTop);
+
+    return Positioned(
+      left: left,
+      top: top,
+      child: GestureDetector(
+        // A drag moves it and a tap reopens. Opaque so a tap on the transparent
+        // gutter around the capsule still counts as a tap on it.
+        behavior: HitTestBehavior.opaque,
+        onPanUpdate: (details) => setState(
+          () => _offset = Offset(
+            _offset.dx + details.delta.dx,
+            _offset.dy + details.delta.dy,
+          ),
+        ),
+        child: const _Capsule(),
+      ),
     );
   }
 }
@@ -141,19 +237,24 @@ class _Capsule extends ConsumerWidget {
 }
 
 class _Expanded extends ConsumerStatefulWidget {
-  const _Expanded();
+  const _Expanded({required this.controller});
+
+  /// Owned by [_Prompt] so the digits survive a collapse, which is what
+  /// backgrounding the app now does.
+  final TextEditingController controller;
 
   @override
   ConsumerState<_Expanded> createState() => _ExpandedState();
 }
 
-class _ExpandedState extends ConsumerState<_Expanded> {
-  final _controller = TextEditingController();
+class _ExpandedState extends ConsumerState<_Expanded>
+    with WidgetsBindingObserver {
   final _focusNode = FocusNode();
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     // Focus after the first frame: requesting focus during build throws.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _focusNode.requestFocus();
@@ -162,9 +263,32 @@ class _ExpandedState extends ConsumerState<_Expanded> {
 
   @override
   void dispose() {
-    _controller.dispose();
+    WidgetsBinding.instance.removeObserver(this);
+    // The controller belongs to [_Prompt]: it outlives this card on purpose.
     _focusNode.dispose();
     super.dispose();
+  }
+
+  /// Puts the keyboard back after the user returns from reading the code.
+  ///
+  /// Android drops the IME connection while the app is in the background (the
+  /// user reading the OTP in Gmail is the case this exists for), and a field
+  /// that never lost *focus* is no longer enough for Flutter to re-open it:
+  /// requesting focus on an already-focused node is a no-op, so the keyboard
+  /// had to be asked for explicitly. Measured: without this, returning from the
+  /// background emits no `TextInput.show` at all. Same helper as the tap path.
+  ///
+  /// Backgrounding the app collapses the prompt (see [_PromptState]), so this
+  /// fires for the interruptions that do not - a permission dialog, the
+  /// notification shade - where the card stays up and must keep its keyboard.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (ref.read(loginOtpChallengeProvider).isBusy) return;
+      _requestOtpKeyboard(_focusNode);
+    });
   }
 
   @override
@@ -255,7 +379,7 @@ class _ExpandedState extends ConsumerState<_Expanded> {
                       ),
                       const SizedBox(height: 20),
                       _OtpField(
-                        controller: _controller,
+                        controller: widget.controller,
                         focusNode: _focusNode,
                         enabled: !challenge.isBusy,
                         hasError: challenge.errorMessage != null,
@@ -305,7 +429,8 @@ class _ExpandedState extends ConsumerState<_Expanded> {
                             child: FilledButton(
                               onPressed: challenge.isBusy
                                   ? null
-                                  : () => notifier.submitOtp(_controller.text),
+                                  : () =>
+                                        notifier.submitOtp(widget.controller.text),
                               style: FilledButton.styleFrom(
                                 elevation: 0,
                                 backgroundColor: colors.primary,
@@ -383,6 +508,22 @@ class _Dismissible extends StatelessWidget {
   );
 }
 
+/// Focuses the OTP field and makes sure the keyboard is actually attached.
+///
+/// `requestFocus()` alone is not enough when the field already has focus: the
+/// OS drops the IME while the app is in the background, and a node that is
+/// already focused is not re-opened by asking for focus again. `TextInput.show`
+/// asks the platform for the keyboard for the field that is attached, which is
+/// what brings it back after a trip to Gmail (or after the user dismissed it by
+/// hand).
+void _requestOtpKeyboard(FocusNode focusNode) {
+  final alreadyFocused = focusNode.hasFocus;
+  focusNode.requestFocus();
+  if (alreadyFocused) {
+    SystemChannels.textInput.invokeMethod<void>('TextInput.show');
+  }
+}
+
 /// Six boxes over a single invisible text field.
 ///
 /// Hand-rolled rather than `Pinput`, which registers a
@@ -413,53 +554,69 @@ class _OtpField extends ConsumerWidget {
         final digits = value.text.characters.toList();
         final focused = focusNode.hasFocus && enabled;
 
-        return Stack(
-          children: [
-            Positioned.fill(
-              child: Opacity(
-                opacity: 0,
-                child: TextField(
-                  controller: controller,
-                  focusNode: focusNode,
-                  enabled: enabled,
-                  keyboardType: TextInputType.number,
-                  textInputAction: TextInputAction.done,
-                  maxLength: _length,
-                  autofillHints: const [AutofillHints.oneTimeCode],
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  onSubmitted: (value) => notifier.submitOtp(value),
+        return GestureDetector(
+          // Taps on the boxes are handled here, and the field itself is kept out
+          // of the hit-test path (`IgnorePointer` below) so no recognizer of its
+          // own can claim the tap first.
+          //
+          // This is the state the user is in after reading the code in Gmail:
+          // the field still holds focus while the OS has dismissed the
+          // keyboard, and focusing a focused node does nothing. Asking for the
+          // keyboard has to happen on every tap, unconditionally, rather than
+          // depending on what `EditableText` decides to do with the tap.
+          behavior: HitTestBehavior.opaque,
+          onTap: enabled ? () => _requestOtpKeyboard(focusNode) : null,
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: Opacity(
+                    opacity: 0,
+                    child: TextField(
+                      controller: controller,
+                      focusNode: focusNode,
+                      enabled: enabled,
+                      keyboardType: TextInputType.number,
+                      textInputAction: TextInputAction.done,
+                      maxLength: _length,
+                      autofillHints: const [AutofillHints.oneTimeCode],
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      onSubmitted: (value) => notifier.submitOtp(value),
+                    ),
+                  ),
                 ),
               ),
-            ),
-            // The boxes share whatever width is available rather than sitting
-            // at a fixed 46 each: six fixed boxes plus gaps need 306px, which
-            // does not fit inside the card on a 360dp screen, and the row
-            // overflowed it. Centred and capped so it does not stretch across
-            // a tablet either.
-            Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 320),
-                child: Row(
-                  children: [
-                    for (var i = 0; i < _length; i++) ...[
-                      if (i > 0) const SizedBox(width: 6),
-                      // Width flexes, height is fixed. An AspectRatio here is
-                      // not an option: this Row is a non-positioned child of a
-                      // Stack, which hands it loose constraints, and
-                      // AspectRatio cannot size itself against unbounded width.
-                      Expanded(
-                        child: _Box(
-                          digit: i < digits.length ? digits[i] : '',
-                          active: focused && i == digits.length,
-                          error: hasError,
+              // The boxes share whatever width is available rather than sitting
+              // at a fixed 46 each: six fixed boxes plus gaps need 306px, which
+              // does not fit inside the card on a 360dp screen, and the row
+              // overflowed it. Centred and capped so it does not stretch across
+              // a tablet either.
+              Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 320),
+                  child: Row(
+                    children: [
+                      for (var i = 0; i < _length; i++) ...[
+                        if (i > 0) const SizedBox(width: 6),
+                        // Width flexes, height is fixed. An AspectRatio here
+                        // is not an option: this Row is a non-positioned child
+                        // of a Stack, which hands it loose constraints, and
+                        // AspectRatio cannot size itself against unbounded
+                        // width.
+                        Expanded(
+                          child: _Box(
+                            digit: i < digits.length ? digits[i] : '',
+                            active: focused && i == digits.length,
+                            error: hasError,
+                          ),
                         ),
-                      ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         );
       },
     );

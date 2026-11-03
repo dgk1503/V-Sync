@@ -401,6 +401,7 @@ class _DayCell extends StatelessWidget {
     // Every chip on the day is considered, not just the leading one, so a
     // countdown sharing a date with a VTOP entry is not lost.
     final kind = CalendarEventClassifier.ringKindFor(chips);
+    // An outing keeps its own colour: it is the user's marker, not a VTOP fact.
     final tint = kind == null
         ? null
         : CalendarEventClassifier.colorFor(context, kind);
@@ -546,6 +547,7 @@ class _EventRow extends StatelessWidget {
     CalendarDayKind.noClasses => 'No classes',
     CalendarDayKind.exam => 'Exam',
     CalendarDayKind.countdown => 'Countdown',
+    CalendarDayKind.outing => 'Outing',
     CalendarDayKind.event => 'Event',
   };
 }

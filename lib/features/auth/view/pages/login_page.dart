@@ -27,6 +27,19 @@ class LoginPageState extends ConsumerState<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   final TapGestureRecognizer _termsRecognizer = TapGestureRecognizer();
 
+  /// The single credential pair the whole sign-in flow uses.
+  ///
+  /// Normalised once, here, and handed to every later step: the semester fetch
+  /// that performs the login, the OTP submission, and the final profile fetch.
+  /// Any step that carried a differently-spaced or differently-cased copy
+  /// looked like a *different* account to [VtopClientService], which then
+  /// logged in a second time — and on a network VTOP has not verified, every
+  /// one of those logins mails another OTP.
+  String get _registrationNumber =>
+      usernameController.text.trim().toUpperCase();
+
+  String get _password => passwordController.text.trim();
+
   @override
   void initState() {
     super.initState();
@@ -101,8 +114,8 @@ class LoginPageState extends ConsumerState<LoginPage> {
     await ref
         .read(semesterViewModelProvider.notifier)
         .fetchSemestersForLogin(
-          registrationNumber: usernameController.text.trim().toUpperCase(),
-          password: passwordController.text.trim(),
+          registrationNumber: _registrationNumber,
+          password: _password,
         );
   }
 
@@ -127,8 +140,8 @@ class LoginPageState extends ConsumerState<LoginPage> {
             context,
             MaterialPageRoute<void>(
               builder: (context) => SemesterSelectionPage(
-                registrationNumber: usernameController.text.toUpperCase(),
-                password: passwordController.text,
+                registrationNumber: _registrationNumber,
+                password: _password,
               ),
             ),
           );

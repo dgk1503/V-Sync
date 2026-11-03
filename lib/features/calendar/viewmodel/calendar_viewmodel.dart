@@ -11,7 +11,9 @@ import 'package:vit_ap_student_app/core/services/data_cache_service.dart';
 import 'package:vit_ap_student_app/features/calendar/model/calendar_chip.dart';
 import 'package:vit_ap_student_app/features/calendar/repository/calendar_remote_repository.dart';
 import 'package:vit_ap_student_app/core/providers/user_preferences_notifier.dart';
+import 'package:vit_ap_student_app/features/home/model/general_outing_report.dart';
 import 'package:vit_ap_student_app/features/home/model/milestone.dart';
+import 'package:vit_ap_student_app/features/home/viewmodel/outing_reports_viewmodel.dart';
 import 'package:vit_ap_student_app/features/home/viewmodel/milestones_viewmodel.dart';
 import 'package:vit_ap_student_app/src/rust/api/vtop/types/academic_calendar.dart';
 
@@ -334,32 +336,127 @@ class CalendarViewmodel extends _$CalendarViewmodel {
   List<CalendarMonth> _withCountdowns(
     List<CalendarMonth> months,
     List<Milestone> milestones,
+  ) =>
+      _withOutings(months, milestones, ref.read(generalOutingReportsViewModelProvider)?.asData?.value);
+
+  /// Folds the student's approved outings into the grid, one chip per day of
+  /// each trip.
+  ///
+  /// Their colour is their own - cyan - because a trip home is neither a holiday
+  /// nor an exam, and borrowing a status colour would imply a judgement about
+  /// it. An outing outranks a countdown so the two do not fight over the same
+  /// day, but never a real closure or exam.
+  List<CalendarMonth> _withOutings(
+    List<CalendarMonth> months,
+    List<Milestone> milestones,
+    List<GeneralOutingReport>? outings,
   ) {
+    if (outings == null || outings.isEmpty) {
+      return [
+        for (final month in months)
+          CalendarMonth(
+            year: month.year,
+            month: month.month,
+            chips: _sorted([
+              ...month.chips,
+              ..._countdownChipsFor(month, milestones),
+            ]),
+          ),
+      ];
+    }
+
     return [
       for (final month in months)
         CalendarMonth(
           year: month.year,
           month: month.month,
-          chips: () {
-            final extras = <CalendarChip>[
-              for (final milestone in milestones)
-                if (milestone.targetDate.year == month.year &&
-                    milestone.targetDate.month == month.month)
-                  CalendarChip(
-                    date: DateTime(
-                      milestone.targetDate.year,
-                      milestone.targetDate.month,
-                      milestone.targetDate.day,
-                    ),
-                    kind: CalendarDayKind.countdown,
-                    title: milestone.title,
-                    detail: milestone.info,
-                  ),
-            ];
-            return _sorted([...month.chips, ...extras]);
-          }(),
+          chips: _sorted([
+            ...month.chips,
+            ..._countdownChipsFor(month, milestones),
+            ..._outingChipsFor(month, outings),
+          ]),
         ),
     ];
+  }
+
+  List<CalendarChip> _countdownChipsFor(
+    CalendarMonth month,
+    List<Milestone> milestones,
+  ) => [
+    for (final milestone in milestones)
+      if (milestone.targetDate.year == month.year &&
+          milestone.targetDate.month == month.month)
+        CalendarChip(
+          date: DateTime(
+            milestone.targetDate.year,
+            milestone.targetDate.month,
+            milestone.targetDate.day,
+          ),
+          kind: CalendarDayKind.countdown,
+          title: milestone.title,
+          detail: milestone.info,
+        ),
+  ];
+
+  /// One chip per day inside each outing's window, so a five-day trip shows a
+  /// run of cyan days rather than only its endpoints.
+  List<CalendarChip> _outingChipsFor(
+    CalendarMonth month,
+    List<GeneralOutingReport> outings,
+  ) {
+    final chips = <CalendarChip>[];
+    for (final outing in outings) {
+      final range = _outingRange(outing);
+      if (range == null) continue;
+      final (from, to) = range;
+      for (var day = from;
+          !day.isAfter(to);
+          day = DateTime(day.year, day.month, day.day + 1)) {
+        if (day.year != month.year || day.month != month.month) continue;
+        chips.add(
+          CalendarChip(
+            date: day,
+            kind: CalendarDayKind.outing,
+            title: outing.placeOfVisit.trim().isEmpty
+                ? 'Outing'
+                : outing.placeOfVisit.trim(),
+            subtitle: _outingDayLabel(from, to, day),
+            detail: outing.purposeOfVisit.trim(),
+          ),
+        );
+      }
+    }
+    return chips;
+  }
+
+  /// "[from, to]" as bare dates, or null when either is unreadable.
+  (DateTime, DateTime)? _outingRange(GeneralOutingReport outing) {
+    final from = _parseOutingDate(outing.fromDate);
+    final to = _parseOutingDate(outing.toDate);
+    if (from == null || to == null) return null;
+    // A malformed record that ends before it starts is not a plan; skip it.
+    if (to.isBefore(from)) return null;
+    return (from, to);
+  }
+
+  /// Outing dates arrive as `dd/MM/yyyy`, the same shape as the day-wise
+  /// attendance table. Falls back to null rather than throwing on a blank.
+  DateTime? _parseOutingDate(String raw) {
+    final parts = raw.trim().split('/');
+    if (parts.length != 3) return null;
+    final day = int.tryParse(parts[0]);
+    final month = int.tryParse(parts[1]);
+    final year = int.tryParse(parts[2]);
+    if (day == null || month == null || year == null) return null;
+    return DateTime(year, month, day);
+  }
+
+  /// "Leaving", "Returning" or the day count, for the event list under a day.
+  String _outingDayLabel(DateTime from, DateTime to, DateTime day) {
+    if (day.isAtSameMomentAs(from) && day.isAtSameMomentAs(to)) return 'Day trip';
+    if (day.isAtSameMomentAs(from)) return 'Leaving';
+    if (day.isAtSameMomentAs(to)) return 'Returning';
+    return 'Outing';
   }
 
   List<CalendarChip> _sorted(List<CalendarChip> chips) {

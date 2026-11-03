@@ -44,20 +44,6 @@ pub(crate) async fn read_body(response: reqwest::Response) -> VtopResult<String>
     Ok(text)
 }
 
-/// Swaps a stale CSRF token for the current one inside a form body.
-///
-/// `login` issues a fresh token, so a request replayed after a re-login would
-/// still carry the old one in `_csrf=...` and be rejected exactly as before.
-///
-/// Returns the body untouched when there is nothing to swap — no previous
-/// token, or the token did not change.
-pub(crate) fn refresh_csrf_in_body(body: &str, stale: Option<&str>, fresh: &str) -> String {
-    match stale {
-        Some(stale) if !stale.is_empty() && stale != fresh => body.replace(stale, fresh),
-        _ => body.to_string(),
-    }
-}
-
 impl VtopClient {
     /// Retrieves the current session's cookies as a byte vector.
     ///
@@ -109,13 +95,18 @@ impl VtopClient {
     /// for that rather than an error, so an expired session reached the screen
     /// as "no data" with nothing to say anything had gone wrong.
     ///
-    /// The retry rebuilds the body with the new CSRF token. [`Self::login`]
-    /// issues a fresh one, so replaying the original body verbatim would be
-    /// rejected just the same.
+    /// An expired session is *reported* here, never repaired.
     ///
-    /// Retries once. A second expiry means something other than an idle session
-    /// is wrong, and looping here would hammer a portal that locks accounts
-    /// after repeated failed logins.
+    /// Re-authenticating in this layer is what sent users several OTP emails.
+    /// VTOP mails a fresh code for every credentials POST it sees from an IP
+    /// it has not verified, and a feature page issues several requests at
+    /// once — so one expiry became one login per in-flight request, none of
+    /// which the user had a prompt for. Each of those logins also opened its
+    /// own server session, so the code the OTP sheet was about to validate
+    /// could come back as "Invalid OTP".
+    ///
+    /// The caller owns re-authentication, where it is deduplicated into a
+    /// single login and surfaced as the OTP prompt.
     pub(crate) async fn post_form_with_session_retry(
         &mut self,
         url: impl reqwest::IntoUrl + Clone,
@@ -123,47 +114,24 @@ impl VtopClient {
     ) -> VtopResult<reqwest::Response> {
         let response = self
             .client
-            .post(url.clone())
-            .body(body.clone())
-            .send()
-            .await
-            .map_err(map_reqwest_error)?;
-
-        if self.session.check_session_expiration(&response).is_ok() {
-            return Ok(response);
-        }
-
-        let stale_csrf = self.session.get_csrf_token();
-        self.login().await?;
-        let fresh_csrf = self
-            .session
-            .get_csrf_token()
-            .ok_or(VtopError::SessionExpired)?;
-
-        let body = refresh_csrf_in_body(&body, stale_csrf.as_deref(), &fresh_csrf);
-
-        let retried = self
-            .client
             .post(url)
             .body(body)
             .send()
             .await
             .map_err(map_reqwest_error)?;
 
-        self.session.check_session_expiration(&retried)?;
-        Ok(retried)
+        self.session.check_session_expiration(&response)?;
+        Ok(response)
     }
 
-    /// The multipart counterpart of [`Self::post_form_with_session_retry`].
+    /// The multipart counterpart of [`Self::post_form_with_session_retry`],
+    /// and reported rather than repaired for the same reason: a re-login here
+    /// is another credentials POST, and VTOP answers those with another OTP
+    /// email.
     ///
-    /// A `multipart::Form` cannot be cloned, and its `_csrf` part would be
-    /// stale after a re-login anyway, so the caller supplies a closure that
-    /// builds the form from whichever token is current. It is called again for
-    /// the retry.
-    ///
-    /// Deliberately not used by the upload and outing-submit paths: replaying a
-    /// write after a re-login risks submitting it twice. Those still surface
-    /// the expiry as an error, which is the safe outcome for a write.
+    /// A `multipart::Form` cannot be cloned, so the caller supplies a closure
+    /// that builds it from the CSRF token that is current when the request is
+    /// actually sent.
     pub(crate) async fn post_multipart_with_session_retry<F>(
         &mut self,
         url: impl reqwest::IntoUrl + Clone,
@@ -179,90 +147,44 @@ impl VtopClient {
 
         let response = self
             .client
-            .post(url.clone())
+            .post(url)
             .multipart(build_form(&csrf))
             .send()
             .await
             .map_err(map_reqwest_error)?;
 
-        if self.session.check_session_expiration(&response).is_ok() {
-            return Ok(response);
-        }
-
-        self.login().await?;
-        let fresh_csrf = self
-            .session
-            .get_csrf_token()
-            .ok_or(VtopError::SessionExpired)?;
-
-        let retried = self
-            .client
-            .post(url)
-            .multipart(build_form(&fresh_csrf))
-            .send()
-            .await
-            .map_err(map_reqwest_error)?;
-
-        self.session.check_session_expiration(&retried)?;
-        Ok(retried)
+        self.session.check_session_expiration(&response)?;
+        Ok(response)
     }
 
-    /// The GET counterpart of [`Self::post_form_with_session_retry`].
-    ///
-    /// Carries no body, so there is no CSRF token to refresh — the request is
-    /// simply sent again after a successful re-login.
+    /// The GET counterpart of [`Self::post_form_with_session_retry`], and
+    /// reported rather than repaired for the same reason.
     pub(crate) async fn get_with_session_retry(
         &mut self,
         url: impl reqwest::IntoUrl + Clone,
     ) -> VtopResult<reqwest::Response> {
         let response = self
             .client
-            .get(url.clone())
-            .send()
-            .await
-            .map_err(map_reqwest_error)?;
-
-        if self.session.check_session_expiration(&response).is_ok() {
-            return Ok(response);
-        }
-
-        self.login().await?;
-
-        let retried = self
-            .client
             .get(url)
             .send()
             .await
             .map_err(map_reqwest_error)?;
 
-        self.session.check_session_expiration(&retried)?;
-        Ok(retried)
+        self.session.check_session_expiration(&response)?;
+        Ok(response)
     }
 
+    /// Reports whether a response means the session expired.
+    ///
+    /// It used to log back in and then return `Ok`, which was worse than
+    /// useless on the two write paths that call it: they go on to read the
+    /// response captured *before* the re-login, so the write still failed —
+    /// after a credentials POST, and therefore possibly another OTP email.
     pub(crate) async fn handle_session_check(
         &mut self,
         response: &reqwest::Response,
     ) -> VtopResult<()> {
-        match self.session.check_session_expiration(response) {
-            Ok(_) => Ok(()), // Session is valid
-            Err(VtopError::SessionExpired) => {
-                // Session expired, attempt re-authentication
-                println!("Session expired, attempting to re-authenticate...");
-                match self.login().await {
-                    Ok(_) => {
-                        println!("Re-authentication successful");
-                        // For now, we just continue. In a future enhancement, we could
-                        // implement automatic retry logic here.
-                        Ok(())
-                    }
-                    Err(e) => {
-                        println!("Re-authentication failed: {:?}", e);
-                        Err(e)
-                    }
-                }
-            }
-            Err(e) => Err(e), // Other error
-        }
+        self.session.check_session_expiration(response)
     }
 
     /// Authenticates the user with the VTOP system using provided credentials.
@@ -416,59 +338,87 @@ impl VtopClient {
             )));
         }
 
-        let response_json: Value = response.json().await.map_err(map_response_read_error)?;
-        let status = response_json
+        let response_text = response.text().await.map_err(map_response_read_error)?;
+        // Parsed leniently on purpose: the endpoint answers JSON when it is
+        // happy, and plain text or an HTML fragment on other days. There is no
+        // `?` after this parse because a reply we cannot read is not evidence
+        // about the code.
+        let reply: Value = serde_json::from_str(&response_text).unwrap_or(Value::Null);
+        let status = reply
             .get("status")
             .and_then(|v| v.as_str())
-            .unwrap_or("STATUS_NOT_FOUND");
-        let message = response_json
-            .get("message")
-            .and_then(|v| v.as_str())
-            .unwrap_or("MESSAGE_NOT_FOUND");
+            .unwrap_or_default()
+            .to_ascii_uppercase();
+        let message = reply.get("message").and_then(|v| v.as_str());
 
-        match status {
-            "SUCCESS" => {
-                let redirect_url = response_json
-                    .get("redirectUrl")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("URL_NOT_FOUND");
-                if redirect_url == "URL_NOT_FOUND" {
-                    return Err(VtopError::AuthenticationFailed(
-                        "Redirect URL not found in after OTP verification".to_string(),
-                    ));
-                }
-                let content_url = format!("{}{}", self.config.base_url, redirect_url);
-                let content_response = self
-                    .client
-                    .get(content_url)
-                    .send()
-                    .await
-                    .map_err(map_reqwest_error)?;
-                let response_text = content_response
-                    .text()
-                    .await
-                    .map_err(map_response_read_error)?;
-                self.current_page = Some(response_text);
-                self.extract_csrf_token()?;
-                self.get_regno()?;
-
-                self.current_page = None;
-                self.captcha_data = None;
-
-                self.session.set_authenticated(true);
-
-                Ok(())
-            }
-
-            "INVALID" => Err(VtopError::LoginOtpIncorrect),
-
-            "EXPIRED" => Err(VtopError::LoginOtpExpired),
-
-            _ => Err(VtopError::AuthenticationFailed(format!(
-                "{}: {}",
-                status, message
-            ))),
+        // The two unambiguous rejections, both of which mean the user needs a
+        // new code rather than a different one.
+        if status == "EXPIRED" {
+            return Err(VtopError::LoginOtpExpired);
         }
+        if status == "INVALID" || response_text.to_lowercase().contains("invalid otp") {
+            return Err(VtopError::LoginOtpIncorrect);
+        }
+
+        // Anything else is settled by the session, not by the reply. Calling a
+        // code that VTOP actually accepted a failure sends the user to Resend,
+        // and every resend is another email.
+        let landing = reply
+            .get("redirectUrl")
+            .and_then(|v| v.as_str())
+            .filter(|url| !url.trim().is_empty())
+            .unwrap_or("/vtop/content");
+        let landing = if landing.starts_with("http") {
+            landing.to_string()
+        } else {
+            format!("{}{}", self.config.base_url, landing)
+        };
+
+        match self.adopt_authenticated_page(&landing).await {
+            Ok(()) => Ok(()),
+            Err(error) => Err(match status.as_str() {
+                "" => error,
+                "SUCCESS" | "VALID" | "OK" => VtopError::AuthenticationFailed(
+                    "VTOP accepted the code but did not open a signed-in session. Please try again."
+                        .to_string(),
+                ),
+                _ => VtopError::AuthenticationFailed(match message {
+                    Some(message) => format!("{}: {}", status, message),
+                    None => status.clone(),
+                }),
+            }),
+        }
+    }
+
+    /// Opens a page only a signed-in session can serve, and adopts it.
+    ///
+    /// `_csrf` and `authorizedIDX` are what the dashboard carries for a session
+    /// that is signed in, so a page with both is the proof — which is why this,
+    /// and not the OTP endpoint's reply, decides whether a code was accepted.
+    async fn adopt_authenticated_page(&mut self, url: &str) -> VtopResult<()> {
+        let response = self
+            .client
+            .get(url.to_string())
+            .send()
+            .await
+            .map_err(map_reqwest_error)?;
+
+        if !response.status().is_success() {
+            return Err(VtopError::AuthenticationFailed(format!(
+                "VTOP did not open a signed-in session (HTTP {})",
+                response.status()
+            )));
+        }
+
+        let response_text = response.text().await.map_err(map_response_read_error)?;
+        self.current_page = Some(response_text);
+        let adopted = self.extract_csrf_token().and_then(|_| self.get_regno());
+        self.current_page = None;
+        adopted?;
+
+        self.captcha_data = None;
+        self.session.set_authenticated(true);
+        Ok(())
     }
 
     /// Requests a new OTP to be sent for login authentication.
@@ -497,39 +447,87 @@ impl VtopClient {
             .get_csrf_token()
             .ok_or(VtopError::SessionExpired)?;
 
-        let url = format!("{}/vtop/resendSecurityOtp", self.config.base_url);
-        let form_data = Form::new().text("_csrf", csrf);
+        // VTOP has served this endpoint under two spellings. A 404 means the
+        // route is not there, and only then is the other spelling tried: a
+        // second POST after one VTOP accepted would be a second email.
+        for path in ["/vtop/resendSecurityOtp", "/vtop/resendSecurityOTP"] {
+            let url = format!("{}{}", self.config.base_url, path);
+            let form_data = Form::new().text("_csrf", csrf.clone());
 
-        let response = self
-            .client
-            .post(url)
-            .multipart(form_data)
-            .send()
-            .await
-            .map_err(map_reqwest_error)?;
+            let response = self
+                .client
+                .post(url)
+                .multipart(form_data)
+                .send()
+                .await
+                .map_err(map_reqwest_error)?;
 
-        if response.status().is_success() {
-            let response_json: Value = response.json().await.map_err(map_response_read_error)?;
-            let status = response_json
-                .get("status")
-                .and_then(|v| v.as_str())
-                .unwrap_or("UNKNOWN_STATUS_FOR_RESEND_OTP");
-            let message = response_json
-                .get("message")
-                .and_then(|v| v.as_str())
-                .unwrap_or("Failed to resend OTP from server side")
-                .to_string();
-            if status == "SUCCESS" {
+            if response.status().as_u16() == 404 {
+                continue;
+            }
+
+            if !response.status().is_success() {
+                return Err(VtopError::AuthenticationFailed(format!(
+                    "Failed to request OTP. Server responded with status: {}",
+                    response.status()
+                )));
+            }
+
+            let response_text = response.text().await.map_err(map_response_read_error)?;
+            return Self::interpret_resend_reply(&response_text);
+        }
+
+        Err(VtopError::AuthenticationFailed(
+            "Failed to request OTP. Please try again.".to_string(),
+        ))
+    }
+
+    /// Reads whatever VTOP answered the resend endpoint with.
+    ///
+    /// Requiring JSON here was a bug with a cost: the endpoint answers plain
+    /// text or an HTML fragment too, so a resend that *did* send an email could
+    /// come back to the app as a failure. The user — told it failed — tapped
+    /// Resend again as soon as the countdown allowed, and VTOP sent another
+    /// email for each tap. A reply that is not JSON is now read for what it
+    /// says instead of being treated as a defect.
+    fn interpret_resend_reply(body: &str) -> VtopResult<()> {
+        let reply: Value = serde_json::from_str(body).unwrap_or(Value::Null);
+        let status = reply
+            .get("status")
+            .and_then(|v| v.as_str())
+            .unwrap_or_default()
+            .to_ascii_uppercase();
+
+        if !status.is_empty() {
+            return if matches!(status.as_str(), "SUCCESS" | "SENT" | "VALID" | "OK") {
                 Ok(())
             } else {
+                let message = reply
+                    .get("message")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("VTOP refused to send a new OTP.");
                 Err(VtopError::AuthenticationFailed(format!(
                     "{}: {}",
                     status, message
                 )))
-            }
+            };
+        }
+
+        // No JSON to read, so the words are all there is. A body that says the
+        // code was sent and shows no sign of a refusal counts; an error page
+        // that happens to contain "OTP" and "sent" ("OTP was not sent") does
+        // not, which is why the two are checked together.
+        let lower = body.to_lowercase();
+        let looks_sent = lower.contains("otp") && lower.contains("sent");
+        let looks_refused = ["not sent", "failed", "error", "invalid", "try again"]
+            .iter()
+            .any(|marker| lower.contains(marker));
+
+        if looks_sent && !looks_refused {
+            Ok(())
         } else {
             Err(VtopError::AuthenticationFailed(
-                "Failed to request OTP. Please try again.".to_string(),
+                "VTOP did not confirm the new OTP. Please try again.".to_string(),
             ))
         }
     }
@@ -590,15 +588,20 @@ impl VtopClient {
         let response_text = read_body(response).await?;
 
         if response_url.contains("error") {
-            if response_text.contains("Invalid Captcha") {
-                return Err(VtopError::AuthenticationFailed(
-                    "Invalid Captcha".to_string(),
-                ));
-            } else if Self::is_otp_required(&response_text) {
+            // The OTP form is checked first, and structurally — by the form's
+            // id, never by a substring. A page that carries it is VTOP asking
+            // for the emailed code whatever else it says, and the captcha
+            // branch below this is the one that loops: each trip around it
+            // POSTs the credentials again, which is another OTP email.
+            if Self::is_otp_required(&response_text) {
                 self.current_page = Some(response_text);
                 let _ = self.extract_csrf_token();
                 self.current_page = None;
                 Err(VtopError::LoginOtpRequired)
+            } else if response_text.contains("Invalid Captcha") {
+                return Err(VtopError::AuthenticationFailed(
+                    "Invalid Captcha".to_string(),
+                ));
             } else if response_text.contains("Invalid LoginId/Password")
                 || response_text.contains("Invalid  Username/Password")
             {
@@ -875,62 +878,52 @@ impl VtopClient {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::refresh_csrf_in_body;
+mod resend_reply_tests {
+    use super::VtopClient;
+    use crate::api::vtop::vtop_errors::VtopError;
 
-    const STALE: &str = "11111111-aaaa-4444-9999-222222222222";
-    const FRESH: &str = "33333333-bbbb-4444-9999-444444444444";
+    /// The happy path: VTOP's own JSON.
+    #[test]
+    fn a_success_status_is_accepted() {
+        let body = r#"{"otpSentAt":"2026-04-17T23:18:03.719","message":"OTP sent successfully","status":"SUCCESS"}"#;
+        assert!(VtopClient::interpret_resend_reply(body).is_ok());
+    }
 
-    fn body(token: &str) -> String {
-        format!(
-            "_csrf={}&semesterSubId=AP2026272&authorizedID=00XXX0000",
-            token
+    #[test]
+    fn a_refusal_surfaces_its_message() {
+        let body = r#"{"status":"FAILED","message":"Please wait before requesting a new OTP."}"#;
+        match VtopClient::interpret_resend_reply(body) {
+            Err(VtopError::AuthenticationFailed(message)) => {
+                assert!(message.contains("Please wait"), "got {message}")
+            }
+            other => panic!("expected a refusal, got {other:?}"),
+        }
+    }
+
+    /// The shape that used to be read as a failure although a code had just
+    /// gone out: no JSON at all. Each of those put the user back on Resend.
+    #[test]
+    fn an_html_reply_that_says_it_was_sent_is_accepted() {
+        assert!(VtopClient::interpret_resend_reply(
+            "<div class=\"alert alert-success\">OTP sent successfully to your registered email</div>"
         )
+        .is_ok());
     }
 
+    /// An unreadable reply is not proof either way, so it is reported as
+    /// unconfirmed rather than as a sent code.
     #[test]
-    fn a_stale_token_is_replaced() {
-        assert_eq!(
-            refresh_csrf_in_body(&body(STALE), Some(STALE), FRESH),
-            body(FRESH)
-        );
+    fn an_unreadable_reply_is_reported_as_unconfirmed() {
+        let error = VtopClient::interpret_resend_reply("<html><body>Something went wrong</body></html>");
+        assert!(matches!(error, Err(VtopError::AuthenticationFailed(_))));
     }
 
+    /// ...and an error page cannot be read as a success just because both words
+    /// appear somewhere in it.
     #[test]
-    fn the_rest_of_the_body_is_left_alone() {
-        let out = refresh_csrf_in_body(&body(STALE), Some(STALE), FRESH);
-        assert!(out.contains("semesterSubId=AP2026272"));
-        assert!(out.contains("authorizedID=00XXX0000"));
-        assert!(!out.contains(STALE));
-    }
-
-    #[test]
-    fn an_unchanged_token_is_a_no_op() {
-        assert_eq!(
-            refresh_csrf_in_body(&body(FRESH), Some(FRESH), FRESH),
-            body(FRESH)
-        );
-    }
-
-    #[test]
-    fn no_previous_token_leaves_the_body_untouched() {
-        assert_eq!(refresh_csrf_in_body(&body(STALE), None, FRESH), body(STALE));
-    }
-
-    #[test]
-    fn an_empty_previous_token_does_not_corrupt_the_body() {
-        // "".replace() would splice the fresh token between every character.
-        assert_eq!(
-            refresh_csrf_in_body(&body(STALE), Some(""), FRESH),
-            body(STALE)
-        );
-    }
-
-    #[test]
-    fn a_token_appearing_more_than_once_is_replaced_everywhere() {
-        let two = format!("_csrf={}&nested={}", STALE, STALE);
-        let out = refresh_csrf_in_body(&two, Some(STALE), FRESH);
-        assert_eq!(out, format!("_csrf={}&nested={}", FRESH, FRESH));
+    fn an_html_error_page_is_not_a_success() {
+        let body = "<div class=\"alert alert-danger\">OTP was not sent. Try again later.</div>";
+        assert!(VtopClient::interpret_resend_reply(body).is_err());
     }
 }
 

@@ -139,6 +139,11 @@ class _AttendanceCalculatorPageState
             ),
             const SizedBox(height: 16),
 
+            // ── Classes left until the next CAT or FAT ──
+            // Between the current card and the calendar: the same fact seen
+            // forwards rather than backwards.
+            _buildClassesLeftCard(cs, cardBg, cardBorder),
+
             // ── Day-wise attendance, month by month ──
             _buildCalendarCard(cs, cardBg, cardBorder, captionColor),
 
@@ -346,33 +351,28 @@ class _AttendanceCalculatorPageState
   /// Day-wise attendance as month grids, plus how many classes are left before
   /// the next FAT. Both need data the calculator does not hold, so they are
   /// watched here rather than threaded through the route.
-  Widget _buildCalendarCard(
+  /// "N classes left until the next CAT or FAT".
+  ///
+  /// Sits between the current-attendance card and the calendar: it is the
+  /// forward-looking half of the same fact the card above states backwards, so
+  /// the two belong together and the calendar is the detail beneath them.
+  ///
+  /// The count runs to the next exam VTOP lists - a CAT as readily as a FAT -
+  /// because that is the deadline the student is actually working towards.
+  Widget _buildClassesLeftCard(
     ColorScheme cs,
     Color cardBg,
     Color cardBorder,
-    Color caption,
   ) {
     final courseCode = widget.attendance.courseCode.trim();
-    // The calendar viewmodel already exposes the flattened, date-ordered months.
     final months =
         ref.watch(calendarViewmodelProvider).asData?.value ??
         const <CalendarMonth>[];
     final timetable = ref.watch(timetableViewModelProvider)?.asData?.value;
-    final detailsState = ref.watch(detailedAttendanceViewmodelProvider);
-    final details = detailsState?.asData?.value;
-    // "Still fetching", "VTOP could not be reached" and "nothing posted" all
-    // used to render as the same line of text, so a broken fetch looked
-    // identical to an empty course.
-    final emptyReason = switch (detailsState) {
-      null => EmptyReason.loading,
-      AsyncLoading() => EmptyReason.loading,
-      AsyncError() => EmptyReason.failed,
-      _ => EmptyReason.notPosted,
-    };
-    // VTOP marks a FAT day as an exam, but only says "FAT" in the entry's
-    // description. Fall back to the next exam of any kind so the count still
-    // appears when VTOP words the entry differently.
-    final fatDate = months.isEmpty
+
+    // A FAT day is an exam whose text says so; fall back to the next exam of
+    // any kind so the count still appears when VTOP words it differently.
+    final nextExamDate = months.isEmpty
         ? null
         : (AttendanceProjection.firstDayWhere(
                 months,
@@ -385,16 +385,48 @@ class _AttendanceCalculatorPageState
                 DateTime.now(),
                 (kind, _) => kind == CalendarDayKind.exam,
               ));
-    final classesLeft = (fatDate == null || timetable == null || courseCode.isEmpty)
+
+    final classesLeft =
+        (nextExamDate == null || timetable == null || courseCode.isEmpty)
         ? null
         : AttendanceProjection.classesLeftUntil(
             courseCode: courseCode,
             timetable: timetable,
             months: months,
             now: DateTime.now(),
-            until: fatDate,
+            until: nextExamDate,
           );
 
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.fromLTRB(14, 15, 14, 15),
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: cardBorder, width: 0.75),
+      ),
+      child: ClassesLeftCaption(classesLeft: classesLeft, targetLabel: 'CAT/FAT'),
+    );
+  }
+
+  Widget _buildCalendarCard(
+    ColorScheme cs,
+    Color cardBg,
+    Color cardBorder,
+    Color caption,
+  ) {
+    final detailsState = ref.watch(detailedAttendanceViewmodelProvider);
+    final details = detailsState?.asData?.value;
+    // "Still fetching", "VTOP could not be reached" and "nothing posted" all
+    // used to render as the same line of text, so a broken fetch looked
+    // identical to an empty course.
+    final emptyReason = switch (detailsState) {
+      null => EmptyReason.loading,
+      AsyncLoading() => EmptyReason.loading,
+      AsyncError() => EmptyReason.failed,
+      _ => EmptyReason.notPosted,
+    };
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(14, 16, 14, 18),
@@ -416,8 +448,6 @@ class _AttendanceCalculatorPageState
             ),
           ),
           const SizedBox(height: 14),
-          ClassesLeftCaption(classesLeft: classesLeft),
-          if ((classesLeft ?? 0) > 0) const SizedBox(height: 14),
           AttendanceMonthCard(
             details: details ?? const [],
             emptyReason: emptyReason,

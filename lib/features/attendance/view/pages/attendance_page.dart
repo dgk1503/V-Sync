@@ -10,7 +10,55 @@ import 'package:vit_ap_student_app/core/providers/current_user.dart';
 import 'package:vit_ap_student_app/core/providers/user_preferences_notifier.dart';
 import 'package:vit_ap_student_app/core/utils/show_snackbar.dart';
 import 'package:vit_ap_student_app/features/attendance/view/widgets/attendance_course_card.dart';
+import 'package:vit_ap_student_app/features/skip_planner/view/skip_planner_page.dart';
 import 'package:vit_ap_student_app/features/attendance/viewmodel/attendance_viewmodel.dart';
+
+/// Entry point for the skip planner, sitting under the Theory/Lab toggle.
+///
+/// Built as a [ListTile] with the same tile colour and corner radius as the
+/// course cards below it, so it reads as one of them rather than a different
+/// kind of object dropped into the list.
+class SkipPlannerEntry extends StatelessWidget {
+  const SkipPlannerEntry();
+
+  void _open(BuildContext context) => Navigator.of(context).push(
+    MaterialPageRoute<void>(builder: (_) => const SkipPlannerPage()),
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
+    return ListTile(
+      onTap: () => _open(context),
+      tileColor: colors.surfaceContainerLow,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+      leading: Icon(Icons.event_busy_outlined, color: colors.onSurfaceVariant),
+      title: Text(
+        'Want to skip days?',
+        style: TextStyle(
+          fontFamily: 'Instrument Sans',
+          fontSize: 15,
+          fontWeight: FontWeight.w500,
+          color: colors.onSurface,
+        ),
+      ),
+      subtitle: Text(
+        'See what each day costs you',
+        style: TextStyle(
+          fontFamily: 'Instrument Sans',
+          fontSize: 12.5,
+          color: colors.onSurfaceVariant,
+        ),
+      ),
+      trailing: Icon(
+        Icons.arrow_forward_rounded,
+        size: 20,
+        color: colors.onSurfaceVariant,
+      ),
+    );
+  }
+}
 
 class AttendancePage extends ConsumerStatefulWidget {
   const AttendancePage({super.key});
@@ -119,7 +167,14 @@ class AttendancePageState extends ConsumerState<AttendancePage>
                     controller: _tabController,
                     labels: const ['Theory', 'Lab'],
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 12),
+
+                  // Entry point for the skip planner. Under the Theory/Lab
+                  // toggle because that is where the user already is when they
+                  // start thinking about attendance.
+                  const SkipPlannerEntry(),
+                  const SizedBox(height: 12),
+
                   Expanded(
                     child: TabBarView(
                       controller: _tabController,

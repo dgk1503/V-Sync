@@ -33,14 +33,16 @@ class AuthRemoteRepository {
     required String semSubId,
   }) async {
     try {
-      final client = await vtopService.getClient(
+      // Through the service, not around it: the retry that a dropped session
+      // needs is a single-flighted login, and calling Rust directly would
+      // surface the expiry as a failure the user cannot retry past.
+      final response = await vtopService.executeWithCredentials(
         username: registrationNumber,
         password: password,
-      );
-
-      final response = await vtop.fetchAllData(
-        client: client,
-        semesterId: semSubId,
+        operation: (client) => vtop.fetchAllData(
+          client: client,
+          semesterId: semSubId,
+        ),
       );
 
       final resBodyMap = jsonDecode(response) as Map<String, dynamic>;
@@ -64,13 +66,10 @@ class AuthRemoteRepository {
     required String password,
   }) async {
     try {
-      final client = await vtopService.getClient(
+      final response = await vtopService.executeWithCredentials(
         username: registrationNumber,
         password: password,
-      );
-
-      final response = await vtop.fetchSemesters(
-        client: client,
+        operation: (client) => vtop.fetchSemesters(client: client),
       );
       return Right((response.semesters));
     } on SocketException {

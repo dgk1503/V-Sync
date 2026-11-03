@@ -27,6 +27,12 @@ enum CalendarDayKind {
 
   /// Anything the app cannot classify.
   event,
+
+  /// One of the student's own approved outings.
+  ///
+  /// Not a VTOP fact about the semester, so it gets its own colour rather than
+  /// borrowing a status one - a trip home is neither a holiday nor an exam.
+  outing,
 }
 
 /// One day rendered on the calendar grid: a VTOP day merged with whatever the
@@ -56,6 +62,7 @@ class CalendarChip {
   /// a plain working day and a user countdown never masks a real closure.
   int get precedence => switch (kind) {
     CalendarDayKind.countdown => 0,
+    CalendarDayKind.outing => 1,
     CalendarDayKind.instructional => 1,
     CalendarDayKind.event => 2,
     CalendarDayKind.exam => 3,
@@ -153,6 +160,9 @@ class CalendarEventClassifier {
       // distinct hue that cannot be confused with a closure or an exam.
       CalendarDayKind.countdown => AppCalendarColors.of(context).countdown,
       CalendarDayKind.event => const Color(0xFF5E35B1),
+      // Cyan-leaning so it is unmistakable next to the amber exams,
+      // green closures and violet countdowns already on the grid.
+      CalendarDayKind.outing => const Color(0xFF00838F),
     };
   }
 
@@ -168,7 +178,8 @@ class CalendarEventClassifier {
     CalendarDayKind.noClasses ||
     CalendarDayKind.exam ||
     CalendarDayKind.event ||
-    CalendarDayKind.countdown => true,
+    CalendarDayKind.countdown ||
+    CalendarDayKind.outing => true,
     null => false,
   };
 
