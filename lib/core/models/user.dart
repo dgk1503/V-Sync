@@ -56,15 +56,14 @@ class User {
     ToMany<ExamSchedule>? examSchedule,
     ToOne<GradeHistory>? gradeHistory,
     ToMany<Mark>? marks,
-  }) =>
-      User(
-        id: id ?? this.id,
-        profile: profile ?? this.profile,
-        attendance: attendance ?? this.attendance,
-        timetable: timetable ?? this.timetable,
-        examSchedule: examSchedule ?? this.examSchedule,
-        marks: marks ?? this.marks,
-      );
+  }) => User(
+    id: id ?? this.id,
+    profile: profile ?? this.profile,
+    attendance: attendance ?? this.attendance,
+    timetable: timetable ?? this.timetable,
+    examSchedule: examSchedule ?? this.examSchedule,
+    marks: marks ?? this.marks,
+  );
   Map<String, dynamic> toJson() => _$UserToJson(this);
 
   @override
@@ -92,7 +91,8 @@ class _AttendanceRelToManyConverter
 
   @override
   ToMany<Attendance> fromJson(List<dynamic>? json) {
-    final items = json
+    final items =
+        json
             ?.map((e) => Attendance.fromJson(e as Map<String, dynamic>))
             .toList() ??
         [];
@@ -122,7 +122,8 @@ class _ExamScheduleRelToManyConverter
 
   @override
   ToMany<ExamSchedule> fromJson(List<dynamic>? json) {
-    final items = json
+    final items =
+        json
             ?.map((e) => ExamSchedule.fromJson(e as Map<String, dynamic>))
             .toList() ??
         [];
@@ -142,7 +143,7 @@ class _MarkRelToManyConverter
   ToMany<Mark> fromJson(List<dynamic>? json) {
     final items =
         json?.map((e) => Mark.fromJson(e as Map<String, dynamic>)).toList() ??
-            [];
+        [];
     return ToMany<Mark>(items: items);
   }
 

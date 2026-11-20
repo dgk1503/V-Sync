@@ -37,9 +37,11 @@ class AccountRemoteRepository {
       // Debug: Check if semSubId is empty
       if (semSubId.isEmpty) {
         debugPrint(
-            'WARNING: semSubId is empty! This will cause empty data results.');
+          'WARNING: semSubId is empty! This will cause empty data results.',
+        );
         return Left(
-            Failure('Semester ID is missing. Please logout and login again.'));
+          Failure('Semester ID is missing. Please logout and login again.'),
+        );
       }
 
       final credentials = Credentials(
@@ -54,10 +56,8 @@ class AccountRemoteRepository {
       // This is especially important for sync operations as they're critical for user experience
       final response = await vtopService.executeWithRetry(
         credentials: credentials,
-        operation: (client) => vtop.fetchAllData(
-          client: client,
-          semesterId: semSubId,
-        ),
+        operation: (client) =>
+            vtop.fetchAllData(client: client, semesterId: semSubId),
         maxRetries: 3, // Higher retry count for critical sync operations
       );
 
@@ -95,10 +95,8 @@ class AccountRemoteRepository {
       // Use the new executeWithRetry method for robust session handling
       final response = await vtopService.executeWithRetry(
         credentials: credentials,
-        operation: (client) => vtop.fetchAllData(
-          client: client,
-          semesterId: semSubId,
-        ),
+        operation: (client) =>
+            vtop.fetchAllData(client: client, semesterId: semSubId),
       );
 
       final resBodyMap = jsonDecode(response) as Map<String, dynamic>;

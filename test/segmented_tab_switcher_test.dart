@@ -11,8 +11,9 @@ void main() {
     return positioned.left!;
   }
 
-  testWidgets('selection pill slides continuously with the tab animation',
-      (tester) async {
+  testWidgets('selection pill slides continuously with the tab animation', (
+    tester,
+  ) async {
     await tester.pumpWidget(const _Host());
 
     // Starts on the first segment.
@@ -28,9 +29,16 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 75));
     final early = leftOfPill(tester);
-    expect(early, greaterThan(0.0), reason: 'pill should start moving immediately');
-    expect(early, lessThan(segmentWidth),
-        reason: 'pill should not have arrived yet');
+    expect(
+      early,
+      greaterThan(0.0),
+      reason: 'pill should start moving immediately',
+    );
+    expect(
+      early,
+      lessThan(segmentWidth),
+      reason: 'pill should not have arrived yet',
+    );
 
     // Halfway: pill must be somewhere in between (sliding, not flipping).
     await tester.pump(const Duration(milliseconds: 75));
@@ -43,8 +51,9 @@ void main() {
     expect(leftOfPill(tester), closeTo(segmentWidth, 0.5));
   });
 
-  testWidgets('tapping a segment selects it and the pill lands on it',
-      (tester) async {
+  testWidgets('tapping a segment selects it and the pill lands on it', (
+    tester,
+  ) async {
     await tester.pumpWidget(const _Host());
 
     await tester.tap(find.text('B'));
@@ -52,10 +61,7 @@ void main() {
 
     const segmentWidth = (800.0 - 32 - 10) / 2;
     expect(leftOfPill(tester), closeTo(segmentWidth, 0.5));
-    expect(
-      tester.state<_HostState>(find.byType(_Host)).controller.index,
-      1,
-    );
+    expect(tester.state<_HostState>(find.byType(_Host)).controller.index, 1);
   });
 }
 
@@ -67,8 +73,7 @@ class _Host extends StatefulWidget {
 }
 
 class _HostState extends State<_Host> with SingleTickerProviderStateMixin {
-  late final TabController controller =
-      TabController(length: 2, vsync: this);
+  late final TabController controller = TabController(length: 2, vsync: this);
 
   @override
   void dispose() {

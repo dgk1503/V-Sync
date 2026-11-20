@@ -10218,6 +10218,20 @@ impl SseDecode for Vec<crate::api::vtop::types::timetable::TimetableClass> {
     }
 }
 
+impl SseDecode for Vec<crate::api::vtop::types::timetable::TimetableCourse> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = Vec::with_capacity(len_ as usize);
+        for idx_ in 0..len_ {
+            ans_.push(
+                <crate::api::vtop::types::timetable::TimetableCourse>::sse_decode(deserializer),
+            );
+        }
+        return ans_;
+    }
+}
+
 impl SseDecode for Vec<crate::api::vtop::types::weekend_outing::WeekendOutingRecord> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -10558,6 +10572,8 @@ impl SseDecode for crate::api::vtop::types::timetable::Timetable {
             <Vec<crate::api::vtop::types::timetable::TimetableClass>>::sse_decode(deserializer);
         let mut var_sunday =
             <Vec<crate::api::vtop::types::timetable::TimetableClass>>::sse_decode(deserializer);
+        let mut var_courses =
+            <Vec<crate::api::vtop::types::timetable::TimetableCourse>>::sse_decode(deserializer);
         return crate::api::vtop::types::timetable::Timetable {
             monday: var_monday,
             tuesday: var_tuesday,
@@ -10566,6 +10582,7 @@ impl SseDecode for crate::api::vtop::types::timetable::Timetable {
             friday: var_friday,
             saturday: var_saturday,
             sunday: var_sunday,
+            courses: var_courses,
         };
     }
 }
@@ -10581,6 +10598,7 @@ impl SseDecode for crate::api::vtop::types::timetable::TimetableClass {
         let mut var_faculty = <String>::sse_decode(deserializer);
         let mut var_courseCode = <String>::sse_decode(deserializer);
         let mut var_courseType = <String>::sse_decode(deserializer);
+        let mut var_credits = <String>::sse_decode(deserializer);
         return crate::api::vtop::types::timetable::TimetableClass {
             start_time: var_startTime,
             end_time: var_endTime,
@@ -10590,6 +10608,25 @@ impl SseDecode for crate::api::vtop::types::timetable::TimetableClass {
             faculty: var_faculty,
             course_code: var_courseCode,
             course_type: var_courseType,
+            credits: var_credits,
+        };
+    }
+}
+
+impl SseDecode for crate::api::vtop::types::timetable::TimetableCourse {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_courseCode = <String>::sse_decode(deserializer);
+        let mut var_courseName = <String>::sse_decode(deserializer);
+        let mut var_courseType = <String>::sse_decode(deserializer);
+        let mut var_typeCode = <String>::sse_decode(deserializer);
+        let mut var_credits = <String>::sse_decode(deserializer);
+        return crate::api::vtop::types::timetable::TimetableCourse {
+            course_code: var_courseCode,
+            course_name: var_courseName,
+            course_type: var_courseType,
+            type_code: var_typeCode,
+            credits: var_credits,
         };
     }
 }
@@ -12823,6 +12860,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::vtop::types::timetable::Timet
             self.friday.into_into_dart().into_dart(),
             self.saturday.into_into_dart().into_dart(),
             self.sunday.into_into_dart().into_dart(),
+            self.courses.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -12850,6 +12888,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::vtop::types::timetable::Timet
             self.faculty.into_into_dart().into_dart(),
             self.course_code.into_into_dart().into_dart(),
             self.course_type.into_into_dart().into_dart(),
+            self.credits.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -12862,6 +12901,30 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::vtop::types::timetable::Timet
     for crate::api::vtop::types::timetable::TimetableClass
 {
     fn into_into_dart(self) -> crate::api::vtop::types::timetable::TimetableClass {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::vtop::types::timetable::TimetableCourse {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.course_code.into_into_dart().into_dart(),
+            self.course_name.into_into_dart().into_dart(),
+            self.course_type.into_into_dart().into_dart(),
+            self.type_code.into_into_dart().into_dart(),
+            self.credits.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::vtop::types::timetable::TimetableCourse
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::vtop::types::timetable::TimetableCourse>
+    for crate::api::vtop::types::timetable::TimetableCourse
+{
+    fn into_into_dart(self) -> crate::api::vtop::types::timetable::TimetableCourse {
         self
     }
 }
@@ -14721,6 +14784,16 @@ impl SseEncode for Vec<crate::api::vtop::types::timetable::TimetableClass> {
     }
 }
 
+impl SseEncode for Vec<crate::api::vtop::types::timetable::TimetableCourse> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <crate::api::vtop::types::timetable::TimetableCourse>::sse_encode(item, serializer);
+        }
+    }
+}
+
 impl SseEncode for Vec<crate::api::vtop::types::weekend_outing::WeekendOutingRecord> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -14970,6 +15043,10 @@ impl SseEncode for crate::api::vtop::types::timetable::Timetable {
             self.sunday,
             serializer,
         );
+        <Vec<crate::api::vtop::types::timetable::TimetableCourse>>::sse_encode(
+            self.courses,
+            serializer,
+        );
     }
 }
 
@@ -14984,6 +15061,18 @@ impl SseEncode for crate::api::vtop::types::timetable::TimetableClass {
         <String>::sse_encode(self.faculty, serializer);
         <String>::sse_encode(self.course_code, serializer);
         <String>::sse_encode(self.course_type, serializer);
+        <String>::sse_encode(self.credits, serializer);
+    }
+}
+
+impl SseEncode for crate::api::vtop::types::timetable::TimetableCourse {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.course_code, serializer);
+        <String>::sse_encode(self.course_name, serializer);
+        <String>::sse_encode(self.course_type, serializer);
+        <String>::sse_encode(self.type_code, serializer);
+        <String>::sse_encode(self.credits, serializer);
     }
 }
 

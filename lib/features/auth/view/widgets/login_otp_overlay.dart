@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vit_ap_student_app/core/services/vtop_service.dart';
+import 'package:vit_ap_student_app/core/theme/app_theme.dart';
 import 'package:vit_ap_student_app/features/auth/viewmodel/login_otp_challenge.dart';
+import 'package:vit_ap_student_app/features/thumb_dock/viewmodel/thumb_dock_active.dart';
 import 'package:vit_ap_student_app/init_dependencies.dart';
 
 /// The app-level OTP surface, mounted once in `MaterialApp.builder` so it sits
@@ -72,107 +75,134 @@ class _Prompt extends ConsumerStatefulWidget {
   ConsumerState<_Prompt> createState() => _PromptState();
 }
 
-class _PromptState extends ConsumerState<_Prompt> with WidgetsBindingObserver {
+class _PromptState extends ConsumerState<_Prompt> {
   /// The code typed so far. Held here, above the card/capsule switch, because
-  /// [_Expanded] is unmounted every time the prompt collapses — which now
-  /// includes every time the app is backgrounded.
+  /// [_Expanded] is unmounted every time the prompt collapses: the digits must
+  /// survive the user minimising it to get on with something else.
   final _controller = TextEditingController();
 
   @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addObserver(this);
-  }
-
-  @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
     _controller.dispose();
     super.dispose();
   }
 
-  /// Leaving the app collapses the prompt, deliberately.
-  ///
-  /// The card depends on things the platform takes away while the app is not in
-  /// front of the user — the IME connection above all — so returning to a card
-  /// whose keyboard is gone reads as "the prompt disappeared". The capsule is
-  /// the state that keeps working across a trip to the mail app: it needs no
-  /// keyboard, it carries the countdown, and one tap brings the card back.
-  ///
-  /// `inactive` is deliberately not included: Android reports it for transient
-  /// interruptions — the notification shade, a permission dialog — where
-  /// collapsing the prompt would be surprising.
   @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state != AppLifecycleState.hidden &&
-        state != AppLifecycleState.paused) {
-      return;
-    }
-
-    final challenge = ref.read(loginOtpChallengeProvider);
-    if (!challenge.isActive || challenge.isMinimized) return;
-    ref.read(loginOtpChallengeProvider.notifier).minimize();
-  }
-
   Widget build(BuildContext context) {
     final challenge = ref.watch(loginOtpChallengeProvider);
+    // With the Thumb Dock on, the collapsed prompt lives on the dock's handle
+    // (a countdown; tap to reopen), so the floating capsule would only sit on
+    // top of it. Without the dock the capsule is unchanged.
+    final dockCarriesIt = ref.watch(thumbDockActiveProvider);
 
     return Stack(
       children: [
-        if (challenge.isMinimized)
-          _DraggableCapsule()
-        else
+        if (challenge.isMinimized) ...[
+          if (!dockCarriesIt) _DraggableCapsule(),
+        ] else
           Positioned.fill(child: _Expanded(controller: _controller)),
       ],
     );
   }
 }
 
-/// The capsule, draggable to anywhere on screen.
+/// The capsule: it follows the finger while it is dragged and, on release,
+/// settles against the nearer side of the screen.
 ///
-/// The offset lives here rather than inside the capsule so it survives the
+/// Only the side is chosen for the user; the height is wherever they let go, so
+/// it can be parked clear of whatever they are reading. It never rests in the
+/// middle of the screen, where it would cover the content.
+///
+/// The position lives here rather than inside the capsule so it survives the
 /// card-to-capsule switch: minimising and restoring must not send the capsule
-/// back to its corner, because the user moved it somewhere on purpose.
+/// back to its corner, because the user put it somewhere on purpose.
 ///
-/// It is clamped to the screen and lifted clear of the keyboard, so the capsule
-/// can never be dragged somewhere it cannot be reached from again.
+/// It is clamped to the screen and lifted clear of the keyboard, so it can never
+/// end up somewhere it cannot be reached from again.
 class _DraggableCapsule extends StatefulWidget {
   @override
   State<_DraggableCapsule> createState() => _DraggableCapsuleState();
 }
 
 class _DraggableCapsuleState extends State<_DraggableCapsule> {
-  Offset _offset = Offset.zero;
+  /// Where the capsule was last left, or null while it is still home.
+  Offset? _offset;
+
+  /// While the finger is down the capsule must track it exactly; the glide to
+  /// the side only runs once it is let go.
+  bool _dragging = false;
 
   static const double _edge = 16;
-  static const double _capsuleWidth = 140;
   static const double _capsuleHeight = 44;
+
+  /// The capsule's real width. Its text changes ("OTP 02:59", "Enter OTP"), so
+  /// it is measured after layout rather than guessed: a guess that is too small
+  /// lets the capsule hang off the edge it docks against.
+  double _capsuleWidth = 150;
+  final _capsuleKey = GlobalKey();
+
+  void _measure() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final box = _capsuleKey.currentContext?.findRenderObject() as RenderBox?;
+      if (box == null || !box.hasSize) return;
+      if ((box.size.width - _capsuleWidth).abs() > 0.5) {
+        setState(() => _capsuleWidth = box.size.width);
+      }
+    });
+  }
+
+  /// The capsule's home: bottom-right, above the floating navbar, so it is
+  /// visible without covering the back button or the page header.
+  static const double _navbarClearance = 96;
 
   @override
   Widget build(BuildContext context) {
+    _measure();
     final size = MediaQuery.sizeOf(context);
     final keyboard = MediaQuery.viewInsetsOf(context).bottom;
+    final bottomInset = MediaQuery.paddingOf(context).bottom;
 
     final maxLeft = (size.width - _capsuleWidth - _edge).clamp(0.0, size.width);
-    final maxTop = (size.height - _capsuleHeight - _edge - keyboard)
-        .clamp(0.0, size.height);
-    final left = _offset.dx.clamp(0.0, maxLeft);
-    final top = _offset.dy.clamp(0.0, maxTop);
+    final maxTop = (size.height - _capsuleHeight - _edge - keyboard).clamp(
+      0.0,
+      size.height,
+    );
+    final home = Offset(
+      maxLeft,
+      (size.height - _capsuleHeight - _navbarClearance - bottomInset - keyboard)
+          .clamp(0.0, maxTop),
+    );
+    final at = _offset ?? home;
+    final left = at.dx.clamp(_edge, maxLeft);
+    final top = at.dy.clamp(0.0, maxTop);
 
-    return Positioned(
+    void settle() {
+      // Nearer side wins, judged by where the capsule's middle is.
+      final middle = left + _capsuleWidth / 2;
+      setState(() {
+        _dragging = false;
+        _offset = Offset(middle < size.width / 2 ? _edge : maxLeft, top);
+      });
+    }
+
+    return AnimatedPositioned(
+      duration: _dragging ? Duration.zero : const Duration(milliseconds: 220),
+      curve: Curves.easeOutCubic,
       left: left,
       top: top,
       child: GestureDetector(
         // A drag moves it and a tap reopens. Opaque so a tap on the transparent
         // gutter around the capsule still counts as a tap on it.
         behavior: HitTestBehavior.opaque,
+        onPanStart: (_) => setState(() => _dragging = true),
         onPanUpdate: (details) => setState(
-          () => _offset = Offset(
-            _offset.dx + details.delta.dx,
-            _offset.dy + details.delta.dy,
-          ),
+          () =>
+              _offset = Offset(left + details.delta.dx, top + details.delta.dy),
         ),
-        child: const _Capsule(),
+        onPanEnd: (_) => settle(),
+        onPanCancel: settle,
+        child: _Capsule(key: _capsuleKey),
       ),
     );
   }
@@ -191,7 +221,7 @@ void _dismissChallenge(WidgetRef ref) {
 /// The collapsed prompt: a capsule above the navbar carrying the countdown, so
 /// the user can tell how long they have and carry on using the app.
 class _Capsule extends ConsumerWidget {
-  const _Capsule();
+  const _Capsule({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -239,8 +269,7 @@ class _Capsule extends ConsumerWidget {
 class _Expanded extends ConsumerStatefulWidget {
   const _Expanded({required this.controller});
 
-  /// Owned by [_Prompt] so the digits survive a collapse, which is what
-  /// backgrounding the app now does.
+  /// Owned by [_Prompt] so the digits survive the user minimising the prompt.
   final TextEditingController controller;
 
   @override
@@ -278,9 +307,7 @@ class _ExpandedState extends ConsumerState<_Expanded>
   /// had to be asked for explicitly. Measured: without this, returning from the
   /// background emits no `TextInput.show` at all. Same helper as the tap path.
   ///
-  /// Backgrounding the app collapses the prompt (see [_PromptState]), so this
-  /// fires for the interruptions that do not - a permission dialog, the
-  /// notification shade - where the card stays up and must keep its keyboard.
+  /// The card stays up across the trip, so it has to get its keyboard back.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state != AppLifecycleState.resumed) return;
@@ -297,6 +324,15 @@ class _ExpandedState extends ConsumerState<_Expanded>
     final notifier = ref.read(loginOtpChallengeProvider.notifier);
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
+
+    // The moment VTOP accepts a code that came from Gmail: drop the keyboard and
+    // give a small tap of feedback, as the tick appears.
+    ref.listen<OtpChallenge>(loginOtpChallengeProvider, (previous, next) {
+      if (next.isSucceeded && !(previous?.isSucceeded ?? false)) {
+        _focusNode.unfocus();
+        HapticFeedback.mediumImpact();
+      }
+    });
 
     return Material(
       type: MaterialType.transparency,
@@ -321,164 +357,228 @@ class _ExpandedState extends ConsumerState<_Expanded>
               ),
               child: GestureDetector(
                 onTap: () {},
-                child: Container(
-                  width: double.infinity,
-                  constraints: const BoxConstraints(maxWidth: 420),
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: colors.surfaceContainerLow,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: colors.outlineVariant, width: 0.75),
+                // On success the card shows a tick, then shrinks away. `t` runs
+                // 0 to 1 over [kOtpSuccessHold], the same time the prompt stays.
+                child: TweenAnimationBuilder<double>(
+                  tween: Tween<double>(
+                    begin: 0,
+                    end: challenge.isSucceeded ? 1 : 0,
                   ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              'Verification',
-                              style: theme.textTheme.headlineSmall?.copyWith(
-                                fontWeight: FontWeight.w500,
-                              ),
+                  duration: kOtpSuccessHold,
+                  builder: (context, t, _) {
+                    final exit = ((t - 0.78) / 0.22).clamp(0.0, 1.0);
+                    return Opacity(
+                      opacity: 1 - exit,
+                      child: Transform.scale(
+                        scale: 1 - 0.06 * exit,
+                        child: Container(
+                          width: double.infinity,
+                          constraints: const BoxConstraints(maxWidth: 420),
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: colors.surfaceContainerLow,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: colors.outlineVariant,
+                              width: 0.75,
                             ),
                           ),
-                          // `container` and `excludeSemantics` matter here:
-                          // IconButton emits its own semantics node, so a plain
-                          // wrapper's label is discarded and the control reads
-                          // as an unlabelled button to a screen reader.
-                          Semantics(
-                            container: true,
-                            excludeSemantics: true,
-                            label: 'Minimise',
-                            button: true,
-                            child: IconButton(
-                              key: const Key('otp-minimise'),
-                              onPressed: notifier.minimize,
-                              visualDensity: VisualDensity.compact,
-                              // Sized up from the neighbouring 15px body text
-                              // so the collapse control reads as a control and
-                              // not as punctuation.
-                              icon: Icon(
-                                Icons.keyboard_double_arrow_down_rounded,
-                                size: 26,
-                                color: colors.onSurface,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      Text(
-                        challenge.message.isEmpty
-                            ? 'Enter the OTP sent to your registered email.'
-                            : challenge.message,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          fontSize: 13.5,
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      _OtpField(
-                        controller: widget.controller,
-                        focusNode: _focusNode,
-                        enabled: !challenge.isBusy,
-                        hasError: challenge.errorMessage != null,
-                      ),
-                      if (challenge.errorMessage != null) ...[
-                        const SizedBox(height: 10),
-                        Text(
-                          challenge.errorMessage!,
-                          style: TextStyle(
-                            fontFamily: 'Instrument Sans',
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w500,
-                            color: colors.error,
-                          ),
-                        ),
-                      ],
-                      const SizedBox(height: 22),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: OutlinedButton(
-                              onPressed: challenge.canResend
-                                  ? notifier.resendOtp
-                                  : null,
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: colors.onSurface,
-                                minimumSize: const Size.fromHeight(48),
-                                side: BorderSide(color: colors.outlineVariant),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(14),
-                                ),
-                              ),
-                              child: Text(
-                                challenge.remainingSeconds > 0
-                                    ? 'Resend (${challenge.remainingSeconds}s)'
-                                    : 'Resend OTP',
-                                style: const TextStyle(
-                                  fontFamily: 'Instrument Sans',
-                                  fontSize: 14.5,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: FilledButton(
-                              onPressed: challenge.isBusy
-                                  ? null
-                                  : () =>
-                                        notifier.submitOtp(widget.controller.text),
-                              style: FilledButton.styleFrom(
-                                elevation: 0,
-                                backgroundColor: colors.primary,
-                                foregroundColor: colors.onPrimary,
-                                disabledBackgroundColor: colors.surfaceContainerHigh,
-                                disabledForegroundColor: colors.onSurfaceVariant,
-                                minimumSize: const Size.fromHeight(48),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(14),
-                                ),
-                              ),
-                              child: challenge.isSubmitting
-                                  ? const SizedBox(
-                                      width: 22,
-                                      height: 22,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
+                          child: AnimatedSize(
+                            duration: const Duration(milliseconds: 220),
+                            curve: Curves.easeOutCubic,
+                            alignment: Alignment.topCenter,
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (challenge.isSucceeded)
+                                  _OtpSuccess(progress: t),
+                                // Kept mounted (just not shown) so the code box and its
+                                // focus survive; only the tick takes its place.
+                                Offstage(
+                                  offstage: challenge.isSucceeded,
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Expanded(
+                                            child: Text(
+                                              'Verification',
+                                              style: theme
+                                                  .textTheme
+                                                  .headlineSmall
+                                                  ?.copyWith(
+                                                    fontWeight: FontWeight.w500,
+                                                  ),
+                                            ),
+                                          ),
+                                          // `container` and `excludeSemantics` matter here:
+                                          // IconButton emits its own semantics node, so a plain
+                                          // wrapper's label is discarded and the control reads
+                                          // as an unlabelled button to a screen reader.
+                                          Semantics(
+                                            container: true,
+                                            excludeSemantics: true,
+                                            label: 'Minimise',
+                                            button: true,
+                                            child: IconButton(
+                                              key: const Key('otp-minimise'),
+                                              onPressed: notifier.minimize,
+                                              visualDensity:
+                                                  VisualDensity.compact,
+                                              // Sized up from the neighbouring 15px body text
+                                              // so the collapse control reads as a control and
+                                              // not as punctuation.
+                                              icon: Icon(
+                                                Icons
+                                                    .keyboard_double_arrow_down_rounded,
+                                                size: 26,
+                                                color: colors.onSurface,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
                                       ),
-                                    )
-                                  : const Text(
-                                      'Verify',
-                                      style: TextStyle(
-                                        fontFamily: 'Instrument Sans',
-                                        fontSize: 14.5,
-                                        fontWeight: FontWeight.w500,
+                                      Text(
+                                        challenge.message.isEmpty
+                                            ? 'Enter the OTP sent to your registered email.'
+                                            : challenge.message,
+                                        style: theme.textTheme.bodySmall
+                                            ?.copyWith(fontSize: 13.5),
                                       ),
-                                    ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Center(
-                        child: TextButton(
-                          onPressed: challenge.isBusy
-                              ? null
-                              : () => _dismissChallenge(ref),
-                          child: const Text(
-                            'Cancel',
-                            style: TextStyle(
-                              fontFamily: 'Instrument Sans',
-                              fontSize: 13,
+                                      // The automatic Gmail reader: not enabled, fetching, checking
+                                      // the code, or why it stopped. Typing the code always works.
+                                      if (challenge.autoPhase != null) ...[
+                                        const SizedBox(height: 10),
+                                        _AutoLine(challenge: challenge),
+                                      ],
+                                      const SizedBox(height: 20),
+                                      _OtpField(
+                                        controller: widget.controller,
+                                        focusNode: _focusNode,
+                                        enabled: !challenge.isBusy,
+                                        hasError:
+                                            challenge.errorMessage != null,
+                                      ),
+                                      if (challenge.errorMessage != null) ...[
+                                        const SizedBox(height: 10),
+                                        Text(
+                                          challenge.errorMessage!,
+                                          style: TextStyle(
+                                            fontFamily: 'Instrument Sans',
+                                            fontSize: 12.5,
+                                            fontWeight: FontWeight.w500,
+                                            color: colors.error,
+                                          ),
+                                        ),
+                                      ],
+                                      const SizedBox(height: 22),
+                                      Row(
+                                        children: [
+                                          Expanded(
+                                            child: OutlinedButton(
+                                              onPressed: challenge.canResend
+                                                  ? notifier.resendOtp
+                                                  : null,
+                                              style: OutlinedButton.styleFrom(
+                                                foregroundColor:
+                                                    colors.onSurface,
+                                                minimumSize:
+                                                    const Size.fromHeight(48),
+                                                side: BorderSide(
+                                                  color: colors.outlineVariant,
+                                                ),
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(14),
+                                                ),
+                                              ),
+                                              child: Text(
+                                                challenge.remainingSeconds > 0
+                                                    ? 'Resend (${challenge.remainingSeconds}s)'
+                                                    : 'Resend OTP',
+                                                style: const TextStyle(
+                                                  fontFamily: 'Instrument Sans',
+                                                  fontSize: 14.5,
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: FilledButton(
+                                              onPressed: challenge.isBusy
+                                                  ? null
+                                                  : () => notifier.submitOtp(
+                                                      widget.controller.text,
+                                                    ),
+                                              style: FilledButton.styleFrom(
+                                                elevation: 0,
+                                                backgroundColor: colors.primary,
+                                                foregroundColor:
+                                                    colors.onPrimary,
+                                                disabledBackgroundColor:
+                                                    colors.surfaceContainerHigh,
+                                                disabledForegroundColor:
+                                                    colors.onSurfaceVariant,
+                                                minimumSize:
+                                                    const Size.fromHeight(48),
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(14),
+                                                ),
+                                              ),
+                                              child: challenge.isSubmitting
+                                                  ? const SizedBox(
+                                                      width: 22,
+                                                      height: 22,
+                                                      child:
+                                                          CircularProgressIndicator(
+                                                            strokeWidth: 2,
+                                                          ),
+                                                    )
+                                                  : const Text(
+                                                      'Verify',
+                                                      style: TextStyle(
+                                                        fontFamily:
+                                                            'Instrument Sans',
+                                                        fontSize: 14.5,
+                                                        fontWeight:
+                                                            FontWeight.w500,
+                                                      ),
+                                                    ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Center(
+                                        child: TextButton(
+                                          onPressed: challenge.isBusy
+                                              ? null
+                                              : () => _dismissChallenge(ref),
+                                          child: const Text(
+                                            'Cancel',
+                                            style: TextStyle(
+                                              fontFamily: 'Instrument Sans',
+                                              fontSize: 13,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ),
                       ),
-                    ],
-                  ),
+                    );
+                  },
                 ),
               ),
             ),
@@ -661,4 +761,199 @@ class _Box extends StatelessWidget {
       ),
     );
   }
+}
+
+/// What the automatic reader is doing, as one quiet line above the code boxes.
+class _AutoLine extends StatelessWidget {
+  const _AutoLine({required this.challenge});
+
+  final OtpChallenge challenge;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final style = TextStyle(
+      fontFamily: 'Instrument Sans',
+      fontSize: 12.5,
+      height: 1.35,
+      color: colors.onSurfaceVariant,
+    );
+
+    Widget spinner() => SizedBox(
+      width: 14,
+      height: 14,
+      child: CircularProgressIndicator(
+        strokeWidth: 1.8,
+        color: colors.onSurfaceVariant,
+      ),
+    );
+
+    Widget row(Widget lead, String text) => Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(padding: const EdgeInsets.only(top: 1), child: lead),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            text,
+            key: const ValueKey('otp-auto-status'),
+            style: style,
+          ),
+        ),
+      ],
+    );
+
+    switch (challenge.autoPhase) {
+      case OtpAutoPhase.fetching:
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            row(spinner(), 'Fetching OTP automatically...'),
+            const SizedBox(height: 8),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(2),
+              child: LinearProgressIndicator(
+                minHeight: 2,
+                backgroundColor: colors.surfaceContainerHigh,
+                color: colors.onSurfaceVariant,
+              ),
+            ),
+          ],
+        );
+      case OtpAutoPhase.verifying:
+        return row(spinner(), 'OTP fetched. Verifying...');
+      case OtpAutoPhase.failed:
+        return row(
+          Icon(
+            LucideIcons.mailWarning,
+            size: 14,
+            color: colors.onSurfaceVariant,
+          ),
+          challenge.autoStatus ?? 'Could not fetch the code automatically.',
+        );
+      case OtpAutoPhase.notEnabled:
+        return row(
+          Icon(LucideIcons.mailX, size: 14, color: colors.onSurfaceVariant),
+          'Automatic OTP fetching is not enabled.',
+        );
+      case OtpAutoPhase.succeeded:
+      case null:
+        return const SizedBox.shrink();
+    }
+  }
+}
+
+/// The success state: a green circle that pops in, a tick that draws itself, and
+/// "OTP fetched successfully" under it, as a payment confirmation does.
+///
+/// [progress] runs 0 to 1 over the time the prompt stays up.
+class _OtpSuccess extends StatelessWidget {
+  const _OtpSuccess({required this.progress});
+
+  final double progress;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final green = AppStatusColors.of(context).success;
+
+    final pop = Curves.easeOutBack.transform((progress / 0.22).clamp(0.0, 1.0));
+    final tick = Curves.easeInOut.transform(
+      ((progress - 0.14) / 0.22).clamp(0.0, 1.0),
+    );
+    final words = ((progress - 0.34) / 0.16).clamp(0.0, 1.0);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 14),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Transform.scale(
+            scale: pop,
+            child: SizedBox(
+              width: 84,
+              height: 84,
+              child: CustomPaint(
+                key: const ValueKey('otp-success-tick'),
+                painter: _TickPainter(color: green, tick: tick),
+              ),
+            ),
+          ),
+          const SizedBox(height: 18),
+          Opacity(
+            opacity: words,
+            child: Text(
+              'OTP fetched successfully',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontFamily: 'Instrument Sans',
+                fontSize: 17,
+                fontWeight: FontWeight.w500,
+                color: colors.onSurface,
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Opacity(
+            opacity: words,
+            child: Text(
+              'Signing you in',
+              style: TextStyle(
+                fontFamily: 'Instrument Sans',
+                fontSize: 12.5,
+                color: colors.onSurfaceVariant,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A soft green disc, a ring, and a tick drawn stroke by stroke ([tick] 0 to 1).
+class _TickPainter extends CustomPainter {
+  _TickPainter({required this.color, required this.tick});
+
+  final Color color;
+  final double tick;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = size.center(Offset.zero);
+    final radius = size.width / 2 - 3;
+
+    canvas.drawCircle(
+      center,
+      radius,
+      Paint()..color = color.withValues(alpha: 0.14),
+    );
+    canvas.drawCircle(
+      center,
+      radius,
+      Paint()
+        ..color = color
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 3,
+    );
+
+    final path = Path()
+      ..moveTo(size.width * 0.29, size.height * 0.53)
+      ..lineTo(size.width * 0.44, size.height * 0.68)
+      ..lineTo(size.width * 0.72, size.height * 0.37);
+    final metric = path.computeMetrics().first;
+    canvas.drawPath(
+      metric.extractPath(0, metric.length * tick),
+      Paint()
+        ..color = color
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 5
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_TickPainter old) =>
+      old.tick != tick || old.color != color;
 }

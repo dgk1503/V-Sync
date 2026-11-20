@@ -3,11 +3,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:vit_ap_student_app/core/theme/app_theme.dart';
 import 'package:vit_ap_student_app/features/calendar/model/calendar_chip.dart';
 
-CalendarChip _chip(CalendarDayKind kind, {String title = 'x'}) => CalendarChip(
-  date: DateTime(2026, 10, 5),
-  kind: kind,
-  title: title,
-);
+CalendarChip _chip(CalendarDayKind kind, {String title = 'x'}) =>
+    CalendarChip(date: DateTime(2026, 10, 5), kind: kind, title: title);
 
 void main() {
   group('ringKindFor', () {
@@ -82,7 +79,9 @@ void main() {
   });
 
   group('the ring colour matches the list', () {
-    testWidgets('both read from one place, so they cannot drift', (tester) async {
+    testWidgets('both read from one place, so they cannot drift', (
+      tester,
+    ) async {
       late Color fromList;
       late Color fromGrid;
 

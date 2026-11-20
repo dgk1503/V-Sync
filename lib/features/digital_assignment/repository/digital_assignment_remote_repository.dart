@@ -41,10 +41,8 @@ class DigitalAssignmentRemoteRepository {
 
       final jsonString = await vtopService.executeWithRetry(
         credentials: credentials,
-        operation: (client) => vtop.fetchDigitalAssignments(
-          client: client,
-          semesterId: semSubId,
-        ),
+        operation: (client) =>
+            vtop.fetchDigitalAssignments(client: client, semesterId: semSubId),
       );
 
       log(jsonString);
@@ -60,9 +58,11 @@ class DigitalAssignmentRemoteRepository {
       return Left(Failure('Invalid response format from server'));
     } catch (e) {
       debugPrint(
-          'Error fetching digital assignments from VTOP: ${e.toString()}');
+        'Error fetching digital assignments from VTOP: ${e.toString()}',
+      );
       return Left(
-          Failure('Failed to fetch digital assignments: ${e.toString()}'));
+        Failure('Failed to fetch digital assignments: ${e.toString()}'),
+      );
     }
   }
 

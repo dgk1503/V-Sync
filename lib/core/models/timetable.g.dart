@@ -17,6 +17,7 @@ Timetable _$TimetableFromJson(Map<String, dynamic> json) => Timetable(
   friday: const _DayRelToManyConverter().fromJson(json['Friday'] as List?),
   saturday: const _DayRelToManyConverter().fromJson(json['Saturday'] as List?),
   sunday: const _DayRelToManyConverter().fromJson(json['Sunday'] as List?),
+  courseTable: const _CourseTableConverter().fromJson(json['courses']),
 );
 
 Map<String, dynamic> _$TimetableToJson(Timetable instance) => <String, dynamic>{
@@ -28,6 +29,7 @@ Map<String, dynamic> _$TimetableToJson(Timetable instance) => <String, dynamic>{
   'Friday': const _DayRelToManyConverter().toJson(instance.friday),
   'Saturday': const _DayRelToManyConverter().toJson(instance.saturday),
   'Sunday': const _DayRelToManyConverter().toJson(instance.sunday),
+  'courses': const _CourseTableConverter().toJson(instance.courseTable),
 };
 
 Day _$DayFromJson(Map<String, dynamic> json) => Day(
@@ -40,6 +42,7 @@ Day _$DayFromJson(Map<String, dynamic> json) => Day(
   faculty: json['faculty'] as String?,
   courseCode: json['course_code'] as String?,
   courseType: json['course_type'] as String?,
+  credits: json['credits'] as String?,
 );
 
 Map<String, dynamic> _$DayToJson(Day instance) => <String, dynamic>{
@@ -52,4 +55,5 @@ Map<String, dynamic> _$DayToJson(Day instance) => <String, dynamic>{
   'faculty': instance.faculty,
   'course_code': instance.courseCode,
   'course_type': instance.courseType,
+  'credits': instance.credits,
 };

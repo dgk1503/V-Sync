@@ -88,8 +88,7 @@ class AppCalendarColors {
     // Read `colorScheme.brightness`, not `Theme.of(context).brightness`:
     // `getThemeData` only sets the former, so `ThemeData.brightness` is always
     // light and a brightness check on it silently never takes the dark branch.
-    final isDark =
-        Theme.of(context).colorScheme.brightness == Brightness.dark;
+    final isDark = Theme.of(context).colorScheme.brightness == Brightness.dark;
     // Violet reads as "mine, not the institution's" and holds up against both
     // the amber exams and the green closures sitting next to it.
     return AppCalendarColors(
@@ -119,12 +118,17 @@ class CalendarEventClassifier {
         text.contains('non instructional')) {
       return CalendarDayKind.noClasses;
     }
-    if (text.contains('holiday') || text.contains('deepavali') ||
-        text.contains('christmas') || text.contains('independence')) {
+    if (text.contains('holiday') ||
+        text.contains('deepavali') ||
+        text.contains('christmas') ||
+        text.contains('independence') ||
+        text.contains('vacation')) {
       return CalendarDayKind.holiday;
     }
-    if (text.contains('lab fat') || text.contains('fat') ||
-        text.contains('exam') || text.contains('cat')) {
+    // `cat` and `fat` are matched as whole words: as substrings they also fire
+    // inside "vacation", "location" or "fatima", which turned closures into
+    // exams and hid them from the skip planner.
+    if (RegExp(r'\b(cat|fat)\b').hasMatch(text) || text.contains('exam')) {
       return CalendarDayKind.exam;
     }
     if (text.contains('working') || text.contains('instructional')) {
@@ -146,10 +150,7 @@ class CalendarEventClassifier {
 
   /// The colour a day chip is drawn in, taken from the app's status palette so
   /// it follows the active light/dark theme instead of being hardcoded.
-  static Color colorFor(
-    BuildContext context,
-    CalendarDayKind kind,
-  ) {
+  static Color colorFor(BuildContext context, CalendarDayKind kind) {
     final status = AppStatusColors.of(context);
     return switch (kind) {
       CalendarDayKind.instructional => status.success,
@@ -195,7 +196,8 @@ class CalendarEventClassifier {
   /// listed below with its own badge.
   static CalendarDayKind? ringKindFor(List<CalendarChip> chips) {
     for (final chip in chips) {
-      if (chip.kind == CalendarDayKind.countdown) return CalendarDayKind.countdown;
+      if (chip.kind == CalendarDayKind.countdown)
+        return CalendarDayKind.countdown;
     }
     final markable = chips.where((chip) => !isOrdinarySunday(chip)).toList();
     // Highest precedence wins rather than first-in-list, so the result does not

@@ -1,0 +1,63 @@
+{
+  "manifest_version": 3,
+  "name": "VITAP Mate – VTOP Sign In",
+  "version": "2.0.0",
+  "description": "Sign in to VTOP with an access key from the VITAP Mate app.",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "vtop-signin@vitapmate",
+      "strict_min_version": "142.0",
+      "data_collection_permissions": {
+        "required": [
+          "authenticationInfo"
+        ]
+      }
+    }
+  },
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "action": {
+    "default_title": "VITAP Mate",
+    "default_popup": "index.html"
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "permissions": [
+    "storage",
+    "tabs",
+    "cookies"
+  ],
+  "host_permissions": [
+    "https://vtop.vitap.ac.in/*"
+  ],
+  "optional_host_permissions": [
+    "https://*/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://vtop.vitap.ac.in/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "icons/icon-32.png"
+      ],
+      "matches": [
+        "https://vtop.vitap.ac.in/*"
+      ]
+    }
+  ]
+}

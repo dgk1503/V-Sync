@@ -32,7 +32,9 @@ class _ForYouViewAllPageState extends ConsumerState<ForYouViewAllPage> {
   }
 
   void _applyFilters() {
-    ref.read(forYouViewModelProvider.notifier).filterItems(
+    ref
+        .read(forYouViewModelProvider.notifier)
+        .filterItems(
           searchQuery: _searchController.text,
           typeFilter: _selectedType,
           sortBy: _sortBy,
@@ -123,10 +125,9 @@ class _ForYouViewAllPageState extends ConsumerState<ForYouViewAllPage> {
       appBar: AppBar(
         title: Text(
           'For you',
-          style: Theme.of(context)
-              .textTheme
-              .titleLarge
-              ?.copyWith(fontWeight: FontWeight.w500),
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w500),
         ),
         actions: [
           IconButton(
@@ -206,19 +207,21 @@ class _ForYouViewAllPageState extends ConsumerState<ForYouViewAllPage> {
                     },
                   ),
                   const SizedBox(width: 8),
-                  ...types.map((type) => Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: FilterChip(
-                          label: Text(type.toUpperCase()),
-                          selected: _selectedType == type,
-                          onSelected: (selected) {
-                            setState(() {
-                              _selectedType = selected ? type : null;
-                            });
-                            _applyFilters();
-                          },
-                        ),
-                      )),
+                  ...types.map(
+                    (type) => Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: FilterChip(
+                        label: Text(type.toUpperCase()),
+                        selected: _selectedType == type,
+                        onSelected: (selected) {
+                          setState(() {
+                            _selectedType = selected ? type : null;
+                          });
+                          _applyFilters();
+                        },
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -250,9 +253,7 @@ class _ForYouViewAllPageState extends ConsumerState<ForYouViewAllPage> {
                         ),
                       ),
                     ),
-              loading: () => const Center(
-                child: CircularProgressIndicator(),
-              ),
+              loading: () => const Center(child: CircularProgressIndicator()),
               error: (error, _) => Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -302,8 +303,8 @@ class _ForYouViewAllPageState extends ConsumerState<ForYouViewAllPage> {
           Text(
             'Try adjusting your search or filters',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.outline,
-                ),
+              color: Theme.of(context).colorScheme.outline,
+            ),
           ),
         ],
       ),

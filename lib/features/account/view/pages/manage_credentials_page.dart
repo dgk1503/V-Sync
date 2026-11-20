@@ -33,7 +33,8 @@ class _ManageCredentialsPageState extends ConsumerState<ManageCredentialsPage> {
       final notifier = ref.read(currentUserProvider.notifier);
       final Credentials? oldCredentials = await notifier.getSavedCredentials();
 
-      final Credentials newCredentials = oldCredentials?.copyWith(
+      final Credentials newCredentials =
+          oldCredentials?.copyWith(
             registrationNumber: _usernameController.text.trim(),
             password: _passwordController.text.trim(),
           ) ??
@@ -46,7 +47,10 @@ class _ManageCredentialsPageState extends ConsumerState<ManageCredentialsPage> {
       await notifier.updateSavedCredentials(newCredentials: newCredentials);
       if (!mounted) return;
       showSnackBar(
-          context, 'Credentials updated successfully', SnackBarType.success);
+        context,
+        'Credentials updated successfully',
+        SnackBarType.success,
+      );
       Navigator.pop(context);
     }
   }
@@ -57,10 +61,9 @@ class _ManageCredentialsPageState extends ConsumerState<ManageCredentialsPage> {
       appBar: AppBar(
         title: Text(
           'Manage Credentials',
-          style: Theme.of(context)
-              .textTheme
-              .headlineSmall
-              ?.copyWith(fontWeight: FontWeight.w500),
+          style: Theme.of(
+            context,
+          ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w500),
         ),
       ),
       body: FutureBuilder<Credentials?>(
@@ -71,9 +74,11 @@ class _ManageCredentialsPageState extends ConsumerState<ManageCredentialsPage> {
           }
           final credentials = snapshot.data;
           _usernameController = TextEditingController(
-              text: credentials?.registrationNumber ?? '');
-          _passwordController =
-              TextEditingController(text: credentials?.password ?? '');
+            text: credentials?.registrationNumber ?? '',
+          );
+          _passwordController = TextEditingController(
+            text: credentials?.password ?? '',
+          );
 
           return Padding(
             padding: const EdgeInsets.all(16.0),
@@ -82,9 +87,7 @@ class _ManageCredentialsPageState extends ConsumerState<ManageCredentialsPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  SizedBox(
-                    width: MediaQuery.sizeOf(context).width,
-                  ),
+                  SizedBox(width: MediaQuery.sizeOf(context).width),
                   AuthField(
                     controller: _usernameController,
                     hintText: 'Username',
@@ -98,10 +101,13 @@ class _ManageCredentialsPageState extends ConsumerState<ManageCredentialsPage> {
                   const SizedBox(height: 32),
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor:
-                          Theme.of(context).colorScheme.secondaryContainer,
-                      minimumSize:
-                          Size(MediaQuery.sizeOf(context).width - 100, 60),
+                      backgroundColor: Theme.of(
+                        context,
+                      ).colorScheme.secondaryContainer,
+                      minimumSize: Size(
+                        MediaQuery.sizeOf(context).width - 100,
+                        60,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(9.0),
                       ),

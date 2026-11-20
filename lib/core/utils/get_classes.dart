@@ -44,7 +44,9 @@ bool isLabClass(Day classInfo) {
   if (venue.contains('lab')) return true;
 
   final slot = (classInfo.slot ?? '').trim().toUpperCase();
-  if (slot.startsWith('L') && slot.isNotEmpty && RegExp(r'^L\d').hasMatch(slot)) {
+  if (slot.startsWith('L') &&
+      slot.isNotEmpty &&
+      RegExp(r'^L\d').hasMatch(slot)) {
     return true;
   }
 

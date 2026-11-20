@@ -19,10 +19,9 @@ class MilestoneManagePage extends ConsumerWidget {
       appBar: AppBar(
         title: AccentGradientText(
           'Manage countdowns',
-          style: Theme.of(context)
-              .textTheme
-              .headlineSmall
-              ?.copyWith(fontWeight: FontWeight.w500),
+          style: Theme.of(
+            context,
+          ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w500),
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
@@ -30,9 +29,7 @@ class MilestoneManagePage extends ConsumerWidget {
         elevation: 0,
         backgroundColor: colorScheme.primary,
         foregroundColor: colorScheme.onPrimary,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         icon: const Icon(Iconsax.add_copy, size: 20),
         label: const Text(
           'New countdown',
@@ -92,8 +89,10 @@ class MilestoneManagePage extends ConsumerWidget {
                 }
 
                 return Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
                   decoration: BoxDecoration(
                     color: colorScheme.surfaceContainerLow,
                     borderRadius: BorderRadius.circular(14),
@@ -247,7 +246,9 @@ class _AddMilestoneSheetState extends ConsumerState<_AddMilestoneSheet> {
       time.minute,
     );
 
-    await ref.read(milestonesProvider.notifier).addMilestone(
+    await ref
+        .read(milestonesProvider.notifier)
+        .addMilestone(
           title: title,
           info: _infoController.text,
           targetDate: target,
@@ -268,9 +269,7 @@ class _AddMilestoneSheetState extends ConsumerState<_AddMilestoneSheet> {
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
         decoration: BoxDecoration(
           color: colorScheme.surface,
-          borderRadius: const BorderRadius.vertical(
-            top: Radius.circular(24),
-          ),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -289,10 +288,9 @@ class _AddMilestoneSheetState extends ConsumerState<_AddMilestoneSheet> {
             const SizedBox(height: 18),
             Text(
               'New countdown',
-              style: Theme.of(context)
-                  .textTheme
-                  .titleLarge
-                  ?.copyWith(fontWeight: FontWeight.w500),
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w500),
             ),
             const SizedBox(height: 18),
             Text(
@@ -329,8 +327,10 @@ class _AddMilestoneSheetState extends ConsumerState<_AddMilestoneSheet> {
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
                 ),
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 14,
+                ),
               ),
             ),
             const SizedBox(height: 16),
@@ -366,8 +366,10 @@ class _AddMilestoneSheetState extends ConsumerState<_AddMilestoneSheet> {
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
                 ),
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 14,
+                ),
               ),
             ),
             const SizedBox(height: 16),
@@ -387,7 +389,9 @@ class _AddMilestoneSheetState extends ConsumerState<_AddMilestoneSheet> {
               child: Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(
-                    horizontal: 14, vertical: 14),
+                  horizontal: 14,
+                  vertical: 14,
+                ),
                 decoration: BoxDecoration(
                   color: colorScheme.surfaceContainerLow,
                   borderRadius: BorderRadius.circular(12),
@@ -403,11 +407,12 @@ class _AddMilestoneSheetState extends ConsumerState<_AddMilestoneSheet> {
                     Text(
                       _selectedDate == null
                           ? 'Pick a date & time'
-                          : DateFormat('EEEE, d MMM yyyy').format(
-                                  _selectedDate!) +
-                              (_selectedTime == null
-                                  ? ''
-                                  : ', ${_selectedTime!.format(context)}'),
+                          : DateFormat(
+                                  'EEEE, d MMM yyyy',
+                                ).format(_selectedDate!) +
+                                (_selectedTime == null
+                                    ? ''
+                                    : ', ${_selectedTime!.format(context)}'),
                       style: TextStyle(
                         fontFamily: 'Instrument Sans',
                         fontSize: 15,
@@ -535,9 +540,9 @@ class _AddMilestoneSheetState extends ConsumerState<_AddMilestoneSheet> {
               child: FilledButton(
                 onPressed:
                     _titleController.text.trim().isNotEmpty &&
-                            _selectedDate != null
-                        ? _save
-                        : null,
+                        _selectedDate != null
+                    ? _save
+                    : null,
                 style: FilledButton.styleFrom(
                   backgroundColor: colorScheme.primary,
                   foregroundColor: colorScheme.onPrimary,
@@ -563,4 +568,3 @@ class _AddMilestoneSheetState extends ConsumerState<_AddMilestoneSheet> {
     );
   }
 }
-

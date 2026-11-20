@@ -39,10 +39,8 @@ class AuthRemoteRepository {
       final response = await vtopService.executeWithCredentials(
         username: registrationNumber,
         password: password,
-        operation: (client) => vtop.fetchAllData(
-          client: client,
-          semesterId: semSubId,
-        ),
+        operation: (client) =>
+            vtop.fetchAllData(client: client, semesterId: semSubId),
       );
 
       final resBodyMap = jsonDecode(response) as Map<String, dynamic>;

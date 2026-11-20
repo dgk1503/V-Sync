@@ -37,13 +37,15 @@ class AnnouncementRepository {
 
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body) as Map<String, dynamic>;
-        final announcementResponse =
-            AnnouncementResponse.fromJson(responseData);
+        final announcementResponse = AnnouncementResponse.fromJson(
+          responseData,
+        );
 
         // Filter announcements: only active ones that haven't expired
         final now = DateTime.now();
-        final activeAnnouncements =
-            announcementResponse.announcements.where((announcement) {
+        final activeAnnouncements = announcementResponse.announcements.where((
+          announcement,
+        ) {
           if (!announcement.isActive) return false;
 
           // Check if announcement has expired
@@ -64,19 +66,22 @@ class AnnouncementRepository {
           final bImportance = importanceOrder[b.importance] ?? 0;
 
           if (aImportance != bImportance) {
-            return bImportance
-                .compareTo(aImportance); // Higher importance first
+            return bImportance.compareTo(
+              aImportance,
+            ); // Higher importance first
           }
 
           // If same importance, sort by creation date (newer first)
-          return DateTime.parse(b.createdAt)
-              .compareTo(DateTime.parse(a.createdAt));
+          return DateTime.parse(
+            b.createdAt,
+          ).compareTo(DateTime.parse(a.createdAt));
         });
 
         return Right(activeAnnouncements);
       } else {
         return Left(
-            Failure('Failed to fetch announcements: ${response.statusCode}'));
+          Failure('Failed to fetch announcements: ${response.statusCode}'),
+        );
       }
     } on SocketException {
       return Left(Failure('No internet connection'));

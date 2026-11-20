@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:vit_ap_student_app/core/utils/internet_probe.dart';
 import 'package:vit_ap_student_app/src/rust/api/vtop/vtop_errors.dart';
 
 class ServerException implements Exception {
@@ -58,18 +59,35 @@ class VtopException implements Exception {
   /// Convenience method to create VtopException from VtopError
   static VtopException from(VtopError error) => VtopException(error);
 
+  /// Decides whether the phone has internet when a connection failure needs
+  /// explaining. A field so tests can answer without a network.
+  @visibleForTesting
+  static InternetProbe internetProbe = probeInternet;
+
+  /// Errors that look the same whether the phone is offline or VTOP is down.
+  static const _ambiguousConnectionErrors = {
+    'NetworkError',
+    'TimeoutError',
+    'DnsError',
+    'ConnectionRefused',
+  };
+
   /// Static method to handle VtopError and convert to appropriate Failure message
   static Future<String> getFailureMessage(VtopError error) async {
     final vtopException = VtopException.from(error);
     final errorType = await vtopException.errorType;
-    // final message = await vtopException.message;
 
     // Log for debugging purposes (not shown to user)
     final debugMessage = await vtopException.debugMessage;
     debugPrint('VTOP Error [$errorType]: $debugMessage');
 
-    // Return appropriate failure message based on error type
-    return _createFailureMessage(errorType, debugMessage);
+    // Only a connection failure needs the extra question: is it the phone, or
+    // is it VTOP? Everything else already says what happened.
+    final online = _ambiguousConnectionErrors.contains(errorType)
+        ? await internetProbe()
+        : true;
+
+    return failureMessageFor(errorType, debugMessage, online: online);
   }
 
   /// Check if this error indicates session expiry or authentication issues
@@ -111,29 +129,63 @@ class VtopException implements Exception {
         errorType == 'ResponseReadError';
   }
 
-  /// Create appropriate failure message based on VtopError type
-  static String _createFailureMessage(String errorType, String message) {
+  /// The message shown to the student for a failure of [errorType].
+  ///
+  /// [online] says whether the phone itself can reach the internet. It decides
+  /// the one distinction a student cares about when a connection fails: "your
+  /// connection is the problem" versus "VTOP is the problem".
+  @visibleForTesting
+  static String failureMessageFor(
+    String errorType,
+    String message, {
+    bool online = true,
+  }) {
     if (message.contains('Number Of Maximum Fail Attempts Reached')) {
       return message;
     }
     switch (errorType) {
       case 'NetworkError':
-        return 'No internet connection. Please check your network and try again.';
+      case 'DnsError':
+        return online
+            ? "VTOP isn't reachable right now. Your internet is working, so "
+                  "VIT-AP's servers are most likely down or busy. Try again in "
+                  'a few minutes.'
+            : 'No internet connection. Check your Wi-Fi or mobile data and '
+                  'try again.';
 
       case 'TimeoutError':
-        return 'Connection timed out. The server is taking too long to respond. Please try again.';
-
-      case 'SslError':
-        return "Secure connection failed. There may be an issue with the server's security certificate. Please try again later.";
-
-      case 'DnsError':
-        return 'Could not reach the server. Please check your internet connection or try again later.';
+        return online
+            ? 'VTOP is responding very slowly right now. Your internet is '
+                  "fine, so it's most likely overloaded. Try again in a few "
+                  'minutes.'
+            : 'Your connection is too slow or unstable to reach VTOP. Check '
+                  'your Wi-Fi or mobile data and try again.';
 
       case 'ConnectionRefused':
-        return 'Unable to connect to VTOP server. The server may be down for maintenance. Please try again later.';
+        return online
+            ? 'VTOP is refusing connections, which usually means it is down '
+                  'for maintenance. Your internet is fine. Try again later.'
+            : 'No internet connection. Check your Wi-Fi or mobile data and '
+                  'try again.';
+
+      case 'VtopServerError':
+        return 'VTOP is having problems on its side and returned an error. '
+            'Nothing is wrong with your account or your phone. Try again in a '
+            'few minutes.';
+
+      case 'MenuUnavailable':
+        return 'VTOP is not serving this page right now. It may be switched '
+            'off or under maintenance. Your saved data is still here. Try '
+            'again later.';
+
+      case 'SslError':
+        return "Secure connection to VTOP failed. This is usually a problem "
+            "with VTOP's certificate or a network that is intercepting the "
+            'connection. Try another network, or try again later.';
 
       case 'ResponseReadError':
-        return 'Failed to read server response. Please try again.';
+        return 'The connection dropped while VTOP was replying. Please try '
+            'again.';
 
       case 'AuthenticationFailed':
       case 'InvalidCredentials':
@@ -145,20 +197,21 @@ class VtopException implements Exception {
       case 'CaptchaRequired':
         return 'Captcha verification is required. Please complete the captcha and try again.';
 
-      case 'VtopServerError':
-        return 'VTOP server is temporarily unavailable. The app will automatically retry.';
-
       case 'RegistrationParsingError':
         return 'Invalid registration number format. Please check your registration number.';
 
       case 'ParseError':
-        return 'Unable to process server response. Please try again.';
+      case 'InvalidResponse':
+        return 'VTOP sent a page the app could not read. This can happen when '
+            'VTOP changes its layout or sends an error page. Your saved data '
+            'is unchanged. Please try again later.';
+
+      case 'InvalidSemesterId':
+        return 'That semester could not be recognised. Please pick one from the '
+            'semester list.';
 
       case 'ConfigurationError':
         return 'App configuration error. Please restart the app and try again.';
-
-      case 'InvalidResponse':
-        return 'Received invalid response from server. Please try again.';
 
       case 'LoginOtpRequired':
         return 'OTP verification is required for login.';
@@ -223,11 +276,7 @@ class AppException implements Exception {
   final String? code;
   final dynamic originalError;
 
-  const AppException(
-    this.message, {
-    this.code,
-    this.originalError,
-  });
+  const AppException(this.message, {this.code, this.originalError});
 
   @override
   String toString() {
@@ -243,10 +292,7 @@ class NetworkException implements Exception {
   final String message;
   final int? statusCode;
 
-  const NetworkException(
-    this.message, {
-    this.statusCode,
-  });
+  const NetworkException(this.message, {this.statusCode});
 
   @override
   String toString() {
@@ -262,10 +308,7 @@ class ValidationException implements Exception {
   final String message;
   final Map<String, List<String>>? fieldErrors;
 
-  const ValidationException(
-    this.message, {
-    this.fieldErrors,
-  });
+  const ValidationException(this.message, {this.fieldErrors});
 
   @override
   String toString() => 'ValidationException: $message';

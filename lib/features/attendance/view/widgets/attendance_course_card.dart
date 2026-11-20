@@ -8,10 +8,7 @@ import 'package:vit_ap_student_app/features/attendance/view/widgets/attendance_p
 class AttendanceCourseCard extends StatelessWidget {
   final Attendance attendance;
 
-  const AttendanceCourseCard({
-    super.key,
-    required this.attendance,
-  });
+  const AttendanceCourseCard({super.key, required this.attendance});
 
   bool _shouldShowDebarStatus() {
     final debarStatus = attendance.debarStatus.trim();
@@ -35,9 +32,7 @@ class AttendanceCourseCard extends StatelessWidget {
       tileColor: isDebarred
           ? Colors.red.withValues(alpha: 0.06)
           : Theme.of(context).colorScheme.surfaceContainerLow,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(15),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

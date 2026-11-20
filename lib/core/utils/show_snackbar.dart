@@ -30,9 +30,7 @@ void showSnackBar(BuildContext context, String content, SnackBarType type) {
         behavior: SnackBarBehavior.floating,
         backgroundColor: background,
         elevation: 4,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         showCloseIcon: true,
         closeIconColor: foreground.withValues(alpha: 0.7),
         content: Row(

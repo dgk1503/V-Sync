@@ -125,9 +125,9 @@ class _AssignmentDetailPageState extends ConsumerState<AssignmentDetailPage> {
       children: [
         Text(
           _extractFacultyName(widget.assignment.faculty),
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w500,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w500),
         ),
         const SizedBox(height: 8),
         Wrap(
@@ -136,8 +136,9 @@ class _AssignmentDetailPageState extends ConsumerState<AssignmentDetailPage> {
           children: [
             TextButton(
               style: TextButton.styleFrom(
-                backgroundColor:
-                    Theme.of(context).colorScheme.secondaryContainer,
+                backgroundColor: Theme.of(
+                  context,
+                ).colorScheme.secondaryContainer,
                 minimumSize: Size.zero,
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
@@ -153,8 +154,9 @@ class _AssignmentDetailPageState extends ConsumerState<AssignmentDetailPage> {
             ),
             TextButton(
               style: TextButton.styleFrom(
-                backgroundColor:
-                    Theme.of(context).colorScheme.secondaryContainer,
+                backgroundColor: Theme.of(
+                  context,
+                ).colorScheme.secondaryContainer,
                 minimumSize: Size.zero,
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
@@ -187,11 +189,7 @@ class _AssignmentDetailPageState extends ConsumerState<AssignmentDetailPage> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            Iconsax.info_circle,
-            size: 18,
-            color: theme.colorScheme.primary,
-          ),
+          Icon(Iconsax.info_circle, size: 18, color: theme.colorScheme.primary),
           const SizedBox(width: 10),
           Expanded(
             child: Column(

@@ -32,10 +32,9 @@ class AnnouncementContainer extends ConsumerWidget {
                   end: Alignment.bottomRight,
                   colors: [
                     Theme.of(context).colorScheme.surfaceContainerLow,
-                    Theme.of(context)
-                        .colorScheme
-                        .surfaceContainerLow
-                        .withValues(alpha: 0.8),
+                    Theme.of(
+                      context,
+                    ).colorScheme.surfaceContainerLow.withValues(alpha: 0.8),
                   ],
                 ),
               ),
@@ -49,10 +48,9 @@ class AnnouncementContainer extends ConsumerWidget {
                         Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .primary
-                                .withValues(alpha: 0.1),
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.primary.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Icon(
@@ -65,25 +63,25 @@ class AnnouncementContainer extends ConsumerWidget {
                         Expanded(
                           child: Text(
                             'Important Announcements',
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleMedium
+                            style: Theme.of(context).textTheme.titleMedium
                                 ?.copyWith(
                                   fontWeight: FontWeight.w500,
-                                  color:
-                                      Theme.of(context).colorScheme.onSurface,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurface,
                                 ),
                           ),
                         ),
                         if (announcements.length > 3)
                           Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 4),
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .primary
-                                  .withValues(alpha: 0.1),
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.primary.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
@@ -116,10 +114,9 @@ class AnnouncementContainer extends ConsumerWidget {
                             Divider(
                               height: 1,
                               thickness: 0.5,
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .outline
-                                  .withValues(alpha: 0.3),
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.outline.withValues(alpha: 0.3),
                             ),
                           AnnouncementTile(announcement: announcement),
                         ],
@@ -138,10 +135,7 @@ class AnnouncementContainer extends ConsumerWidget {
 class AnnouncementTile extends StatelessWidget {
   final Announcement announcement;
 
-  const AnnouncementTile({
-    super.key,
-    required this.announcement,
-  });
+  const AnnouncementTile({super.key, required this.announcement});
 
   Color _getImportanceColor(BuildContext context, String importance) {
     switch (importance.toLowerCase()) {
@@ -200,8 +194,10 @@ class AnnouncementTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final importanceColor =
-        _getImportanceColor(context, announcement.importance);
+    final importanceColor = _getImportanceColor(
+      context,
+      announcement.importance,
+    );
     final typeIcon = _getTypeIcon(announcement.type);
     final relativeTime = _getRelativeTime(announcement.createdAt);
 
@@ -217,11 +213,7 @@ class AnnouncementTile extends StatelessWidget {
               color: importanceColor.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(6),
             ),
-            child: Icon(
-              typeIcon,
-              color: importanceColor,
-              size: 16,
-            ),
+            child: Icon(typeIcon, color: importanceColor, size: 16),
           ),
           const SizedBox(width: 12),
           // Content
@@ -237,9 +229,9 @@ class AnnouncementTile extends StatelessWidget {
                       child: Text(
                         announcement.title,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              fontWeight: FontWeight.w500,
-                              color: Theme.of(context).colorScheme.onSurface,
-                            ),
+                          fontWeight: FontWeight.w500,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -248,12 +240,11 @@ class AnnouncementTile extends StatelessWidget {
                     Text(
                       relativeTime,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurface
-                                .withValues(alpha: 0.6),
-                            fontSize: 11,
-                          ),
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.6),
+                        fontSize: 11,
+                      ),
                     ),
                   ],
                 ),
@@ -262,12 +253,11 @@ class AnnouncementTile extends StatelessWidget {
                 Text(
                   announcement.message,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onSurface
-                            .withValues(alpha: 0.8),
-                        height: 1.3,
-                      ),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.8),
+                    height: 1.3,
+                  ),
                   maxLines: 5,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -280,7 +270,9 @@ class AnnouncementTile extends StatelessWidget {
                       onTap: () => _launchUrl(announcement.actionUrl!),
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 6),
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
                           color: importanceColor.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(6),

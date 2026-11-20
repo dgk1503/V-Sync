@@ -43,10 +43,8 @@ class AttendanceRemoteRepository {
       // Use the new executeWithRetry method for robust session handling
       final attendanceRecords = await vtopService.executeWithRetry(
         credentials: credentials,
-        operation: (client) => vtop.fetchAttendance(
-          client: client,
-          semesterId: semSubId,
-        ),
+        operation: (client) =>
+            vtop.fetchAttendance(client: client, semesterId: semSubId),
       );
 
       return Right(attendanceFromJson(attendanceRecords));
@@ -102,9 +100,11 @@ class AttendanceRemoteRepository {
       return Left(Failure('Invalid response format from server'));
     } catch (e) {
       debugPrint(
-          'Error fetching detailed attendance from VTOP: ${e.toString()}');
+        'Error fetching detailed attendance from VTOP: ${e.toString()}',
+      );
       return Left(
-          Failure('Failed to fetch detailed attendance: ${e.toString()}'));
+        Failure('Failed to fetch detailed attendance: ${e.toString()}'),
+      );
     }
   }
 
@@ -126,10 +126,8 @@ class AttendanceRemoteRepository {
       // Use the new executeWithRetry method for robust session handling
       final attendanceRecords = await vtopService.executeWithRetry(
         credentials: credentials,
-        operation: (client) => vtop.fetchAttendance(
-          client: client,
-          semesterId: semSubId,
-        ),
+        operation: (client) =>
+            vtop.fetchAttendance(client: client, semesterId: semSubId),
       );
       return Right(attendanceFromJson(attendanceRecords));
     } on SocketException {

@@ -38,16 +38,29 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Customization'), findsOneWidget);
+
+    // The page is the plain list of sections it always was.
     expect(find.text('Academics page'), findsOneWidget);
+    expect(find.text('Home page'), findsOneWidget);
     expect(find.text('Navbar'), findsOneWidget);
+    expect(find.text('Thumb Dock'), findsNWidgets(2)); // heading + switch
+    expect(find.text('beta'), findsOneWidget);
+    expect(find.text('App icon'), findsOneWidget);
+    expect(find.text('Grid layout'), findsOneWidget);
+    expect(find.text('Class card slider'), findsOneWidget);
+    expect(find.text('Liquid Glass'), findsOneWidget);
+
+    // Only the Academics page's per-page switches are tucked into a dropdown.
+    expect(find.text('Pages shown'), findsOneWidget);
+    expect(find.text('7 of 7'), findsOneWidget);
+    expect(find.text('Grades'), findsNothing);
+    await tester.tap(find.text('Pages shown'));
+    await tester.pumpAndSettle();
     expect(find.text('Grades'), findsOneWidget);
     expect(find.text('Digital Assignments'), findsOneWidget);
     expect(find.text('Outing'), findsOneWidget);
     expect(find.text('Faculty Info'), findsOneWidget);
     expect(find.text('Open VTOP'), findsOneWidget);
-    expect(find.text('Home page'), findsOneWidget);
-    expect(find.text('Class card slider'), findsOneWidget);
-    expect(find.text('Liquid Glass'), findsOneWidget);
 
     // Defaults: the five card toggles ON, class slider OFF, Liquid Glass ON.
     // (Switch.adaptive wraps a Switch on non-Apple platforms; locate via

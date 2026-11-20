@@ -35,15 +35,16 @@ class AccountViewModel extends _$AccountViewModel {
     final userNotifier = ref.read(currentUserProvider.notifier);
     final Credentials? credentials = await userNotifier.getSavedCredentials();
     if (credentials == null) {
-      AsyncValue<User>.error(
-        'User not found. Please Logout and Login.',
+      state = AsyncValue<User>.error(
+        'Your saved login could not be read. Please log out and log in again.',
         StackTrace.current,
       );
+      return;
     }
 
     state = const AsyncValue.loading();
     final res = await _accountRemoteRepository.syncUser(
-      registrationNumber: credentials!.registrationNumber,
+      registrationNumber: credentials.registrationNumber,
       password: credentials.password,
       semSubId: credentials.semSubId,
     );

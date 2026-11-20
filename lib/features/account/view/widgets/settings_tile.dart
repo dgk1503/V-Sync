@@ -116,6 +116,8 @@ class SettingTile extends StatelessWidget {
                     padding: const EdgeInsets.only(top: 1),
                     child: Text(
                       subtitle!,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontFamily: 'Instrument Sans',
                         fontSize: 12,

@@ -90,7 +90,11 @@ void main() {
       await tester.pumpAndSettle();
 
       final closedBottom = iconBottom(tester);
-      expect(closedBottom, greaterThan(800), reason: 'sanity: bar is at the bottom');
+      expect(
+        closedBottom,
+        greaterThan(800),
+        reason: 'sanity: bar is at the bottom',
+      );
 
       openKeyboard(tester);
       await tester.pump();
@@ -119,7 +123,11 @@ void main() {
       await tester.pumpAndSettle();
 
       final closedBottom = iconBottom(tester);
-      expect(closedBottom, greaterThan(800), reason: 'sanity: bar is at the bottom');
+      expect(
+        closedBottom,
+        greaterThan(800),
+        reason: 'sanity: bar is at the bottom',
+      );
 
       openKeyboard(tester);
       await tester.pump();

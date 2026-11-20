@@ -30,15 +30,16 @@ class _FakeVtopClient implements VtopClient {
 class _Harness {
   _Harness() {
     service = VtopClientService.withOverrides(
-      createClient: ({
-        required String username,
-        required String password,
-        required String userAgent,
-      }) {
-        clientsCreated++;
-        userAgents.add(userAgent);
-        return _FakeVtopClient(username);
-      },
+      createClient:
+          ({
+            required String username,
+            required String password,
+            required String userAgent,
+          }) {
+            clientsCreated++;
+            userAgents.add(userAgent);
+            return _FakeVtopClient(username);
+          },
       performLogin: ({required VtopClient client}) async {
         loginCalls++;
         final handler = onLogin;
@@ -136,24 +137,26 @@ void main() {
     // pause while the OTP prompt is open. A caller arriving here used to start
     // a second login, which sent a second email while the user was still
     // reading the first.
-    test('a caller arriving while the OTP prompt is open joins, not logs in',
-        () async {
-      harness.onLogin = (int call) async {
-        if (call == 1) throw const VtopError_LoginOtpRequired();
-      };
+    test(
+      'a caller arriving while the OTP prompt is open joins, not logs in',
+      () async {
+        harness.onLogin = (int call) async {
+          if (call == 1) throw const VtopError_LoginOtpRequired();
+        };
 
-      final first = service.getClient(username: 'A', password: 'p');
-      await pumpEventQueue();
-      expect(service.isOtpPending, isTrue);
+        final first = service.getClient(username: 'A', password: 'p');
+        await pumpEventQueue();
+        expect(service.isOtpPending, isTrue);
 
-      final second = service.getClient(username: 'A', password: 'p');
-      await service.submitLoginOtp(_Harness.validOtp);
-      final clients = await Future.wait(<Future<VtopClient>>[first, second]);
+        final second = service.getClient(username: 'A', password: 'p');
+        await service.submitLoginOtp(_Harness.validOtp);
+        final clients = await Future.wait(<Future<VtopClient>>[first, second]);
 
-      expect(harness.loginCalls, 1);
-      expect(harness.otpRequiredEvents, 1);
-      expect(identical(clients[0], clients[1]), isTrue);
-    });
+        expect(harness.loginCalls, 1);
+        expect(harness.otpRequiredEvents, 1);
+        expect(identical(clients[0], clients[1]), isTrue);
+      },
+    );
 
     // VTOP binds a session to the User-Agent that opened it, and the in-app
     // WebView reuses that session out of process — so the identity has to come
@@ -175,20 +178,22 @@ void main() {
       expect(harness.loginCalls, 1);
     });
 
-    test('a failed login releases the slot so the next call can retry',
-        () async {
-      harness.onLogin = (int call) async {
-        if (call == 1) throw const VtopError_VtopServerError();
-      };
+    test(
+      'a failed login releases the slot so the next call can retry',
+      () async {
+        harness.onLogin = (int call) async {
+          if (call == 1) throw const VtopError_VtopServerError();
+        };
 
-      await expectLater(
-        service.getClient(username: 'A', password: 'p'),
-        throwsA(isA<VtopError_VtopServerError>()),
-      );
-      await service.getClient(username: 'A', password: 'p');
+        await expectLater(
+          service.getClient(username: 'A', password: 'p'),
+          throwsA(isA<VtopError_VtopServerError>()),
+        );
+        await service.getClient(username: 'A', password: 'p');
 
-      expect(harness.loginCalls, 2);
-    });
+        expect(harness.loginCalls, 2);
+      },
+    );
   });
 
   group('getClient — credentials and session lifetime', () {
@@ -206,38 +211,67 @@ void main() {
       expect(harness.loginCalls, 2);
     });
 
-    test('the session is renewed once it reaches the refresh threshold',
-        () async {
+    test(
+      'an idle session is renewed once it reaches the refresh threshold',
+      () async {
+        await service.getClient(username: 'A', password: 'p');
+
+        harness.now = harness.now.add(const Duration(minutes: 13, seconds: 59));
+        await service.getClient(username: 'A', password: 'p');
+        expect(harness.loginCalls, 1, reason: 'still inside the threshold');
+
+        // That call used the session, so the idle clock restarted with it.
+        harness.now = harness.now.add(const Duration(minutes: 14));
+        await service.getClient(username: 'A', password: 'p');
+        expect(harness.loginCalls, 2, reason: '14 minutes idle, renew');
+      },
+    );
+
+    test('a session in steady use is never renewed just for its age', () async {
       await service.getClient(username: 'A', password: 'p');
 
-      harness.now = harness.now.add(const Duration(minutes: 13, seconds: 59));
-      await service.getClient(username: 'A', password: 'p');
-      expect(harness.loginCalls, 1, reason: 'still inside the threshold');
+      // Used every ten minutes for an hour: always inside the idle window, so
+      // no credentials POST (and no OTP email) is spent on it.
+      for (var i = 0; i < 6; i++) {
+        harness.now = harness.now.add(const Duration(minutes: 10));
+        await service.getClient(username: 'A', password: 'p');
+      }
 
-      harness.now = harness.now.add(const Duration(seconds: 1));
+      expect(harness.loginCalls, 1);
+    });
+
+    test('an hour of silence renews it once, not repeatedly', () async {
       await service.getClient(username: 'A', password: 'p');
-      expect(harness.loginCalls, 2, reason: '14 minutes old, renew');
+
+      harness.now = harness.now.add(const Duration(hours: 1));
+      await service.getClient(username: 'A', password: 'p');
+      await service.getClient(username: 'A', password: 'p');
+
+      expect(harness.loginCalls, 2);
     });
 
     // Locks down the ordering bug this seam exposed: a login superseded by an
     // account switch used to clear the session state on its way out, wiping
     // the session the switch had just established a microtask earlier.
-    test('a superseded login cannot clobber the session that replaced it',
-        () async {
-      final gate = Completer<void>();
-      harness.onLogin = (int call) => call == 1 ? gate.future : Future.value();
+    test(
+      'a superseded login cannot clobber the session that replaced it',
+      () async {
+        final gate = Completer<void>();
+        harness.onLogin = (int call) =>
+            call == 1 ? gate.future : Future.value();
 
-      final abandoned = service.getClient(username: 'A', password: 'p');
-      final current = service.getClient(username: 'B', password: 'p');
+        final abandoned = service.getClient(username: 'A', password: 'p');
+        final current = service.getClient(username: 'B', password: 'p');
 
-      gate.complete();
-      await expectLater(abandoned, throwsA(isA<Exception>()));
-      await current;
+        gate.complete();
+        await expectLater(abandoned, throwsA(isA<Exception>()));
+        await current;
 
-      expect(harness.loginCalls, 2);
-      expect(service.isInitialized, isTrue);
-      expect(service.hasSessionFor(username: 'B', password: 'p'), isTrue);
-    });
+        expect(harness.loginCalls, 2);
+        expect(service.isInitialized, isTrue);
+        expect(service.hasSessionFor(username: 'B', password: 'p'), isTrue);
+      },
+    );
 
     test('hasSessionFor matches only the live credentials', () async {
       await service.getClient(username: 'A', password: 'p');
@@ -247,14 +281,16 @@ void main() {
       expect(service.hasSessionFor(username: 'B', password: 'p'), isFalse);
     });
 
-    test('hasSessionFor goes false once the session has fully expired',
-        () async {
-      await service.getClient(username: 'A', password: 'p');
+    test(
+      'hasSessionFor goes false once the session has fully expired',
+      () async {
+        await service.getClient(username: 'A', password: 'p');
 
-      harness.now = harness.now.add(const Duration(minutes: 15));
+        harness.now = harness.now.add(const Duration(minutes: 15));
 
-      expect(service.hasSessionFor(username: 'A', password: 'p'), isFalse);
-    });
+        expect(service.hasSessionFor(username: 'A', password: 'p'), isFalse);
+      },
+    );
 
     test('getTimeUntilExpiry counts down and floors at zero', () async {
       expect(service.getTimeUntilExpiry(), isNull);
@@ -338,16 +374,18 @@ void main() {
       expect(service.isInitialized, isFalse);
     });
 
-    test('a cancelled login leaves the next call free to start a fresh one',
-        () async {
-      final pending = await startLoginNeedingOtp();
-      service.cancelOtp();
-      await expectLater(pending, throwsA(isA<Exception>()));
+    test(
+      'a cancelled login leaves the next call free to start a fresh one',
+      () async {
+        final pending = await startLoginNeedingOtp();
+        service.cancelOtp();
+        await expectLater(pending, throwsA(isA<Exception>()));
 
-      await service.getClient(username: 'A', password: 'p');
+        await service.getClient(username: 'A', password: 'p');
 
-      expect(harness.loginCalls, 2);
-    });
+        expect(harness.loginCalls, 2);
+      },
+    );
 
     test('resend goes to the pending session without a new login', () async {
       await startLoginNeedingOtp();
@@ -360,10 +398,7 @@ void main() {
     });
 
     test('submit and resend refuse when no OTP is pending', () async {
-      expect(
-        () => service.submitLoginOtp(_Harness.validOtp),
-        throwsStateError,
-      );
+      expect(() => service.submitLoginOtp(_Harness.validOtp), throwsStateError);
       expect(() => service.resendLoginOtp(), throwsStateError);
     });
 
@@ -419,10 +454,9 @@ void main() {
       );
       await pumpEventQueue();
 
-      expect(
-        harness.authFailureMessages,
-        <String>['Invalid username or password.'],
-      );
+      expect(harness.authFailureMessages, <String>[
+        'Invalid username or password.',
+      ]);
     });
   });
 

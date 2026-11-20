@@ -20,7 +20,13 @@ class AttendanceProjection {
 
   /// Weekday keys in the order [Timetable] stores them.
   static const List<String> _weekdays = [
-    'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday',
+    'monday',
+    'tuesday',
+    'wednesday',
+    'thursday',
+    'friday',
+    'saturday',
+    'sunday',
   ];
 
   static List<Day> _day(Timetable t, int index) => switch (index) {
@@ -48,7 +54,9 @@ class AttendanceProjection {
     for (var i = 0; i < _weekdays.length; i++) {
       final classes = _day(timetable, i);
       final count = classes
-          .where((entry) => (entry.courseCode ?? '').trim() == courseCode.trim())
+          .where(
+            (entry) => (entry.courseCode ?? '').trim() == courseCode.trim(),
+          )
           .length;
       if (count > 0) perWeekday[i + 1] = count;
     }
@@ -89,6 +97,46 @@ class AttendanceProjection {
     };
   }
 
+  /// Every day the academic calendar says has no classes, with the calendar's
+  /// own wording as the reason.
+  ///
+  /// Only closures that actually remove a class count. VTOP marks every Sunday
+  /// as a holiday with the generic note "Holiday"; those are filler and are
+  /// left out, so only named holidays and no-instructional days remain. When a
+  /// day carries several entries the most consequential one supplies the reason.
+  static Map<DateTime, String> closedDays(List<CalendarMonth> months) {
+    final strongest = <DateTime, CalendarChip>{};
+    for (final month in months) {
+      for (final chip in month.chips) {
+        if (chip.kind != CalendarDayKind.holiday &&
+            chip.kind != CalendarDayKind.noClasses) {
+          continue;
+        }
+        if (CalendarEventClassifier.isOrdinarySunday(chip)) continue;
+        final date = DateTime(chip.date.year, chip.date.month, chip.date.day);
+        final existing = strongest[date];
+        if (existing == null || chip.precedence > existing.precedence) {
+          strongest[date] = chip;
+        }
+      }
+    }
+    return {
+      for (final entry in strongest.entries)
+        entry.key: _closureReason(entry.value),
+    };
+  }
+
+  /// The most descriptive text on a closure chip: the longer free-text note when
+  /// it says something the short label does not ("Deepavali" over "Holiday").
+  static String _closureReason(CalendarChip chip) {
+    final title = chip.title.trim();
+    final detail = (chip.detail ?? '').trim();
+    if (detail.isNotEmpty && detail.toLowerCase() != title.toLowerCase()) {
+      return detail;
+    }
+    return title.isEmpty ? 'No classes' : title;
+  }
+
   /// The earliest day at or after [from] carrying a chip that [matches], or
   /// null when the calendar has none. Used to locate the next CAT / FAT.
   ///
@@ -110,6 +158,47 @@ class AttendanceProjection {
     }
     return best;
   }
+
+  /// The first day, on or after [from], that the theory FAT starts.
+  ///
+  /// VTOP also lists **Lab FAT** days, which are ordinary teaching days with a
+  /// lab exam in the lab slot, so they must not be mistaken for the start of the
+  /// FAT: teaching carries on through them. A chip is a lab FAT when its own
+  /// short label says "lab"; matching "fat" anywhere in the text used to pick the
+  /// first Lab FAT day and report the term as ending days early.
+  static DateTime? fatStart(List<CalendarMonth> months, DateTime from) {
+    final start = DateTime(from.year, from.month, from.day);
+    DateTime? best;
+    for (final month in months) {
+      for (final chip in month.chips) {
+        if (chip.kind != CalendarDayKind.exam) continue;
+        if (chip.date.isBefore(start)) continue;
+        if (_isLabExam(chip)) continue;
+        if (!RegExp(r'\bfat\b').hasMatch(_text(chip))) continue;
+        if (best == null || chip.date.isBefore(best)) best = chip.date;
+      }
+    }
+    return best;
+  }
+
+  /// The first exam day of any kind, on or after [from], that is not a lab exam.
+  /// What to fall back on when the calendar words the FAT differently.
+  static DateTime? examStart(List<CalendarMonth> months, DateTime from) {
+    final start = DateTime(from.year, from.month, from.day);
+    DateTime? best;
+    for (final month in months) {
+      for (final chip in month.chips) {
+        if (chip.kind != CalendarDayKind.exam) continue;
+        if (chip.date.isBefore(start)) continue;
+        if (_isLabExam(chip)) continue;
+        if (best == null || chip.date.isBefore(best)) best = chip.date;
+      }
+    }
+    return best;
+  }
+
+  static bool _isLabExam(CalendarChip chip) =>
+      RegExp(r'\blab\b').hasMatch(chip.title.toLowerCase());
 
   static String _text(CalendarChip chip) =>
       '${chip.title} ${chip.subtitle ?? ''} ${chip.detail ?? ''}'.toLowerCase();

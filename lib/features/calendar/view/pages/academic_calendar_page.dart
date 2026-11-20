@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:vit_ap_student_app/core/providers/user_preferences_notifier.dart';
 import 'package:vit_ap_student_app/core/services/data_cache_service.dart';
 import 'package:vit_ap_student_app/core/theme/app_theme.dart';
 import 'package:vit_ap_student_app/features/calendar/viewmodel/calendar_viewmodel.dart';
@@ -35,9 +36,7 @@ class _AcademicCalendarPageState extends ConsumerState<AcademicCalendarPage> {
 
   void _load() {
     if (!mounted) return;
-    ref
-        .read(calendarViewmodelProvider.notifier)
-        .ensureLoaded();
+    ref.read(calendarViewmodelProvider.notifier).ensureLoaded();
   }
 
   /// The month to show, preferring the one containing today.
@@ -57,16 +56,12 @@ class _AcademicCalendarPageState extends ConsumerState<AcademicCalendarPage> {
 
   /// Turns a repository failure into something worth reading.
   ///
-  /// The raw messages are VTOP's own wording ("Failed to fetch academic
-  /// calendar: ..."), which tells the user nothing they can act on. The two
-  /// cases that actually happen get a plain sentence; anything else is passed
-  /// through rather than hidden.
+  /// The failure text already says whose fault it is (offline phone, VTOP down,
+  /// unreadable page), so it is passed through untouched. Only the two cases the
+  /// text cannot cover get their own sentence.
   static String _friendlyError(Object error) {
     final text = error.toString();
     final lower = text.toLowerCase();
-    if (lower.contains('internet') || lower.contains('network') || lower.contains('socket')) {
-      return "You're offline. Check your connection and try again.";
-    }
     if (lower.contains('user not found')) {
       return 'Your session expired. Log out and log in again.';
     }
@@ -76,12 +71,13 @@ class _AcademicCalendarPageState extends ConsumerState<AcademicCalendarPage> {
     return text;
   }
 
-
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final monthsAsync = ref.watch(calendarViewmodelProvider);
-    final cacheKey = ref.watch(calendarViewmodelProvider.notifier).resolvedCacheKey;
+    final cacheKey = ref
+        .watch(calendarViewmodelProvider.notifier)
+        .resolvedCacheKey;
     final updatedAt = cacheKey == null
         ? null
         : ref.watch(dataCacheServiceProvider).readEntry(cacheKey)?.updatedAt;
@@ -124,7 +120,14 @@ class _AcademicCalendarPageState extends ConsumerState<AcademicCalendarPage> {
           }
           final index = _resolveMonthIndex(months);
           final month = months[index];
+          final prefs = ref.watch(userPreferencesProvider);
           return _Body(
+            countdownsOn: !prefs.hideCalendarCountdowns,
+            onCountdownsChanged: (value) => ref
+                .read(userPreferencesProvider.notifier)
+                .updatePreferences(
+                  prefs.copyWith(hideCalendarCountdowns: !value),
+                ),
             month: month,
             months: months,
             monthIndex: index,
@@ -138,6 +141,8 @@ class _AcademicCalendarPageState extends ConsumerState<AcademicCalendarPage> {
 }
 
 class _Body extends StatelessWidget {
+  final bool countdownsOn;
+  final ValueChanged<bool> onCountdownsChanged;
   final CalendarMonth month;
   final List<CalendarMonth> months;
   final int monthIndex;
@@ -145,6 +150,8 @@ class _Body extends StatelessWidget {
   final ValueChanged<int> onMonthChanged;
 
   const _Body({
+    required this.countdownsOn,
+    required this.onCountdownsChanged,
     required this.month,
     required this.months,
     required this.monthIndex,
@@ -185,7 +192,11 @@ class _Body extends StatelessWidget {
             onBack: () => onMonthChanged(monthIndex - 1),
             onForward: () => onMonthChanged(monthIndex + 1),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 12),
+          _Legend(kinds: {for (final chip in month.chips) chip.kind}),
+          const SizedBox(height: 8),
+          _CountdownsRow(value: countdownsOn, onChanged: onCountdownsChanged),
+          const SizedBox(height: 12),
 
           // ── Events ──
           Text(
@@ -235,6 +246,108 @@ class _Body extends StatelessWidget {
   }
 }
 
+/// Whether the student's own countdowns are marked on the calendar.
+///
+/// It lives here, with the thing it changes, rather than in Settings.
+class _CountdownsRow extends StatelessWidget {
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  const _CountdownsRow({required this.value, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
+    return Semantics(
+      toggled: value,
+      label: 'Show my countdowns on the calendar',
+      child: InkWell(
+        onTap: () => onChanged(!value),
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Show my countdowns',
+                  style: TextStyle(
+                    fontFamily: 'Instrument Sans',
+                    fontSize: 13.5,
+                    color: colors.onSurface,
+                  ),
+                ),
+              ),
+              Transform.scale(
+                scale: 0.85,
+                child: Switch.adaptive(value: value, onChanged: onChanged),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Names the colours on the grid, but only the ones this month actually uses, so
+/// the legend never explains something that is not there.
+class _Legend extends StatelessWidget {
+  final Set<CalendarDayKind> kinds;
+
+  const _Legend({required this.kinds});
+
+  static const _order = [
+    (CalendarDayKind.holiday, 'Holiday'),
+    (CalendarDayKind.noClasses, 'No classes'),
+    (CalendarDayKind.exam, 'Exam'),
+    (CalendarDayKind.event, 'Event'),
+    (CalendarDayKind.countdown, 'Countdown'),
+    (CalendarDayKind.outing, 'Outing'),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final shown = [
+      for (final entry in _order)
+        if (kinds.contains(entry.$1)) entry,
+    ];
+    if (shown.isEmpty) return const SizedBox.shrink();
+
+    return Wrap(
+      spacing: 16,
+      runSpacing: 6,
+      children: [
+        for (final (kind, label) in shown)
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: CalendarEventClassifier.colorFor(context, kind),
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  fontFamily: 'Instrument Sans',
+                  fontSize: 12,
+                  color: colors.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+      ],
+    );
+  }
+}
+
 class _MonthCard extends StatelessWidget {
   final CalendarMonth month;
   final bool canGoBack;
@@ -265,7 +378,10 @@ class _MonthCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              _NavButton(icon: Icons.chevron_left, onTap: canGoBack ? onBack : null),
+              _NavButton(
+                icon: Icons.chevron_left,
+                onTap: canGoBack ? onBack : null,
+              ),
               Expanded(
                 child: Center(
                   child: Text(
@@ -279,7 +395,10 @@ class _MonthCard extends StatelessWidget {
                   ),
                 ),
               ),
-              _NavButton(icon: Icons.chevron_right, onTap: canGoForward ? onForward : null),
+              _NavButton(
+                icon: Icons.chevron_right,
+                onTap: canGoForward ? onForward : null,
+              ),
             ],
           ),
           const SizedBox(height: 16),
@@ -321,7 +440,11 @@ class _NavButton extends StatelessWidget {
     return IconButton(
       onPressed: onTap,
       visualDensity: VisualDensity.compact,
-      icon: Icon(icon, size: 20, color: onTap == null ? colors.outline : colors.onSurface),
+      icon: Icon(
+        icon,
+        size: 20,
+        color: onTap == null ? colors.outline : colors.onSurface,
+      ),
     );
   }
 }
@@ -363,7 +486,8 @@ class _MonthGrid extends StatelessWidget {
                         return _DayCell(
                           date: date,
                           chips: month.chipsOn(date),
-                          isToday: date.year == today.year &&
+                          isToday:
+                              date.year == today.year &&
                               date.month == today.month &&
                               date.day == today.day,
                           muted: colors.onSurfaceVariant,
@@ -414,10 +538,7 @@ class _DayCell extends StatelessWidget {
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: tint?.withValues(alpha: 0.14),
-          border: Border.all(
-            color: tint ?? Colors.transparent,
-            width: 1.2,
-          ),
+          border: Border.all(color: tint ?? Colors.transparent, width: 1.2),
         ),
         child: Text(
           '${date.day}',
@@ -428,8 +549,8 @@ class _DayCell extends StatelessWidget {
             color: tint == null
                 ? muted
                 : isToday
-                    ? tint
-                    : colors.onSurface,
+                ? tint
+                : colors.onSurface,
           ),
         ),
       ),
@@ -537,9 +658,8 @@ class _EventRow extends StatelessWidget {
     );
   }
 
-  static String _weekdayShort(int weekday) => const [
-        'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun',
-      ][weekday - 1];
+  static String _weekdayShort(int weekday) =>
+      const ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][weekday - 1];
 
   static String _kindLabel(CalendarDayKind kind) => switch (kind) {
     CalendarDayKind.instructional => 'Class',
@@ -621,7 +741,10 @@ class _ErrorState extends StatelessWidget {
               style: OutlinedButton.styleFrom(
                 foregroundColor: colors.onSurface,
                 side: BorderSide(color: colors.outlineVariant),
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 12,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
                 ),
@@ -677,9 +800,19 @@ class _CalendarSkeletonState extends State<_CalendarSkeleton>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _Bar(controller: _controller, width: 150, height: 14, colors: colors),
+            _Bar(
+              controller: _controller,
+              width: 150,
+              height: 14,
+              colors: colors,
+            ),
             const SizedBox(height: 16),
-            _Bar(controller: _controller, height: 300, radius: 16, colors: colors),
+            _Bar(
+              controller: _controller,
+              height: 300,
+              radius: 16,
+              colors: colors,
+            ),
             const SizedBox(height: 18),
             for (var i = 0; i < 4; i++) ...[
               _Bar(

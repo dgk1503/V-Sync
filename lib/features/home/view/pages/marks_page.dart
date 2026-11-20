@@ -112,7 +112,8 @@ class _MarksPageState extends ConsumerState<MarksPage>
             ? const Loader()
             : RefreshIndicator(
                 onRefresh: refreshMarksData,
-                notificationPredicate: (notification) => notification.depth == 1,
+                notificationPredicate: (notification) =>
+                    notification.depth == 1,
                 child: Column(
                   children: [
                     const SizedBox(height: 12),
@@ -191,57 +192,58 @@ class _MarksPageState extends ConsumerState<MarksPage>
               showMarksDetailBottomSheet(course, context);
             },
             child: AppCard(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
               child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: [
-                Text(
-                  course.courseTitle,
-                  style: TextStyle(
-                    fontFamily: 'Instrument Sans',
-                    color: Theme.of(context).colorScheme.onSurface,
-                    fontSize: 17,
-                    fontWeight: FontWeight.w500,
-                    height: 1.25,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  course.faculty,
-                  style: TextStyle(
-                    fontFamily: 'Instrument Sans',
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    fontWeight: FontWeight.w400,
-                    fontSize: 13,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                RichText(
-                  text: TextSpan(
-                    text: totalWeightage.toStringAsFixed(0),
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: [
+                  Text(
+                    course.courseTitle,
                     style: TextStyle(
                       fontFamily: 'Instrument Sans',
                       color: Theme.of(context).colorScheme.onSurface,
-                      fontSize: 30,
+                      fontSize: 17,
                       fontWeight: FontWeight.w500,
+                      height: 1.25,
                     ),
-                     children: <TextSpan>[
-                       TextSpan(
-                         text: ' / ${maxWeightage.toStringAsFixed(0)}',
-                         style: TextStyle(
-                           fontFamily: 'Instrument Sans',
-                           color: Theme.of(context).colorScheme.onSurfaceVariant,
-                           fontSize: 16,
-                           fontWeight: FontWeight.w400,
-                         ),
-                       ),
-                     ],
-                   ),
-                 ),
-               ],
-             ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    course.faculty,
+                    style: TextStyle(
+                      fontFamily: 'Instrument Sans',
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w400,
+                      fontSize: 13,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  RichText(
+                    text: TextSpan(
+                      text: totalWeightage.toStringAsFixed(0),
+                      style: TextStyle(
+                        fontFamily: 'Instrument Sans',
+                        color: Theme.of(context).colorScheme.onSurface,
+                        fontSize: 30,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      children: <TextSpan>[
+                        TextSpan(
+                          text: ' / ${maxWeightage.toStringAsFixed(0)}',
+                          style: TextStyle(
+                            fontFamily: 'Instrument Sans',
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w400,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         );

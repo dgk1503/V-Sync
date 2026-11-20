@@ -44,7 +44,9 @@ const String _scraperJson = '''
 void main() {
   group('scraper payload decoding', () {
     test('reads snake_case keys, which is what serde emits', () {
-      final calendar = CalendarRemoteRepository.parseCalendarPayload(_scraperJson);
+      final calendar = CalendarRemoteRepository.parseCalendarPayload(
+        _scraperJson,
+      );
 
       expect(calendar.semesterId, 'AP2424251');
       expect(calendar.classGroupId, 'COMB');
@@ -53,7 +55,9 @@ void main() {
     });
 
     test('keeps each day with its events', () {
-      final calendar = CalendarRemoteRepository.parseCalendarPayload(_scraperJson);
+      final calendar = CalendarRemoteRepository.parseCalendarPayload(
+        _scraperJson,
+      );
 
       final working = calendar.days.firstWhere((d) => d.date == '2026-08-01');
       expect(working.day, 1);
@@ -71,7 +75,9 @@ void main() {
       // cache ever held a re-encoded payload instead, this would diverge —
       // re-encoding writes camelCase keys that parseCalendarPayload cannot read.
       final first = CalendarRemoteRepository.parseCalendarPayload(_scraperJson);
-      final second = CalendarRemoteRepository.parseCalendarPayload(_scraperJson);
+      final second = CalendarRemoteRepository.parseCalendarPayload(
+        _scraperJson,
+      );
 
       expect(second.semesterId, first.semesterId);
       expect(second.days.length, first.days.length);

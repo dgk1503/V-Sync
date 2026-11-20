@@ -7,11 +7,7 @@ class ExamCard extends StatelessWidget {
   final Subject exam;
   final VoidCallback? onTap;
 
-  const ExamCard({
-    super.key,
-    required this.exam,
-    this.onTap,
-  });
+  const ExamCard({super.key, required this.exam, this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -36,24 +32,19 @@ class ExamCard extends StatelessWidget {
     final seatCombined = seatLoc.isEmpty && seatNo.isEmpty
         ? '—'
         : seatNo.isEmpty
-            ? seatLoc
-            : seatLoc.isEmpty
-                ? seatNo
-                : '$seatLoc($seatNo)';
+        ? seatLoc
+        : seatLoc.isEmpty
+        ? seatNo
+        : '$seatLoc($seatNo)';
 
-    final venueText =
-        exam.venue.trim().isEmpty ? '—' : exam.venue.trim();
-    final timeText =
-        exam.examTime.trim().isEmpty ? '—' : exam.examTime.trim();
+    final venueText = exam.venue.trim().isEmpty ? '—' : exam.venue.trim();
+    final timeText = exam.examTime.trim().isEmpty ? '—' : exam.examTime.trim();
 
     return Container(
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: colorScheme.outlineVariant,
-          width: 0.75,
-        ),
+        border: Border.all(color: colorScheme.outlineVariant, width: 0.75),
       ),
       child: Material(
         color: Colors.transparent,
@@ -118,10 +109,7 @@ class ExamCard extends StatelessWidget {
                 const SizedBox(height: 12),
 
                 // Divider
-                Container(
-                  height: 1,
-                  color: colorScheme.outlineVariant,
-                ),
+                Container(height: 1, color: colorScheme.outlineVariant),
 
                 const SizedBox(height: 12),
 
@@ -129,20 +117,11 @@ class ExamCard extends StatelessWidget {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Expanded(
-                      flex: 24,
-                      child: _StatCell(value: timeText),
-                    ),
+                    Expanded(flex: 24, child: _StatCell(value: timeText)),
                     _VerticalDivider(color: colorScheme.outlineVariant),
-                    Expanded(
-                      flex: 10,
-                      child: _StatCell(value: venueText),
-                    ),
+                    Expanded(flex: 10, child: _StatCell(value: venueText)),
                     _VerticalDivider(color: colorScheme.outlineVariant),
-                    Expanded(
-                      flex: 11,
-                      child: _StatCell(value: seatCombined),
-                    ),
+                    Expanded(flex: 11, child: _StatCell(value: seatCombined)),
                   ],
                 ),
               ],
@@ -155,8 +134,8 @@ class ExamCard extends StatelessWidget {
 
   _ExamStatus _statusForExam(Subject exam) {
     // Debarred check: if venue/seat hints at debarred, prioritize red.
-    final combined =
-        '${exam.venue} ${exam.seatLocation} ${exam.seatNumber}'.toLowerCase();
+    final combined = '${exam.venue} ${exam.seatLocation} ${exam.seatNumber}'
+        .toLowerCase();
     if (combined.contains('debar')) return _ExamStatus.debarred;
 
     final examDate = _parseExamDate(exam.date);
@@ -216,7 +195,7 @@ class ExamCard extends StatelessWidget {
         'Sep': 9,
         'Oct': 10,
         'Nov': 11,
-        'Dec': 12
+        'Dec': 12,
       };
 
       final day = int.tryParse(dateParts[0]);
@@ -248,10 +227,7 @@ class _StatusDot extends StatelessWidget {
         Container(
           width: 6,
           height: 6,
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-          ),
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
         const SizedBox(width: 6),
         Text(

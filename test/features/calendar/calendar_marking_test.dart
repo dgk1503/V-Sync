@@ -9,7 +9,10 @@ void main() {
     test('a plain teaching day is not marked', () {
       // Every instructional day getting a ring turned the grid into a wall of
       // green and made actual holidays impossible to spot.
-      expect(CalendarEventClassifier.isMarked(CalendarDayKind.instructional), isFalse);
+      expect(
+        CalendarEventClassifier.isMarked(CalendarDayKind.instructional),
+        isFalse,
+      );
     });
 
     test('absent is not marked', () {
@@ -18,10 +21,16 @@ void main() {
 
     test('closures, exams, events and countdowns are marked', () {
       expect(CalendarEventClassifier.isMarked(CalendarDayKind.holiday), isTrue);
-      expect(CalendarEventClassifier.isMarked(CalendarDayKind.noClasses), isTrue);
+      expect(
+        CalendarEventClassifier.isMarked(CalendarDayKind.noClasses),
+        isTrue,
+      );
       expect(CalendarEventClassifier.isMarked(CalendarDayKind.exam), isTrue);
       expect(CalendarEventClassifier.isMarked(CalendarDayKind.event), isTrue);
-      expect(CalendarEventClassifier.isMarked(CalendarDayKind.countdown), isTrue);
+      expect(
+        CalendarEventClassifier.isMarked(CalendarDayKind.countdown),
+        isTrue,
+      );
     });
 
     test('only closures and exams get a ring colour, never a teaching day', () {
@@ -33,9 +42,7 @@ void main() {
 
   group('a day with several entries', () {
     CalendarChip chipFor(String description, String label) =>
-        CalendarEventClassifier.chipsFor(
-          _day(description, label),
-        ).first;
+        CalendarEventClassifier.chipsFor(_day(description, label)).first;
 
     test('a closure outranks a teaching day on the same day', () {
       // VTOP can list several entries for one date; the strongest has to win
@@ -58,7 +65,10 @@ void main() {
     });
 
     test('an ordinary working day is left unmarked', () {
-      final chip = chipFor('Instructional Day - General (Semester)', 'WorkingDay');
+      final chip = chipFor(
+        'Instructional Day - General (Semester)',
+        'WorkingDay',
+      );
 
       expect(chip.kind, CalendarDayKind.instructional);
       expect(CalendarEventClassifier.isMarked(chip.kind), isFalse);

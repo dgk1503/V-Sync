@@ -55,30 +55,35 @@ class _WeekendOutingHistoryPageState
   }
 
   List<WeekendOutingReport> _getFilteredAndSortedReports(
-      List<WeekendOutingReport> reports) {
+    List<WeekendOutingReport> reports,
+  ) {
     List<WeekendOutingReport> filteredReports = reports.toList();
 
     // Apply search filter
     if (searchQuery.isNotEmpty) {
       filteredReports = filteredReports
-          .where((report) =>
-              report.purposeOfVisit
-                  .toLowerCase()
-                  .contains(searchQuery.toLowerCase()) ||
-              report.placeOfVisit
-                  .toLowerCase()
-                  .contains(searchQuery.toLowerCase()) ||
-              report.status.toLowerCase().contains(searchQuery.toLowerCase()) ||
-              DateFormat('dd-MMM-yyyy')
-                  .format(report.date)
-                  .toLowerCase()
-                  .contains(searchQuery.toLowerCase()) ||
-              report.hostelBlock
-                  .toLowerCase()
-                  .contains(searchQuery.toLowerCase()) ||
-              report.roomNumber
-                  .toLowerCase()
-                  .contains(searchQuery.toLowerCase()))
+          .where(
+            (report) =>
+                report.purposeOfVisit.toLowerCase().contains(
+                  searchQuery.toLowerCase(),
+                ) ||
+                report.placeOfVisit.toLowerCase().contains(
+                  searchQuery.toLowerCase(),
+                ) ||
+                report.status.toLowerCase().contains(
+                  searchQuery.toLowerCase(),
+                ) ||
+                DateFormat('dd-MMM-yyyy')
+                    .format(report.date)
+                    .toLowerCase()
+                    .contains(searchQuery.toLowerCase()) ||
+                report.hostelBlock.toLowerCase().contains(
+                  searchQuery.toLowerCase(),
+                ) ||
+                report.roomNumber.toLowerCase().contains(
+                  searchQuery.toLowerCase(),
+                ),
+          )
           .toList();
     }
 
@@ -97,13 +102,11 @@ class _WeekendOutingHistoryPageState
     final state = ref.watch(weekendOutingReportsViewModelProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Weekend Outing History'),
-        elevation: 0,
-      ),
+      appBar: AppBar(title: const Text('Weekend Outing History'), elevation: 0),
       body: RefreshIndicator(
         onRefresh: _refreshData,
-        child: state?.when(
+        child:
+            state?.when(
               data: (reports) {
                 if (reports.isEmpty) {
                   return const Center(
@@ -121,7 +124,9 @@ class _WeekendOutingHistoryPageState
                     // Search bar with filter button
                     Padding(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
                       child: Row(
                         children: [
                           Expanded(
@@ -137,9 +142,9 @@ class _WeekendOutingHistoryPageState
                                 hintStyle: TextStyle(
                                   fontFamily: 'Instrument Sans',
                                   fontSize: 13,
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onSurfaceVariant,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
                                 ),
                                 suffixIcon: searchQuery.isNotEmpty
                                     ? IconButton(
@@ -154,9 +159,9 @@ class _WeekendOutingHistoryPageState
                                     : null,
                                 isDense: true,
                                 filled: true,
-                                fillColor: Theme.of(context)
-                                    .colorScheme
-                                    .surfaceContainerLow,
+                                fillColor: Theme.of(
+                                  context,
+                                ).colorScheme.surfaceContainerLow,
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(14),
                                   borderSide: BorderSide.none,
@@ -168,13 +173,15 @@ class _WeekendOutingHistoryPageState
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(14),
                                   borderSide: BorderSide(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .outlineVariant,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.outlineVariant,
                                   ),
                                 ),
                                 contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 16, vertical: 12),
+                                  horizontal: 16,
+                                  vertical: 12,
+                                ),
                               ),
                               onChanged: (value) {
                                 setState(() {
@@ -197,9 +204,9 @@ class _WeekendOutingHistoryPageState
                               isRecentFirst
                                   ? Iconsax.arrow_up_2
                                   : Iconsax.arrow_down_2,
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurfaceVariant,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant,
                             ),
                           ),
                         ],
@@ -216,9 +223,9 @@ class _WeekendOutingHistoryPageState
                                   Icon(
                                     Iconsax.search_status,
                                     size: 48,
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurfaceVariant,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
                                   ),
                                   const SizedBox(height: 16),
                                   Text(
@@ -227,9 +234,9 @@ class _WeekendOutingHistoryPageState
                                         .textTheme
                                         .titleMedium
                                         ?.copyWith(
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .onSurfaceVariant,
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.onSurfaceVariant,
                                         ),
                                   ),
                                   const SizedBox(height: 8),
@@ -239,9 +246,9 @@ class _WeekendOutingHistoryPageState
                                         .textTheme
                                         .bodyMedium
                                         ?.copyWith(
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .onSurfaceVariant,
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.onSurfaceVariant,
                                         ),
                                     textAlign: TextAlign.center,
                                   ),
@@ -259,7 +266,8 @@ class _WeekendOutingHistoryPageState
                               itemBuilder: (context, index) {
                                 return Padding(
                                   padding: const EdgeInsets.symmetric(
-                                      vertical: 5),
+                                    vertical: 5,
+                                  ),
                                   child: WeekendOutingCard(
                                     outing: filteredReports[index],
                                   ),

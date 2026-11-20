@@ -43,7 +43,10 @@ void main() {
   testWidgets('course card shows the guidance beside the percentage', (
     tester,
   ) async {
-    await _pumpCard(tester, _record(attended: '25', total: '29', percentage: '86'));
+    await _pumpCard(
+      tester,
+      _record(attended: '25', total: '29', percentage: '86'),
+    );
 
     expect(find.text('Can skip 4'), findsOneWidget);
     expect(find.text('86%'), findsOneWidget);
@@ -51,13 +54,19 @@ void main() {
   });
 
   testWidgets('below the threshold it tells you to attend', (tester) async {
-    await _pumpCard(tester, _record(attended: '12', total: '17', percentage: '71'));
+    await _pumpCard(
+      tester,
+      _record(attended: '12', total: '17', percentage: '71'),
+    );
 
     expect(find.text('Attend 3'), findsOneWidget);
   });
 
   testWidgets('right on the threshold it says do not skip', (tester) async {
-    await _pumpCard(tester, _record(attended: '23', total: '30', percentage: '77'));
+    await _pumpCard(
+      tester,
+      _record(attended: '23', total: '30', percentage: '77'),
+    );
 
     expect(find.text("Don't skip"), findsOneWidget);
   });
@@ -65,21 +74,25 @@ void main() {
   testWidgets('guidance uses the status palette, not a hardcoded colour', (
     tester,
   ) async {
-    await _pumpCard(tester, _record(attended: '25', total: '29', percentage: '86'));
+    await _pumpCard(
+      tester,
+      _record(attended: '25', total: '29', percentage: '86'),
+    );
 
     final status = AppStatusColors.light;
     final text = tester.widget<Text>(find.text('Can skip 4'));
     expect(text.style?.color, status.success);
     expect(text.style?.fontFamily, 'Instrument Sans');
 
-    final danger = tester.widget<Text>(
-      find.text('Can skip 4'),
-    );
+    final danger = tester.widget<Text>(find.text('Can skip 4'));
     expect(danger.style?.color, isNot(status.danger));
   });
 
   testWidgets('an empty course reports no classes yet', (tester) async {
-    await _pumpCard(tester, _record(attended: '0', total: '0', percentage: '0'));
+    await _pumpCard(
+      tester,
+      _record(attended: '0', total: '0', percentage: '0'),
+    );
 
     expect(find.text('No classes yet'), findsOneWidget);
   });

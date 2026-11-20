@@ -28,6 +28,9 @@ _Timetable _$TimetableFromJson(Map<String, dynamic> json) => _Timetable(
   sunday: (json['sunday'] as List<dynamic>)
       .map((e) => TimetableClass.fromJson(e as Map<String, dynamic>))
       .toList(),
+  courses: (json['courses'] as List<dynamic>)
+      .map((e) => TimetableCourse.fromJson(e as Map<String, dynamic>))
+      .toList(),
 );
 
 Map<String, dynamic> _$TimetableToJson(_Timetable instance) =>
@@ -39,6 +42,7 @@ Map<String, dynamic> _$TimetableToJson(_Timetable instance) =>
       'friday': instance.friday,
       'saturday': instance.saturday,
       'sunday': instance.sunday,
+      'courses': instance.courses,
     };
 
 _TimetableClass _$TimetableClassFromJson(Map<String, dynamic> json) =>
@@ -51,6 +55,7 @@ _TimetableClass _$TimetableClassFromJson(Map<String, dynamic> json) =>
       faculty: json['faculty'] as String,
       courseCode: json['courseCode'] as String,
       courseType: json['courseType'] as String,
+      credits: json['credits'] as String,
     );
 
 Map<String, dynamic> _$TimetableClassToJson(_TimetableClass instance) =>
@@ -63,4 +68,23 @@ Map<String, dynamic> _$TimetableClassToJson(_TimetableClass instance) =>
       'faculty': instance.faculty,
       'courseCode': instance.courseCode,
       'courseType': instance.courseType,
+      'credits': instance.credits,
+    };
+
+_TimetableCourse _$TimetableCourseFromJson(Map<String, dynamic> json) =>
+    _TimetableCourse(
+      courseCode: json['courseCode'] as String,
+      courseName: json['courseName'] as String,
+      courseType: json['courseType'] as String,
+      typeCode: json['typeCode'] as String,
+      credits: json['credits'] as String,
+    );
+
+Map<String, dynamic> _$TimetableCourseToJson(_TimetableCourse instance) =>
+    <String, dynamic>{
+      'courseCode': instance.courseCode,
+      'courseName': instance.courseName,
+      'courseType': instance.courseType,
+      'typeCode': instance.typeCode,
+      'credits': instance.credits,
     };

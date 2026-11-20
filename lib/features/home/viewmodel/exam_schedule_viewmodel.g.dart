@@ -48,7 +48,7 @@ final class ExamScheduleViewModelProvider
 }
 
 String _$examScheduleViewModelHash() =>
-    r'f859b45e32a479d19202128320b871a3761505bc';
+    r'd2d69b888e5cbab14ec2428ccf92375a9d6830b5';
 
 abstract class _$ExamScheduleViewModel
     extends $Notifier<AsyncValue<List<ExamSchedule>>?> {

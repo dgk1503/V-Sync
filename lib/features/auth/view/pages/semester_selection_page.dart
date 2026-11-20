@@ -4,6 +4,7 @@ import 'package:vit_ap_student_app/core/common/widget/accent_gradient_text.dart'
 import 'package:vit_ap_student_app/core/common/widget/bottom_navigation_bar.dart';
 import 'package:vit_ap_student_app/core/common/widget/loader.dart';
 import 'package:vit_ap_student_app/core/utils/show_snackbar.dart';
+import 'package:vit_ap_student_app/features/auth/view/widgets/semester_year_list.dart';
 import 'package:vit_ap_student_app/features/auth/viewmodel/auth_viewmodel.dart';
 import 'package:vit_ap_student_app/features/auth/viewmodel/semester_viewmodel.dart';
 import 'package:vit_ap_student_app/src/rust/api/vtop/types/semester.dart';
@@ -179,9 +180,7 @@ class _SemesterSelectionPageState extends ConsumerState<SemesterSelectionPage> {
                       const SizedBox(height: 24),
                       if (inlineError != null)
                         Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 24.0,
-                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 24.0),
                           child: Text(
                             inlineError!,
                             style: const TextStyle(
@@ -193,86 +192,16 @@ class _SemesterSelectionPageState extends ConsumerState<SemesterSelectionPage> {
                           ),
                         ),
                       Expanded(
-                        child: ListView.separated(
+                        child: SemesterYearList(
+                          semesters: semesters,
+                          selectedId: selectedSemester?.id,
+                          currentId: currentSemesterId,
                           padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
-                          itemCount: semesters.length,
-                          separatorBuilder: (_, __) =>
-                              const SizedBox(height: 8),
-                          itemBuilder: (context, index) {
-                            final semester = semesters[index];
-                            final isSelected = selectedSemester == semester;
-
-                            return GestureDetector(
-                              onTap: () {
-                                setState(() {
-                                  selectedSemester = semester;
-                                  inlineError = null;
-                                });
-                              },
-                              child: AnimatedContainer(
-                                duration: const Duration(milliseconds: 180),
-                                curve: Curves.easeOutCubic,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 15,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: isSelected
-                                      ? colorScheme.primary
-                                      : colorScheme.surfaceContainerLow,
-                                  borderRadius: BorderRadius.circular(14),
-                                  border: Border.all(
-                                    color: isSelected
-                                        ? colorScheme.primary
-                                        : colorScheme.outlineVariant,
-                                    width: 0.75,
-                                  ),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        semester.name,
-                                        style: TextStyle(
-                                          fontFamily: 'Instrument Sans',
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.w500,
-                                          color: isSelected
-                                              ? colorScheme.onPrimary
-                                              : colorScheme.onSurface,
-                                        ),
-                                      ),
-                                    ),
-                                    if (semester.id == currentSemesterId)
-                                      Padding(
-                                        padding:
-                                            const EdgeInsets.only(left: 8),
-                                        child: Text(
-                                          'current',
-                                          style: TextStyle(
-                                            fontFamily: 'Instrument Sans',
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.w500,
-                                            color: isSelected
-                                                ? colorScheme.onPrimary
-                                                    .withValues(alpha: 0.7)
-                                                : colorScheme
-                                                    .onSurfaceVariant,
-                                          ),
-                                        ),
-                                      ),
-                                    if (isSelected) ...[
-                                      const SizedBox(width: 8),
-                                      Icon(
-                                        Icons.check_rounded,
-                                        size: 18,
-                                        color: colorScheme.onPrimary,
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                              ),
-                            );
+                          onSelect: (semester) {
+                            setState(() {
+                              selectedSemester = semester;
+                              inlineError = null;
+                            });
                           },
                         ),
                       ),
@@ -282,8 +211,7 @@ class _SemesterSelectionPageState extends ConsumerState<SemesterSelectionPage> {
                           width: double.infinity,
                           height: 56,
                           child: FilledButton(
-                            onPressed:
-                                isAuthLoading ? null : _loginUser,
+                            onPressed: isAuthLoading ? null : _loginUser,
                             style: FilledButton.styleFrom(
                               backgroundColor: colorScheme.primary,
                               foregroundColor: colorScheme.onPrimary,

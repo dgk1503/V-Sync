@@ -28,10 +28,12 @@ class ForYouCard extends StatelessWidget {
     // Fit as many cards as possible with min width of 160
     final availableWidth = screenWidth - 16; // 8px padding on each side
     final cardWidth = availableWidth < 360
-        ? (availableWidth - 12) / 2 // 2 cards for small screens
+        ? (availableWidth - 12) /
+              2 // 2 cards for small screens
         : availableWidth < 540
-            ? (availableWidth - 12) / 2 // 2 cards for medium screens
-            : (availableWidth - 24) / 3; // 3 cards for large screens
+        ? (availableWidth - 12) /
+              2 // 2 cards for medium screens
+        : (availableWidth - 24) / 3; // 3 cards for large screens
 
     return GestureDetector(
       onTap: onTap,
@@ -86,8 +88,8 @@ class ForYouCard extends StatelessWidget {
                       color: item.type == 'event'
                           ? Colors.yellowAccent.shade700.withValues(alpha: 0.20)
                           : item.type == 'resource'
-                              ? Colors.greenAccent.shade200.withValues(alpha: 0.20)
-                              : Colors.blueAccent.shade200.withValues(alpha: 0.20),
+                          ? Colors.greenAccent.shade200.withValues(alpha: 0.20)
+                          : Colors.blueAccent.shade200.withValues(alpha: 0.20),
                       borderRadius: BorderRadius.circular(9),
                     ),
                     child: Padding(
@@ -99,8 +101,8 @@ class ForYouCard extends StatelessWidget {
                           color: item.type == 'event'
                               ? Colors.yellow.shade700
                               : item.type == 'resource'
-                                  ? Colors.green.shade700
-                                  : Colors.blue.shade700,
+                              ? Colors.green.shade700
+                              : Colors.blue.shade700,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -134,10 +136,7 @@ class ForYouCard extends StatelessWidget {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 10,
-                vertical: 8,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.start,

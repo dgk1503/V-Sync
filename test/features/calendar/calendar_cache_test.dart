@@ -72,38 +72,48 @@ void main() {
       // Ours keeps VTOP's whole "Kind - Group" string in `description`, so the
       // kind has to be recovered from it. "Holiday" must land on the holiday
       // branch, or every closure on the grid renders as a working day.
-      final day =
-          CalendarRemoteRepository.parseCalendarPayload(_rawJson).days.single;
+      final day = CalendarRemoteRepository.parseCalendarPayload(
+        _rawJson,
+      ).days.single;
       final chips = CalendarEventClassifier.chipsFor(day);
 
       expect(chips.single.kind, CalendarDayKind.holiday);
       expect(chips.single.title, contains('Holiday'));
     });
 
-    test('an exam day classifies as an exam, which is what the FAT count reads',
-        () {
-      // Both parts have to change: the description holds "Kind - Group" while
-      // the label holds the bracketed qualifier, and the label is what the
-      // classifier reads first.
-      final examJson = _rawJson
-          .replaceAll('Holiday - General (Semester)', 'CAT - II - General (Semester)')
-          .replaceAll('"label": "Holiday"', '"label": "Exam Days"');
-      final day =
-          CalendarRemoteRepository.parseCalendarPayload(examJson).days.single;
-      final chips = CalendarEventClassifier.chipsFor(day);
+    test(
+      'an exam day classifies as an exam, which is what the FAT count reads',
+      () {
+        // Both parts have to change: the description holds "Kind - Group" while
+        // the label holds the bracketed qualifier, and the label is what the
+        // classifier reads first.
+        final examJson = _rawJson
+            .replaceAll(
+              'Holiday - General (Semester)',
+              'CAT - II - General (Semester)',
+            )
+            .replaceAll('"label": "Holiday"', '"label": "Exam Days"');
+        final day = CalendarRemoteRepository.parseCalendarPayload(
+          examJson,
+        ).days.single;
+        final chips = CalendarEventClassifier.chipsFor(day);
 
-      expect(chips.single.kind, CalendarDayKind.exam);
-    });
+        expect(chips.single.kind, CalendarDayKind.exam);
+      },
+    );
 
     test('the qualifier outranks the description', () {
       // A day whose description names a group but whose qualifier says Holiday
       // is a closure. Reading the description first would render it as a
       // teaching day and inflate the classes-left count.
-      final day =
-          CalendarRemoteRepository.parseCalendarPayload(_rawJson).days.single;
+      final day = CalendarRemoteRepository.parseCalendarPayload(
+        _rawJson,
+      ).days.single;
 
-      expect(CalendarEventClassifier.chipsFor(day).single.kind,
-          CalendarDayKind.holiday);
+      expect(
+        CalendarEventClassifier.chipsFor(day).single.kind,
+        CalendarDayKind.holiday,
+      );
     });
   });
 }

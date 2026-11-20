@@ -252,8 +252,10 @@ class _LiquidGlassNavigationBarState extends State<LiquidGlassNavigationBar>
     final positionSettled =
         (_targetX - _lensX).abs() < 0.05 && _lensV.abs() < 0.5;
     final sizeSettled =
-        (_expansionTarget - _expansion).abs() < 0.0005 && _expansionV.abs() < 0.005;
-    if (positionSettled && sizeSettled && _pickupStartMicros == null) {      _lensX = _targetX;
+        (_expansionTarget - _expansion).abs() < 0.0005 &&
+        _expansionV.abs() < 0.005;
+    if (positionSettled && sizeSettled && _pickupStartMicros == null) {
+      _lensX = _targetX;
       _lensV = 0;
       _expansion = _expansionTarget;
       _expansionV = 0;
@@ -264,7 +266,6 @@ class _LiquidGlassNavigationBarState extends State<LiquidGlassNavigationBar>
 
     setState(() {});
   }
-
 
   void _beginPickup(double to) {
     _pickupFrom = _targetX;
@@ -381,7 +382,8 @@ class _LiquidGlassNavigationBarState extends State<LiquidGlassNavigationBar>
     // While the pickup glide is running the finger already sits where the
     // target is heading, so only a real departure hands control over.
     final pickup = _pickupStartMicros;
-    if (pickup != null && (target - _pickupTo).abs() <= _pickupReleaseThreshold) {
+    if (pickup != null &&
+        (target - _pickupTo).abs() <= _pickupReleaseThreshold) {
       return;
     }
     _pickupStartMicros = null;

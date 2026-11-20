@@ -44,7 +44,7 @@ final class CalendarViewmodelProvider
   }
 }
 
-String _$calendarViewmodelHash() => r'f7b07cef335d34680636203868c2b2375d4a1648';
+String _$calendarViewmodelHash() => r'8cefb9d7204881103bdc1c632610ebd1098457ba';
 
 abstract class _$CalendarViewmodel
     extends $Notifier<AsyncValue<List<CalendarMonth>>> {

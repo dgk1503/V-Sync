@@ -13,19 +13,28 @@ AttendanceDetail _record(String date, String status) => AttendanceDetail(
   remark: '',
 );
 
-Future<void> host(WidgetTester tester, Widget child) =>
-    tester.pumpWidget(
-      MaterialApp(
-        theme: getThemeData(isDarkMode: false),
-        home: Scaffold(body: SingleChildScrollView(child: child)),
-      ),
-    );
+Future<void> host(WidgetTester tester, Widget child) => tester.pumpWidget(
+  MaterialApp(
+    theme: getThemeData(isDarkMode: false),
+    home: Scaffold(body: SingleChildScrollView(child: child)),
+  ),
+);
 
 /// The month currently drawn by the slider.
 String _visibleTitle(WidgetTester tester) {
   const names = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December',
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
   ];
   for (final name in names) {
     final year = [2026, 2027, 2028];
@@ -38,7 +47,9 @@ String _visibleTitle(WidgetTester tester) {
 
 int _visibleRings(WidgetTester tester) {
   var count = 0;
-  for (final container in tester.widgetList<Container>(find.byType(Container))) {
+  for (final container in tester.widgetList<Container>(
+    find.byType(Container),
+  )) {
     final decoration = container.decoration;
     if (decoration is! BoxDecoration) continue;
     if (decoration.shape != BoxShape.circle) continue;
@@ -129,7 +140,10 @@ void main() {
       await host(
         tester,
         AttendanceMonthCard(
-          details: [_record('Not published', 'Present'), _record('05/10/2026', 'Present')],
+          details: [
+            _record('Not published', 'Present'),
+            _record('05/10/2026', 'Present'),
+          ],
         ),
       );
       await tester.pump();
@@ -204,7 +218,11 @@ void main() {
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 250));
         final title = _visibleTitle(tester);
-        expect(title, isNot(seen.last), reason: 'step $step should change month');
+        expect(
+          title,
+          isNot(seen.last),
+          reason: 'step $step should change month',
+        );
         seen.add(title);
       }
       expect(seen, hasLength(4), reason: 'all four months reachable');
@@ -258,7 +276,9 @@ void main() {
       expect(find.text('29'), findsOneWidget);
     });
 
-    testWidgets('a day with three records still draws one ring', (tester) async {
+    testWidgets('a day with three records still draws one ring', (
+      tester,
+    ) async {
       // Lectures plus a lab can post several rows for one date.
       await host(
         tester,
@@ -299,8 +319,9 @@ void main() {
 
       expect(find.text('October 2026'), findsOneWidget);
 
-      final controller =
-          tester.widget<PageView>(find.byType(PageView)).controller!;
+      final controller = tester
+          .widget<PageView>(find.byType(PageView))
+          .controller!;
       expect(controller.hasClients, isTrue);
       expect(
         controller.page,
@@ -334,10 +355,7 @@ void main() {
       // from an empty course - and neither told the user what to do.
       await host(
         tester,
-        const AttendanceMonthCard(
-          details: [],
-          emptyReason: EmptyReason.failed,
-        ),
+        const AttendanceMonthCard(details: [], emptyReason: EmptyReason.failed),
       );
       await tester.pump();
 

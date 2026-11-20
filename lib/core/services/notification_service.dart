@@ -44,7 +44,6 @@ const _groupKeyExamReminders = 'com.vitap.exam_reminders';
 /// Group key for countdown (milestone) reminder notifications
 const _groupKeyMilestoneReminders = 'com.vitap.countdown_reminders';
 
-
 /// Fixed notification IDs for group summaries (must not collide with content IDs)
 const _downloadGroupSummaryId = 0x7F000001;
 // ignore: unused_element
@@ -635,8 +634,10 @@ class NotificationService {
 
       // Android 12+ can deny exact-alarm permission (it's opt-in from 14).
       // Fall back to the inexact window so the reminder still fires.
-      final android = _notifications.resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin>();
+      final android = _notifications
+          .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin
+          >();
       final exactAllowed = await android?.canScheduleExactNotifications();
       final scheduleMode = exactAllowed == false
           ? AndroidScheduleMode.inexactAllowWhileIdle
@@ -678,7 +679,7 @@ class NotificationService {
       for (final notification in pending) {
         final isMilestone =
             notification.payload == _milestonePayload ||
-                (notification.title?.startsWith('⏳ Countdown:') ?? false);
+            (notification.title?.startsWith('⏳ Countdown:') ?? false);
         if (isMilestone) {
           await _notifications.cancel(id: notification.id);
         }
@@ -708,7 +709,6 @@ class NotificationService {
     if (mins > 0) parts.add('$mins minute${mins == 1 ? '' : 's'}');
     return parts.isEmpty ? '0 minutes' : parts.join(' ');
   }
-
 
   static Future<void> cancelAllNotifications() async {
     await _notifications.cancelAll();

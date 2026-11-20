@@ -27,7 +27,9 @@ void main() {
 
     test('reads holidays', () {
       expect(
-        CalendarEventClassifier.classify(_event('Holiday - Deepavali', 'Deepavali')),
+        CalendarEventClassifier.classify(
+          _event('Holiday - Deepavali', 'Deepavali'),
+        ),
         CalendarDayKind.holiday,
       );
       expect(
@@ -42,7 +44,9 @@ void main() {
         CalendarDayKind.exam,
       );
       expect(
-        CalendarEventClassifier.classify(_event('Final Assessment Test', 'FAT')),
+        CalendarEventClassifier.classify(
+          _event('Final Assessment Test', 'FAT'),
+        ),
         CalendarDayKind.exam,
       );
       expect(
@@ -58,28 +62,40 @@ void main() {
       );
     });
 
-    test('prefers the label for a short chip, else the head of the description', () {
-      expect(
-        CalendarEventClassifier.shortLabel(
-          _event('Instructional Day - General (Semester)', 'WorkingDay'),
-        ),
-        'WorkingDay',
-      );
-      expect(
-        CalendarEventClassifier.shortLabel(_event('Holiday - Deepavali', '')),
-        'Holiday',
-      );
-    });
+    test(
+      'prefers the label for a short chip, else the head of the description',
+      () {
+        expect(
+          CalendarEventClassifier.shortLabel(
+            _event('Instructional Day - General (Semester)', 'WorkingDay'),
+          ),
+          'WorkingDay',
+        );
+        expect(
+          CalendarEventClassifier.shortLabel(_event('Holiday - Deepavali', '')),
+          'Holiday',
+        );
+      },
+    );
 
     test('a closure outranks a countdown so a real day is never masked', () {
       int rank(CalendarDayKind kind) => CalendarChip(
-            date: DateTime(2026, 11, 3),
-            kind: kind,
-            title: 'x',
-          ).precedence;
-      expect(rank(CalendarDayKind.noClasses), greaterThan(rank(CalendarDayKind.countdown)));
-      expect(rank(CalendarDayKind.exam), greaterThan(rank(CalendarDayKind.instructional)));
-      expect(rank(CalendarDayKind.instructional), greaterThan(rank(CalendarDayKind.countdown)));
+        date: DateTime(2026, 11, 3),
+        kind: kind,
+        title: 'x',
+      ).precedence;
+      expect(
+        rank(CalendarDayKind.noClasses),
+        greaterThan(rank(CalendarDayKind.countdown)),
+      );
+      expect(
+        rank(CalendarDayKind.exam),
+        greaterThan(rank(CalendarDayKind.instructional)),
+      );
+      expect(
+        rank(CalendarDayKind.instructional),
+        greaterThan(rank(CalendarDayKind.countdown)),
+      );
     });
 
     test('builds a chip per event on a day', () {

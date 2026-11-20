@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:vit_ap_student_app/core/common/widget/accent_gradient_text.dart';
 import 'package:vit_ap_student_app/core/common/widget/segmented_tab_switcher.dart';
 import 'package:vit_ap_student_app/features/home/view/pages/outing/general_outing_tab.dart';
 import 'package:vit_ap_student_app/features/home/view/pages/outing/weekend_outing_tab.dart';
@@ -32,11 +33,14 @@ class _OutingPageState extends ConsumerState<OutingPage>
     return Scaffold(
       appBar: AppBar(
         elevation: 0,
-        title: Text(
+        title: const AccentGradientText(
           'Outing',
-          style: Theme.of(
-            context,
-          ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w500),
+          style: TextStyle(
+            fontFamily: 'Instrument Sans',
+            fontSize: 22,
+            fontWeight: FontWeight.w500,
+            letterSpacing: -0.3,
+          ),
         ),
       ),
       body: Column(

@@ -7,19 +7,20 @@ import 'package:vit_ap_student_app/core/models/timetable.dart';
 import 'package:vit_ap_student_app/core/providers/current_user.dart';
 import 'package:vit_ap_student_app/core/utils/format_to_12_hour.dart';
 import 'package:vit_ap_student_app/core/utils/get_classes.dart';
+import 'package:vit_ap_student_app/features/timetable/model/free_time.dart';
 
 /// Neutral (non-themed) text colors for the timetable — class content
 /// stays monochrome in every accent theme; only the day chips and the
 /// background aura carry the theme color.
 Color _neutralText(BuildContext context) =>
     Theme.of(context).brightness == Brightness.dark
-        ? Colors.white
-        : Colors.black;
+    ? Colors.white
+    : Colors.black;
 
 Color _neutralMuted(BuildContext context) =>
     Theme.of(context).brightness == Brightness.dark
-        ? const Color(0xFFB3B3B3)
-        : const Color(0xFF4D4D4D);
+    ? const Color(0xFFB3B3B3)
+    : const Color(0xFF4D4D4D);
 
 class ScheduleList extends ConsumerStatefulWidget {
   final String day;
@@ -118,19 +119,28 @@ class _ScheduleListState extends ConsumerState<ScheduleList> {
     List<Day> classes,
   ) {
     if (classes.isEmpty) return const [];
+    // Free time is measured inside a stretch of classes. The break between the
+    // morning and the afternoon is lunch, which the section divider already
+    // marks, so it is not repeated as free time on every day.
+    final gaps = FreeTime.before(classes);
     return [
       Padding(
         padding: const EdgeInsets.only(left: 4, top: 20, bottom: 10),
         child: Text(
           title.toUpperCase(),
-          style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                fontSize: 11,
-                letterSpacing: 1.4,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.labelSmall?.copyWith(fontSize: 11, letterSpacing: 1.4),
         ),
       ),
       for (var i = 0; i < classes.length; i++) ...[
-        if (i > 0) _classDivider(context),
+        // A real gap between two classes is worth saying; the ordinary ten
+        // minute changeover is not, and keeps the quiet hairline.
+        if (i > 0)
+          if (gaps[i] != null)
+            _FreeTimeRow(gap: gaps[i]!)
+          else
+            _classDivider(context),
         _ClassRow(
           classInfo: classes[i],
           isSelected: _selectedClass == classes[i],
@@ -149,18 +159,22 @@ class _ScheduleListState extends ConsumerState<ScheduleList> {
     if (timetable == null) return const SizedBox.shrink();
 
     final classes = getClassesForDay(timetable, widget.day)
-      ..sort((a, b) =>
-          _parseMinutes(a.startTime).compareTo(_parseMinutes(b.startTime)));
+      ..sort(
+        (a, b) =>
+            _parseMinutes(a.startTime).compareTo(_parseMinutes(b.startTime)),
+      );
 
     if (classes.isEmpty) return const SizedBox.shrink();
 
     // Morning: the last morning slot is the 12:00-12:50 theory class
     // (labs start no later than 11:45), so anything starting before
     // 1:00 PM is morning. Afternoon classes begin at 2:00 PM.
-    final morning =
-        classes.where((c) => _parseMinutes(c.startTime) < 780).toList();
-    final afternoon =
-        classes.where((c) => _parseMinutes(c.startTime) >= 780).toList();
+    final morning = classes
+        .where((c) => _parseMinutes(c.startTime) < 780)
+        .toList();
+    final afternoon = classes
+        .where((c) => _parseMinutes(c.startTime) >= 780)
+        .toList();
 
     return RefreshIndicator(
       onRefresh: () async {
@@ -187,15 +201,70 @@ class _ScheduleListState extends ConsumerState<ScheduleList> {
   }
 }
 
+/// "Free for 1 hr 10 min" between two classes, on the same fading hairline the
+/// other gaps use, so it reads as part of the list rather than as another row.
+class _FreeTimeRow extends StatelessWidget {
+  final FreeGap gap;
+
+  const _FreeTimeRow({required this.gap});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final muted = _neutralMuted(context);
+
+    Widget line(bool fadeLeft) => Expanded(
+      child: Container(
+        height: 1,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: fadeLeft
+                ? [
+                    colors.outlineVariant.withValues(alpha: 0),
+                    colors.outlineVariant.withValues(alpha: 0.7),
+                  ]
+                : [
+                    colors.outlineVariant.withValues(alpha: 0.7),
+                    colors.outlineVariant.withValues(alpha: 0),
+                  ],
+          ),
+        ),
+      ),
+    );
+
+    return Semantics(
+      label: gap.label,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+        child: Row(
+          children: [
+            line(true),
+            const SizedBox(width: 10),
+            Icon(Icons.coffee_outlined, size: 14, color: muted),
+            const SizedBox(width: 6),
+            Text(
+              gap.label,
+              style: TextStyle(
+                fontFamily: 'Instrument Sans',
+                fontSize: 12.5,
+                color: muted,
+              ),
+            ),
+            const SizedBox(width: 10),
+            line(false),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 /// Blurred barrier + centered details card shown above everything.
 class _DetailsOverlay extends StatelessWidget {
   final VoidCallback onDismiss;
   final Widget child;
 
-  const _DetailsOverlay({
-    required this.onDismiss,
-    required this.child,
-  });
+  const _DetailsOverlay({required this.onDismiss, required this.child});
 
   @override
   Widget build(BuildContext context) {
@@ -217,10 +286,7 @@ class _DetailsOverlay extends StatelessWidget {
             builder: (context, t, child) {
               return Opacity(
                 opacity: t,
-                child: Transform.scale(
-                  scale: 0.92 + 0.08 * t,
-                  child: child,
-                ),
+                child: Transform.scale(scale: 0.92 + 0.08 * t, child: child),
               );
             },
             child: ConstrainedBox(
@@ -430,9 +496,9 @@ class _ClassDetailsCard extends StatelessWidget {
             _DetailRow(label: 'Faculty', value: classInfo.faculty),
             _DetailRow(label: 'Course code', value: classInfo.courseCode),
             _DetailRow(
-                label: 'Timing',
-                value:
-                    formatTimeRange(classInfo.startTime, classInfo.endTime)),
+              label: 'Timing',
+              value: formatTimeRange(classInfo.startTime, classInfo.endTime),
+            ),
             _DetailRow(label: 'Slot', value: classInfo.slot),
             _DetailRow(label: 'Venue', value: classInfo.venue),
           ],
@@ -485,4 +551,3 @@ class _DetailRow extends StatelessWidget {
     );
   }
 }
-

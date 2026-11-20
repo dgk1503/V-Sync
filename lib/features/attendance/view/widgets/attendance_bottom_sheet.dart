@@ -56,8 +56,9 @@ void showAttendanceBottomSheet(BuildContext context, Attendance subjectInfo) {
                                   fontFamily: 'Instrument Sans',
                                   fontSize: 19,
                                   fontWeight: FontWeight.w500,
-                                  color:
-                                      Theme.of(context).colorScheme.onSurface,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurface,
                                 ),
                               ),
                               const SizedBox(height: 2),
@@ -67,9 +68,9 @@ void showAttendanceBottomSheet(BuildContext context, Attendance subjectInfo) {
                                 style: TextStyle(
                                   fontFamily: 'Instrument Sans',
                                   fontSize: 13,
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onSurfaceVariant,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
                                 ),
                               ),
                             ],
@@ -79,7 +80,8 @@ void showAttendanceBottomSheet(BuildContext context, Attendance subjectInfo) {
                           onPressed: () {
                             ref
                                 .read(
-                                    detailedAttendanceViewmodelProvider.notifier)
+                                  detailedAttendanceViewmodelProvider.notifier,
+                                )
                                 .fetchDetailedAttendance(
                                   courseId: subjectInfo.courseId,
                                   courseType: subjectInfo.courseTypeCode,
@@ -129,18 +131,15 @@ Widget _buildDetailedList(
         data: (attendanceDetails) =>
             _buildAttendanceTable(context, attendanceDetails),
         loading: () => const Center(child: Loader()),
-        error: (error, stackTrace) => _buildErrorState(
-          context,
-          error.toString(),
-          () {
-            ref
-                .read(detailedAttendanceViewmodelProvider.notifier)
-                .fetchDetailedAttendance(
-                  courseId: subjectInfo.courseId,
-                  courseType: subjectInfo.courseTypeCode,
-                );
-          },
-        ),
+        error: (error, stackTrace) =>
+            _buildErrorState(context, error.toString(), () {
+              ref
+                  .read(detailedAttendanceViewmodelProvider.notifier)
+                  .fetchDetailedAttendance(
+                    courseId: subjectInfo.courseId,
+                    courseType: subjectInfo.courseTypeCode,
+                  );
+            }),
       );
     },
   );
@@ -320,8 +319,8 @@ Widget _buildAttendanceTable(
                         color: isPresent
                             ? Colors.green
                             : isAbsent
-                                ? Colors.red
-                                : colorScheme.onSurfaceVariant,
+                            ? Colors.red
+                            : colorScheme.onSurfaceVariant,
                       ),
                       textAlign: TextAlign.end,
                     ),

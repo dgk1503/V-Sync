@@ -8,6 +8,35 @@ pub fn parse_timetable(html: String) -> Timetable {
     parse_timetable_direct(html)
 }
 
+/// The kind of a course part, from the end of its course cell:
+/// `"CSE2001 - Data Structures ( Embedded Theory )"` gives `"Embedded Theory"`.
+///
+/// Spacing inside the brackets varies between pages (`( Theory Only )` and
+/// `(Theory Only)`), and a course name may have brackets of its own, so the
+/// LAST bracket pair is the kind.
+fn course_kind(cell: &str) -> String {
+    let Some(open) = cell.rfind('(') else {
+        return String::new();
+    };
+    let inner = &cell[open + 1..];
+    let inner = inner.split(')').next().unwrap_or("");
+    inner.split_whitespace().collect::<Vec<_>>().join(" ")
+}
+
+/// The short code the weekly grid uses for a kind of course part.
+fn kind_code(kind: &str) -> &'static str {
+    match kind.to_lowercase().as_str() {
+        "embedded theory" => "ETH",
+        "embedded lab" => "ELA",
+        "theory only" => "TH",
+        "lab only" => "LO",
+        "project" => "PJT",
+        "embedded project" => "EPJ",
+        "soft skill" => "SS",
+        _ => "UNK",
+    }
+}
+
 fn parse_timetable_direct(html: String) -> Timetable {
     #[derive(serde::Serialize, serde::Deserialize)]
     struct Timing {
@@ -40,11 +69,14 @@ fn parse_timetable_direct(html: String) -> Timetable {
         friday: Vec::new(),
         saturday: Vec::new(),
         sunday: Vec::new(),
+        courses: Vec::new(),
     };
 
     let mut classname_code: HashMap<String, String> = HashMap::new();
     let mut faculty_code: HashMap<String, String> = HashMap::new();
     let mut course_to_class_nbr: HashMap<String, String> = HashMap::new();
+    // Credits per course part, keyed like `course_to_class_nbr`.
+    let mut course_to_credits: HashMap<String, String> = HashMap::new();
     let mut course_to_slot_venue: HashMap<String, (String, String)> = HashMap::new(); // Maps course_key to (slot, venue)
     let document = Html::parse_document(&html);
     let rows_selector = Selector::parse("tr").unwrap();
@@ -89,7 +121,7 @@ fn parse_timetable_direct(html: String) -> Timetable {
                     // Join all parts except the first, then split by "(" to remove course type info
                     let name_parts = tep[1..].join(" - ");
                     let name = name_parts
-                        .split_once("(")
+                        .rsplit_once("(")
                         .unwrap_or((&name_parts, ""))
                         .0
                         .trim()
@@ -99,17 +131,43 @@ fn parse_timetable_direct(html: String) -> Timetable {
                     }
 
                     // Extract course type from the course description to create mapping
-                    let course_type = if cname.contains("( Embedded Theory )") {
-                        "ETH"
-                    } else if cname.contains("( Embedded Lab )") {
-                        "ELA"
-                    } else if cname.contains("( Theory Only )") {
-                        "TH"
-                    } else if cname.contains("( Project )") {
-                        "PJT"
-                    } else {
-                        "UNK" // Unknown type
-                    };
+                    let kind = course_kind(&cname);
+                    let course_type = kind_code(&kind);
+
+                    // Credits: the last number of the "L T P J C" line in column 3.
+                    // Read for every course row, not only ones with a class number.
+                    if let Some(credit) = cells
+                        .get(3)
+                        .map(|cell| cell.text().collect::<Vec<_>>().join(" "))
+                        .and_then(|line| {
+                            line.split_whitespace().last().map(|t| t.to_string())
+                        })
+                        .filter(|token| token.parse::<f64>().is_ok())
+                    {
+                        course_to_credits.insert(format!("{}_{}", code, course_type), credit);
+                    }
+
+                    // The course table as it stands, one entry per part, whether or
+                    // not the part has a slot in the weekly grid below.
+                    if !weekly_timetable
+                        .courses
+                        .iter()
+                        .any(|c| c.course_code == code && c.course_type == kind)
+                    {
+                        let credits = cells
+                            .get(3)
+                            .map(|cell| cell.text().collect::<Vec<_>>().join(" "))
+                            .and_then(|line| line.split_whitespace().last().map(|t| t.to_string()))
+                            .filter(|token| token.parse::<f64>().is_ok())
+                            .unwrap_or_default();
+                        weekly_timetable.courses.push(TimetableCourse {
+                            course_code: code.clone(),
+                            course_name: classname_code.get(&code).cloned().unwrap_or_default(),
+                            course_type: kind.clone(),
+                            type_code: course_type.to_string(),
+                            credits,
+                        });
+                    }
 
                     // Create mapping from course_code + course_type to class_nbr
                     if !class_nbr.is_empty() {
@@ -435,6 +493,27 @@ fn parse_timetable_direct(html: String) -> Timetable {
                         };
 
                     let timetable_class = TimetableClass {
+                        credits: course_to_credits
+                            .get(&format!("{}_{}", first.course_code, first.course_type))
+                            .cloned()
+                            // The grid's code for a part can differ from the one read
+                            // off the course table (a kind not in `kind_code`). When
+                            // the course has exactly one part its credits are
+                            // unambiguous.
+                            .or_else(|| {
+                                let mine: Vec<&TimetableCourse> = weekly_timetable
+                                    .courses
+                                    .iter()
+                                    .filter(|c| c.course_code == first.course_code)
+                                    .collect();
+                                match mine.as_slice() {
+                                    [only] if !only.credits.is_empty() => {
+                                        Some(only.credits.clone())
+                                    }
+                                    _ => None,
+                                }
+                            })
+                            .unwrap_or_default(),
                         start_time: first.start_time.clone(),
                         end_time: last.end_time.clone(),
                         course_name: first.name.clone(),
