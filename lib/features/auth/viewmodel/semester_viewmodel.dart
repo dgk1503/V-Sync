@@ -1,6 +1,7 @@
 import 'package:fpdart/fpdart.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:vit_ap_student_app/core/network/connection_checker.dart';
+import 'package:vit_ap_student_app/core/providers/current_user.dart';
 import 'package:vit_ap_student_app/features/auth/repository/auth_local_repository.dart';
 import 'package:vit_ap_student_app/features/auth/repository/auth_remote_repository.dart';
 import 'package:vit_ap_student_app/init_dependencies.dart';
@@ -96,10 +97,19 @@ class SemesterViewModel extends _$SemesterViewModel {
   /// Get selected semester from cache
   Future<SemesterInfo?> getSelectedSemester() async {
     final result = await _authLocalRepository.getSelectedSemester();
-    return result.fold(
-      (l) => null,
-      (r) => r,
-    );
+    final selected = result.fold((l) => null, (r) => r);
+    if (selected != null) return selected;
+
+    // Nothing selected: fall back to the semester the login is already using, so
+    // a selection lost to an earlier build repairs itself.
+    try {
+      final credentials = await ref
+          .read(currentUserProvider.notifier)
+          .getSavedCredentials();
+      return _authLocalRepository.healSelection(credentials?.semSubId);
+    } catch (_) {
+      return null;
+    }
   }
 
   /// Set selected semester in cache

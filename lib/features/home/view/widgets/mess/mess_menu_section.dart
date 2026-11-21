@@ -11,6 +11,7 @@ import 'package:vit_ap_student_app/core/common/widget/accent_gradient_text.dart'
 import 'package:vit_ap_student_app/core/common/widget/segmented_tab_switcher.dart';
 import 'package:vit_ap_student_app/core/utils/show_toast.dart';
 import 'package:vit_ap_student_app/features/home/model/mess_menu.dart';
+import 'package:vit_ap_student_app/features/home/view/widgets/mess/mess_sheet_page.dart';
 import 'package:vit_ap_student_app/features/home/viewmodel/mess_menu_viewmodel.dart';
 
 class MessMenuSection extends ConsumerStatefulWidget {
@@ -84,6 +85,7 @@ class _MessMenuSectionState extends ConsumerState<MessMenuSection>
   @override
   Widget build(BuildContext context) {
     final menu = ref.watch(messMenuProvider);
+    final source = ref.watch(messSourceProvider);
     final colorScheme = Theme.of(context).colorScheme;
 
     // Keep the browsed date inside the uploaded menu's month: snap to
@@ -116,17 +118,27 @@ class _MessMenuSectionState extends ConsumerState<MessMenuSection>
                   fontSize: 22,
                 ),
               ),
-              const Spacer(),
-              GestureDetector(
-                onTap: _openManageSheet,
-                behavior: HitTestBehavior.opaque,
-                child: Text(
-                  menu?.monthName ?? 'Upload',
-                  style: const TextStyle(
-                    fontFamily: 'Instrument Sans',
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.blue,
+              const SizedBox(width: 12),
+              // Takes all the room the title leaves, so a longer label
+              // ("November · Special") is not squeezed to half of it.
+              Expanded(
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: GestureDetector(
+                    onTap: _openManageSheet,
+                    behavior: HitTestBehavior.opaque,
+                    child: Text(
+                      _headerLabel(menu, source != null),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.end,
+                      style: const TextStyle(
+                        fontFamily: 'Instrument Sans',
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.blue,
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -134,7 +146,7 @@ class _MessMenuSectionState extends ConsumerState<MessMenuSection>
           ),
         ),
 
-        if (menu == null)
+        if (menu == null && source == null)
           // First-time hint
           GestureDetector(
             onTap: _openManageSheet,
@@ -169,16 +181,76 @@ class _MessMenuSectionState extends ConsumerState<MessMenuSection>
               ),
             ),
           )
+        else if (menu == null)
+          // The file could not be read as a menu, so the original is shown.
+          _DocumentCard(
+            source: source!,
+            onUpload: _openManageSheet,
+            onView: () => _openSource(context, source),
+          )
+        else if (menu.hasEnded(DateTime.now()))
+          // The month this menu was for is over: ask for the new one.
+          _NextMonthCard(endedMonth: menu.monthName, onUpload: _openManageSheet)
         else ...[
           _buildDateNavigator(context, menu),
           const SizedBox(height: 14),
           _buildMealSwitcher(context),
           const SizedBox(height: 6),
           _buildMenuItems(context, menu),
+          _buildEndingSoonHint(context),
         ],
         // Keep the last menu row clear of the floating navigation capsule.
         const SizedBox(height: 88),
       ],
+    );
+  }
+
+  /// The word on the right of the title. It opens the sheet where the menu is
+  /// uploaded, deleted and (when the workbook has several) chosen, so once a
+  /// menu other than the first is chosen its name is shown here too.
+  String _headerLabel(MessMenu? menu, bool hasSource) {
+    if (menu == null) return hasSource ? 'Manage' : 'Upload';
+    if (menu.sheetNames.length > 1) {
+      final sheet = _effectiveSheet(menu);
+      if (sheet != menu.sheetNames.first) return '${menu.monthName} · $sheet';
+    }
+    return menu.monthName;
+  }
+
+  /// The sheet in use: the one the student chose, or the first when they have
+  /// not chosen yet or chose one this month's workbook does not have.
+  String _effectiveSheet(MessMenu menu) {
+    final chosen = ref.watch(messSheetProvider);
+    return chosen != null && menu.sheetNames.contains(chosen)
+        ? chosen
+        : menu.sheetNames.first;
+  }
+
+  /// A quiet nudge for the last few days of the month, so the next menu is
+  /// uploaded before the old one runs out rather than after.
+  Widget _buildEndingSoonHint(BuildContext context) {
+    final now = DateTime.now();
+    final left = DateTime(now.year, now.month + 1, 0).day - now.day;
+    if (left > 2) return const SizedBox.shrink();
+
+    final colorScheme = Theme.of(context).colorScheme;
+    final text = left == 0
+        ? 'This is the last day of this menu. Upload next month\'s menu from '
+              'your email when it arrives.'
+        : 'This menu ends in $left ${left == 1 ? 'day' : 'days'}. Upload next '
+              'month\'s menu from your email when it arrives.';
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontFamily: 'Instrument Sans',
+          fontSize: 12.5,
+          height: 1.4,
+          color: colorScheme.onSurfaceVariant,
+        ),
+      ),
     );
   }
 
@@ -252,7 +324,10 @@ class _MessMenuSectionState extends ConsumerState<MessMenuSection>
     final colorScheme = Theme.of(context).colorScheme;
     final selectedMeal = _mealTabController.index;
 
-    final dayMenu = menu.menuFor(_selectedDate.day);
+    final dayMenu = menu.menuFor(
+      _selectedDate.day,
+      sheet: _effectiveSheet(menu),
+    );
     final items = dayMenu?.forMeal(selectedMeal) ?? const [];
 
     // Swipe left/right on the menu area to move between meals; the capsule
@@ -366,91 +441,142 @@ class _MessMenuManageSheet extends ConsumerWidget {
     if (path == null) return;
     final bytes = await File(path).readAsBytes();
 
-    final ok = await ref
+    final result = await ref
         .read(messMenuProvider.notifier)
-        .importFromBytes(Uint8List.fromList(bytes));
+        .importFile(Uint8List.fromList(bytes), file.name);
 
     if (!context.mounted) return;
-    if (ok) {
-      Navigator.of(context).pop();
-      showToast(context, 'Mess menu imported');
-    } else {
-      showToast(context, 'Could not read a mess menu from that file');
+    switch (result) {
+      case MessImportResult.menu:
+        Navigator.of(context).pop();
+        showToast(context, 'Mess menu imported');
+      case MessImportResult.document:
+        Navigator.of(context).pop();
+        showToast(
+          context,
+          "Couldn't read that as a day-by-day menu, so it's shown as the sheet it came as",
+        );
+      case MessImportResult.failed:
+        showToast(context, 'Could not save that file');
     }
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final menu = ref.watch(messMenuProvider);
+    final source = ref.watch(messSourceProvider);
+    final chosen = ref.watch(messSheetProvider);
     final colorScheme = Theme.of(context).colorScheme;
 
-    return DraggableScrollableSheet(
-      expand: false,
-      initialChildSize: 0.45,
-      minChildSize: 0.3,
-      maxChildSize: 0.7,
-      builder: (context, scrollController) {
-        return Container(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
-          decoration: BoxDecoration(
-            color: colorScheme.surface,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+    // A workbook can carry more than one mess menu ("Veg & Non-Veg",
+    // "Special"). The student picks theirs here, once, and it is remembered.
+    final names = menu?.sheetNames ?? const <String>[];
+    final selected = chosen != null && names.contains(chosen)
+        ? chosen
+        : (names.isEmpty ? null : names.first);
+
+    // Sized to its content and scrollable if the screen is short, and kept
+    // clear of the system navigation bar: the last action (Delete) must never
+    // be pushed below the edge of the screen.
+    return Container(
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.sizeOf(context).height * 0.85,
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 36,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: colorScheme.outlineVariant,
-                    borderRadius: BorderRadius.circular(2),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: colorScheme.outlineVariant,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Mess menu',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w500),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                menu == null
-                    ? 'No menu uploaded yet'
-                    : '${menu.monthName} ${menu.year} · '
-                          '${menu.days.length} days',
-                style: TextStyle(
-                  fontFamily: 'Instrument Sans',
-                  fontSize: 13,
-                  color: colorScheme.onSurfaceVariant,
+                const SizedBox(height: 16),
+                Text(
+                  'Mess menu',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w500),
                 ),
-              ),
-              const SizedBox(height: 20),
-              _SheetAction(
-                icon: Iconsax.document_upload_copy,
-                title: 'Insert Excel file',
-                subtitle: 'Upload your mess menu (.xlsx)',
-                onTap: () => _importFromPicker(context, ref),
-              ),
-              const SizedBox(height: 10),
-              if (menu != null)
+                const SizedBox(height: 4),
+                Text(
+                  menu != null
+                      ? '${menu.monthName} ${menu.year} · '
+                            '${menu.days.length} days'
+                      : source != null
+                      ? 'Showing the original file: ${source.name}'
+                      : 'No menu uploaded yet',
+                  style: TextStyle(
+                    fontFamily: 'Instrument Sans',
+                    fontSize: 13,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                if (selected != null && names.length > 1) ...[
+                  const SizedBox(height: 18),
+                  Text(
+                    'Show menu',
+                    style: TextStyle(
+                      fontFamily: 'Instrument Sans',
+                      fontSize: 12.5,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  _SheetPills(
+                    names: names,
+                    selected: selected,
+                    onSelect: (name) =>
+                        ref.read(messSheetProvider.notifier).choose(name),
+                  ),
+                ],
+                const SizedBox(height: 20),
                 _SheetAction(
-                  icon: Iconsax.trash_copy,
-                  title: 'Delete menu',
-                  subtitle: 'Remove the uploaded menu from this device',
-                  destructive: true,
-                  onTap: () async {
-                    await ref.read(messMenuProvider.notifier).delete();
-                    if (context.mounted) Navigator.of(context).pop();
-                  },
+                  icon: Iconsax.document_upload_copy,
+                  title: 'Insert Excel file',
+                  subtitle: 'Upload your mess menu (.xlsx)',
+                  onTap: () => _importFromPicker(context, ref),
                 ),
-            ],
+                const SizedBox(height: 10),
+                if (source != null) ...[
+                  _SheetAction(
+                    icon: Iconsax.document_upload_copy,
+                    title: 'View original sheet',
+                    subtitle: source.name,
+                    onTap: () => _openSource(context, source),
+                  ),
+                  const SizedBox(height: 10),
+                ],
+                if (menu != null || source != null)
+                  _SheetAction(
+                    icon: Iconsax.trash_copy,
+                    title: 'Delete menu',
+                    subtitle: 'Remove the uploaded menu from this device',
+                    destructive: true,
+                    onTap: () async {
+                      await ref.read(messMenuProvider.notifier).delete();
+                      if (context.mounted) Navigator.of(context).pop();
+                    },
+                  ),
+              ],
+            ),
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 }
@@ -515,6 +641,263 @@ class _SheetAction extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Opens the spreadsheet a menu came from, as a table inside the app.
+Future<void> _openSource(BuildContext context, MessSource source) async {
+  await Navigator.of(context).push(
+    MaterialPageRoute<void>(builder: (_) => MessSheetPage(source: source)),
+  );
+}
+
+/// Shown instead of the day-by-day menu when the file could not be read as one.
+///
+/// Hostels send their menus in different shapes. A menu the reader half
+/// understands would look authoritative and be wrong, so the original file is
+/// shown instead, as it came.
+class _DocumentCard extends StatelessWidget {
+  final MessSource source;
+  final VoidCallback onUpload;
+  final VoidCallback onView;
+
+  const _DocumentCard({
+    required this.source,
+    required this.onUpload,
+    required this.onView,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final stale = source.isFromEarlierMonth(DateTime.now());
+
+    TextStyle body() => TextStyle(
+      fontFamily: 'Instrument Sans',
+      fontSize: 13,
+      height: 1.4,
+      color: colorScheme.onSurfaceVariant,
+    );
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(18, 18, 18, 14),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: colorScheme.outlineVariant, width: 0.75),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.table_chart_outlined,
+                size: 22,
+                color: colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  source.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontFamily: 'Instrument Sans',
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                    color: colorScheme.onSurface,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            "This file couldn't be read as a day-by-day menu, so it's shown as "
+            'the sheet it came as.',
+            style: body(),
+          ),
+          if (stale) ...[
+            const SizedBox(height: 8),
+            Text(
+              'Added in ${DateFormat('MMMM').format(source.importedAt)}. If '
+              "this month's menu is out, upload it from your email.",
+              style: body(),
+            ),
+          ],
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              FilledButton.tonal(
+                onPressed: onView,
+                style: FilledButton.styleFrom(
+                  elevation: 0,
+                  minimumSize: const Size(0, 42),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text(
+                  'View menu',
+                  style: TextStyle(
+                    fontFamily: 'Instrument Sans',
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              TextButton(
+                onPressed: onUpload,
+                child: const Text(
+                  'Upload another',
+                  style: TextStyle(
+                    fontFamily: 'Instrument Sans',
+                    fontSize: 13.5,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Shown once the month a menu was for has finished.
+///
+/// Showing the old menu would put last month's food under today's date; the
+/// useful thing is to ask for the new one, which the hostel emails each month.
+class _NextMonthCard extends StatelessWidget {
+  final String endedMonth;
+  final VoidCallback onUpload;
+
+  const _NextMonthCard({required this.endedMonth, required this.onUpload});
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final thisMonth = DateFormat('MMMM').format(DateTime.now());
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(18, 18, 18, 14),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: colorScheme.outlineVariant, width: 0.75),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "$endedMonth's menu is over",
+            style: TextStyle(
+              fontFamily: 'Instrument Sans',
+              fontSize: 15,
+              fontWeight: FontWeight.w500,
+              color: colorScheme.onSurface,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            "Download $thisMonth's mess menu (.xlsx) from your email and "
+            'upload it here.',
+            style: TextStyle(
+              fontFamily: 'Instrument Sans',
+              fontSize: 13,
+              height: 1.4,
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 12),
+          FilledButton.tonal(
+            onPressed: onUpload,
+            style: FilledButton.styleFrom(
+              elevation: 0,
+              minimumSize: const Size(0, 42),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: Text(
+              "Upload $thisMonth's menu",
+              style: const TextStyle(
+                fontFamily: 'Instrument Sans',
+                fontSize: 13.5,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The menus a workbook carries, as the same selected-pill the rest of the app
+/// uses for a choice among a few.
+class _SheetPills extends StatelessWidget {
+  final List<String> names;
+  final String selected;
+  final ValueChanged<String> onSelect;
+
+  const _SheetPills({
+    required this.names,
+    required this.selected,
+    required this.onSelect,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
+    return Padding(
+      padding: EdgeInsets.zero,
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+          for (final name in names)
+            Semantics(
+              button: true,
+              selected: name == selected,
+              child: InkWell(
+                onTap: () => onSelect(name),
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 9,
+                  ),
+                  decoration: BoxDecoration(
+                    color: name == selected
+                        ? colors.primary
+                        : colors.surfaceContainerHigh,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    name,
+                    style: TextStyle(
+                      fontFamily: 'Instrument Sans',
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w500,
+                      color: name == selected
+                          ? colors.onPrimary
+                          : colors.onSurface,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }

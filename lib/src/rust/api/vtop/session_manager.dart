@@ -3,11 +3,11 @@
 
 // ignore_for_file: invalid_use_of_internal_member, unused_import, unnecessary_import
 
-import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
-
 import '../../frb_generated.dart';
 import '../../lib.dart';
+import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
+// These functions are ignored because they are not marked as `pub`: `is_login_path`
 // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `fmt`
 
 // Rust type: RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Response>>
@@ -15,13 +15,25 @@ abstract class Response implements RustOpaqueInterface {}
 
 // Rust type: RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<SessionManager>>
 abstract class SessionManager implements RustOpaqueInterface {
-  /// Checks if a response indicates session expiration and handles it.
+  /// Checks whether a response means the session is gone, clearing the
+  /// authenticated flag when it does.
   ///
-  /// # Arguments
-  /// * `response` - The HTTP response to check
+  /// Exactly two shapes count, and both are the portal refusing us *because
+  /// of the session*:
   ///
-  /// # Returns
-  /// Returns `Ok(())` if session is still valid, or `Err(VtopError::SessionExpired)` if expired
+  /// - a bounce to the sign-in page (`/vtop/login...`), matched on the URL
+  ///   path rather than on a substring of the whole URL;
+  /// - a bare 404, which is what an expired CSRF token actually looks like:
+  ///   VTOP's stack rejects the request before it is routed, and Tomcat
+  ///   answers without a body.
+  ///
+  /// Everything else that is not 2xx — a 429 from the portal's rate limiter,
+  /// a 5xx from its application server — is reported as a server error and
+  /// leaves the session flag alone. That distinction is load-bearing. The
+  /// answer to an expiry is a fresh credentials POST, and VTOP mails an OTP
+  /// for every one of those it sees from an IP it has not verified, so
+  /// calling an unrelated hiccup an expiry is how a single non-200 turned
+  /// into a login per in-flight request — and several emails.
   Future<VtopResult> checkSessionExpiration({required Response response});
 
   Future<void> clear();

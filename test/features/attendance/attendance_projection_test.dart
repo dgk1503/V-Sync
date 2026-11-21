@@ -14,11 +14,8 @@ Day _class(String code, String slot) => Day(
   courseType: 'Lecture',
 );
 
-CalendarChip _chip(DateTime date, CalendarDayKind kind) => CalendarChip(
-  date: date,
-  kind: kind,
-  title: 'x',
-);
+CalendarChip _chip(DateTime date, CalendarDayKind kind) =>
+    CalendarChip(date: date, kind: kind, title: 'x');
 
 CalendarMonth _month(int year, int month, List<CalendarChip> chips) =>
     CalendarMonth(year: year, month: month, chips: chips);
@@ -54,9 +51,7 @@ void main() {
   test('a holiday in the middle removes its classes', () {
     // Thursday 8 Oct is a holiday.
     final months = [
-      _month(2026, 10, [
-        _chip(DateTime(2026, 10, 8), CalendarDayKind.holiday),
-      ]),
+      _month(2026, 10, [_chip(DateTime(2026, 10, 8), CalendarDayKind.holiday)]),
     ];
     final count = AttendanceProjection.classesLeftUntil(
       courseCode: 'MAT1007',
@@ -88,9 +83,7 @@ void main() {
 
   test('an exam day still counts as teaching unless marked otherwise', () {
     final months = [
-      _month(2026, 10, [
-        _chip(DateTime(2026, 10, 8), CalendarDayKind.exam),
-      ]),
+      _month(2026, 10, [_chip(DateTime(2026, 10, 8), CalendarDayKind.exam)]),
     ];
     expect(
       AttendanceProjection.classesLeftUntil(

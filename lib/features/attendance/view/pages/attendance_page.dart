@@ -21,9 +21,9 @@ import 'package:vit_ap_student_app/features/attendance/viewmodel/attendance_view
 class SkipPlannerEntry extends StatelessWidget {
   const SkipPlannerEntry();
 
-  void _open(BuildContext context) => Navigator.of(context).push(
-    MaterialPageRoute<void>(builder: (_) => const SkipPlannerPage()),
-  );
+  void _open(BuildContext context) => Navigator.of(
+    context,
+  ).push(MaterialPageRoute<void>(builder: (_) => const SkipPlannerPage()));
 
   @override
   Widget build(BuildContext context) {
@@ -172,8 +172,13 @@ class AttendancePageState extends ConsumerState<AttendancePage>
                   // Entry point for the skip planner. Under the Theory/Lab
                   // toggle because that is where the user already is when they
                   // start thinking about attendance.
-                  const SkipPlannerEntry(),
-                  const SizedBox(height: 12),
+                  // Same 8px side inset as the course cards below it, so the
+                  // tile lines up with them instead of running edge to edge.
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 8),
+                    child: SkipPlannerEntry(),
+                  ),
+                  const SizedBox(height: 8),
 
                   Expanded(
                     child: TabBarView(

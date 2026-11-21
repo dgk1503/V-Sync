@@ -21,7 +21,18 @@ class CommonDatePicker extends StatelessWidget {
     this.validator,
   });
 
-  Future<void> _pickDate(BuildContext context) async {
+  /// Shows the date picker and returns the chosen day, or null when it was
+  /// dismissed or no day in range is selectable.
+  ///
+  /// Starts on the nearest selectable day, so a predicate that only allows
+  /// certain weekdays never opens the picker on a day it would refuse.
+  static Future<DateTime?> pick(
+    BuildContext context, {
+    DateTime? selectedDate,
+    DateTime? firstDate,
+    DateTime? lastDate,
+    bool Function(DateTime)? selectableDayPredicate,
+  }) async {
     final DateTime now = DateTime.now();
     final DateTime start = firstDate ?? now;
     final DateTime end = lastDate ?? now.add(const Duration(days: 720));
@@ -32,7 +43,7 @@ class CommonDatePicker extends StatelessWidget {
     // If there's a predicate and the initial date doesn't satisfy it,
     // find the next valid date
     if (selectableDayPredicate != null &&
-        !selectableDayPredicate!(initialDate)) {
+        !selectableDayPredicate(initialDate)) {
       // Try to find the next valid date within the range
       DateTime candidate = initialDate;
       bool foundValidDate = false;
@@ -42,7 +53,7 @@ class CommonDatePicker extends StatelessWidget {
         candidate = initialDate.add(Duration(days: i));
         if (candidate.isAfter(end)) break;
         if (candidate.isAfter(start) || candidate.isAtSameMomentAs(start)) {
-          if (selectableDayPredicate!(candidate)) {
+          if (selectableDayPredicate(candidate)) {
             initialDate = candidate;
             foundValidDate = true;
             break;
@@ -55,7 +66,7 @@ class CommonDatePicker extends StatelessWidget {
         for (int i = 1; i < 30; i++) {
           candidate = initialDate.subtract(Duration(days: i));
           if (candidate.isBefore(start)) break;
-          if (selectableDayPredicate!(candidate)) {
+          if (selectableDayPredicate(candidate)) {
             initialDate = candidate;
             foundValidDate = true;
             break;
@@ -69,7 +80,7 @@ class CommonDatePicker extends StatelessWidget {
         for (int i = 0; i < 60; i++) {
           candidate = start.add(Duration(days: i));
           if (candidate.isAfter(end)) break;
-          if (selectableDayPredicate!(candidate)) {
+          if (selectableDayPredicate(candidate)) {
             initialDate = candidate;
             foundValidDate = true;
             break;
@@ -79,27 +90,35 @@ class CommonDatePicker extends StatelessWidget {
 
       // Final safety check - if still no valid date found, don't open picker
       if (!foundValidDate) {
-        return; // Can't find a valid date, don't show picker
+        return null; // Can't find a valid date, don't show picker
       }
     }
 
     // Final verification that initialDate satisfies the predicate
     if (selectableDayPredicate != null &&
-        !selectableDayPredicate!(initialDate)) {
-      return; // Safety check failed, don't show picker
+        !selectableDayPredicate(initialDate)) {
+      return null; // Safety check failed, don't show picker
     }
 
-    final DateTime? pickedDate = await showDatePicker(
+    if (!context.mounted) return null;
+    return showDatePicker(
       context: context,
       initialDate: initialDate,
       firstDate: start,
       lastDate: end,
       selectableDayPredicate: selectableDayPredicate,
     );
+  }
 
-    if (pickedDate != null) {
-      onDateSelected(pickedDate);
-    }
+  Future<void> _pickDate(BuildContext context) async {
+    final picked = await pick(
+      context,
+      selectedDate: selectedDate,
+      firstDate: firstDate,
+      lastDate: lastDate,
+      selectableDayPredicate: selectableDayPredicate,
+    );
+    if (picked != null) onDateSelected(picked);
   }
 
   @override

@@ -26,13 +26,15 @@ void showMarksDetailBottomSheet(Mark course, BuildContext context) {
       final isDark = colorScheme.brightness == Brightness.dark;
 
       // Soft tinted card colors that work on both monochrome themes.
-      final gainedCardColor =
-          isDark ? const Color(0xFF12291B) : const Color(0xFFE7F2EA);
+      final gainedCardColor = isDark
+          ? const Color(0xFF12291B)
+          : const Color(0xFFE7F2EA);
       final gainedTextColor = isDark
           ? const Color(0xFF7FC79B)
           : const Color(0xFF2E7D4F);
-      final lostCardColor =
-          isDark ? const Color(0xFF33161C) : const Color(0xFFF9E7EA);
+      final lostCardColor = isDark
+          ? const Color(0xFF33161C)
+          : const Color(0xFFF9E7EA);
       final lostTextColor = isDark
           ? const Color(0xFFE08A99)
           : const Color(0xFFB3243B);

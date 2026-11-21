@@ -28,16 +28,10 @@ class FileSaver {
           mimeType: mimeType,
         );
       } else if (Platform.isIOS) {
-        return await _saveFileIOS(
-          bytes: bytes,
-          fileName: fileName,
-        );
+        return await _saveFileIOS(bytes: bytes, fileName: fileName);
       } else {
         // For other platforms, use documents directory
-        return await _saveFileDefault(
-          bytes: bytes,
-          fileName: fileName,
-        );
+        return await _saveFileDefault(bytes: bytes, fileName: fileName);
       }
     } catch (e) {
       rethrow;

@@ -28,9 +28,9 @@ class CurrentUserNotifier extends _$CurrentUserNotifier {
       _saveUserToObjectBox(user);
 
       // Save credentials
-      await serviceLocator
-          .get<SecureStorageService>()
-          .saveCredentials(credentials);
+      await serviceLocator.get<SecureStorageService>().saveCredentials(
+        credentials,
+      );
     } catch (e) {
       state = null;
       _clearUserDataObjectBox();
@@ -42,8 +42,9 @@ class CurrentUserNotifier extends _$CurrentUserNotifier {
   Future<void> updateUser(User updatedUser) async {
     try {
       // Preserve the existing ID when updating
-      final userWithId =
-          state?.id != null ? updatedUser.copyWith(id: state!.id) : updatedUser;
+      final userWithId = state?.id != null
+          ? updatedUser.copyWith(id: state!.id)
+          : updatedUser;
 
       state = userWithId;
       _saveUserToObjectBox(userWithId);
@@ -77,11 +78,12 @@ class CurrentUserNotifier extends _$CurrentUserNotifier {
     return await serviceLocator.get<SecureStorageService>().getCredentials();
   }
 
-  Future<void> updateSavedCredentials(
-      {required Credentials newCredentials}) async {
-    return await serviceLocator
-        .get<SecureStorageService>()
-        .saveCredentials(newCredentials);
+  Future<void> updateSavedCredentials({
+    required Credentials newCredentials,
+  }) async {
+    return await serviceLocator.get<SecureStorageService>().saveCredentials(
+      newCredentials,
+    );
   }
 
   // Manually save user

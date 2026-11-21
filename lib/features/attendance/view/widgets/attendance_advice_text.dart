@@ -10,10 +10,7 @@ import 'package:vit_ap_student_app/features/attendance/model/attendance_standing
 class AttendanceAdviceText extends StatelessWidget {
   final AttendanceStanding standing;
 
-  const AttendanceAdviceText({
-    super.key,
-    required this.standing,
-  });
+  const AttendanceAdviceText({super.key, required this.standing});
 
   @override
   Widget build(BuildContext context) {

@@ -1,5 +1,6 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:internet_connection_checker_plus/internet_connection_checker_plus.dart';
 import 'package:vit_ap_student_app/core/common/widget/accent_gradient_text.dart';
@@ -10,7 +11,8 @@ import 'package:vit_ap_student_app/core/network/connection_checker.dart';
 import 'package:vit_ap_student_app/core/services/demo_service.dart';
 import 'package:vit_ap_student_app/core/utils/show_snackbar.dart';
 import 'package:vit_ap_student_app/features/auth/view/pages/semester_selection_page.dart';
-import 'package:vit_ap_student_app/features/auth/view/pages/terms_preview_page.dart';
+import 'package:vit_ap_student_app/core/constants/legal_links.dart';
+import 'package:vit_ap_student_app/core/utils/launch_web.dart';
 import 'package:vit_ap_student_app/features/auth/viewmodel/auth_viewmodel.dart';
 import 'package:vit_ap_student_app/features/auth/viewmodel/semester_viewmodel.dart';
 
@@ -43,14 +45,8 @@ class LoginPageState extends ConsumerState<LoginPage> {
   @override
   void initState() {
     super.initState();
-    _termsRecognizer.onTap = () {
-      Navigator.push(
-        context,
-        MaterialPageRoute<void>(
-          builder: (context) => const TermsPreviewPage(),
-        ),
-      );
-    };
+    // The hosted policy, the same one Google Play is given.
+    _termsRecognizer.onTap = () => directToWeb(kPrivacyPolicyUrl);
   }
 
   @override
@@ -65,7 +61,9 @@ class LoginPageState extends ConsumerState<LoginPage> {
     await ref.read(authViewModelProvider.notifier).loginDemoUser();
     if (!mounted) return;
 
-    ref.read(authViewModelProvider)?.when(
+    ref
+        .read(authViewModelProvider)
+        ?.when(
           data: (_) {
             Navigator.pushAndRemoveUntil(
               context,
@@ -122,7 +120,8 @@ class LoginPageState extends ConsumerState<LoginPage> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final isLoading = ref.watch(
+    final isLoading =
+        ref.watch(
           semesterViewModelProvider.select((val) => val?.isLoading == true),
         ) ||
         ref.watch(
@@ -136,6 +135,9 @@ class LoginPageState extends ConsumerState<LoginPage> {
 
       next?.when(
         data: (semesters) {
+          // The credentials just worked: let the password manager offer to
+          // save them.
+          TextInput.finishAutofillContext();
           Navigator.push(
             context,
             MaterialPageRoute<void>(
@@ -162,8 +164,7 @@ class LoginPageState extends ConsumerState<LoginPage> {
               return SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
                 child: ConstrainedBox(
-                  constraints:
-                      BoxConstraints(minHeight: constraints.maxHeight),
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 24.0),
                     child: Column(
@@ -193,25 +194,40 @@ class LoginPageState extends ConsumerState<LoginPage> {
                           ),
                         ),
                         const SizedBox(height: 40),
-                        AuthField(
-                          title: 'Username',
-                          hintText: 'VTOP Username',
-                          controller: usernameController,
-                        ),
-                        const SizedBox(height: 14),
-                        AuthField(
-                          title: 'Password',
-                          hintText: 'VTOP Password',
-                          controller: passwordController,
-                          isObscureText: true,
+                        // One autofill group for the pair, so the phone's
+                        // password manager can offer the saved VTOP login in a
+                        // tap. Nothing is read or stored by VSync itself; the
+                        // user's own password manager does the filling. Saving
+                        // is requested only once the login has worked (see
+                        // the listener above), not on every leave.
+                        AutofillGroup(
+                          onDisposeAction: AutofillContextAction.cancel,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              AuthField(
+                                title: 'Username',
+                                hintText: 'VTOP Username',
+                                controller: usernameController,
+                              ),
+                              const SizedBox(height: 14),
+                              AuthField(
+                                title: 'Password',
+                                hintText: 'VTOP Password',
+                                controller: passwordController,
+                                isObscureText: true,
+                              ),
+                            ],
+                          ),
                         ),
                         const SizedBox(height: 28),
                         SizedBox(
                           width: double.infinity,
                           height: 56,
                           child: FilledButton(
-                            onPressed:
-                                isLoading ? null : _fetchSemestersAndNavigate,
+                            onPressed: isLoading
+                                ? null
+                                : _fetchSemestersAndNavigate,
                             style: FilledButton.styleFrom(
                               backgroundColor: colorScheme.primary,
                               foregroundColor: colorScheme.onPrimary,

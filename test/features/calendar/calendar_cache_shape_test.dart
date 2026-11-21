@@ -29,9 +29,9 @@ List<int> _decodeLikeTheViewmodel(String cached) {
   try {
     final wrapper = jsonDecode(cached) as Map<String, dynamic>;
     final raw = wrapper['payload'] as String;
-    return CalendarRemoteRepository.parseCalendarPayload(raw).days
-        .map((d) => d.day)
-        .toList();
+    return CalendarRemoteRepository.parseCalendarPayload(
+      raw,
+    ).days.map((d) => d.day).toList();
   } on Object {
     return const <int>[];
   }
@@ -83,7 +83,8 @@ void main() {
       expect(
         hasWrapperKey,
         isFalse,
-        reason: 'a legacy row has no wrapper, so it must be treated as absent '
+        reason:
+            'a legacy row has no wrapper, so it must be treated as absent '
             'rather than as a fresh cache',
       );
     });

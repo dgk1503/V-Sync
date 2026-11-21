@@ -9,7 +9,9 @@ void main() {
     // that ignored the theme, so it neither followed dark mode nor guaranteed
     // separation from the other marks on the grid.
 
-    testWidgets('differs from every status colour in light mode', (tester) async {
+    testWidgets('differs from every status colour in light mode', (
+      tester,
+    ) async {
       late Color countdown;
       late AppStatusColors status;
 
@@ -63,7 +65,9 @@ void main() {
       expect(countdown, isNot(status.neutral));
     });
 
-    testWidgets('differs from every status colour in dark mode', (tester) async {
+    testWidgets('differs from every status colour in dark mode', (
+      tester,
+    ) async {
       late Color countdown;
       late AppStatusColors status;
 
@@ -89,7 +93,10 @@ void main() {
 
   group('a countdown is still marked', () {
     test('so it cannot be mistaken for an unmarked teaching day', () {
-      expect(CalendarEventClassifier.isMarked(CalendarDayKind.countdown), isTrue);
+      expect(
+        CalendarEventClassifier.isMarked(CalendarDayKind.countdown),
+        isTrue,
+      );
     });
   });
 }

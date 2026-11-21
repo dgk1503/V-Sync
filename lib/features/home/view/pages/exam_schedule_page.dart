@@ -114,42 +114,40 @@ class _MyExamScheduleState extends ConsumerState<ExamSchedulePage>
         child: user == null
             ? const ErrorContentView(error: 'User not found!')
             : isLoading
-                ? const Loader()
-                : RefreshIndicator(
-                    onRefresh: refreshExamSchedule,
-                    notificationPredicate: (notification) =>
-                        notification.depth == 1,
-                    child: Column(
-                      children: [
-                        const SizedBox(height: 12),
-                        if (lastSynced != null)
-                          Text(
-                            'Last synced ${timeago.format(lastSynced!)}',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontFamily: 'Instrument Sans',
-                              fontSize: 13,
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurfaceVariant,
-                            ),
-                          ),
-                        const SizedBox(height: 12),
-                        // Capsule segmented control for CAT-1 / CAT-2 / FAT.
-                        SegmentedTabSwitcher(
-                          controller: _tabController,
-                          labels: const ['CAT - 1', 'CAT - 2', 'FAT'],
+            ? const Loader()
+            : RefreshIndicator(
+                onRefresh: refreshExamSchedule,
+                notificationPredicate: (notification) =>
+                    notification.depth == 1,
+                child: Column(
+                  children: [
+                    const SizedBox(height: 12),
+                    if (lastSynced != null)
+                      Text(
+                        'Last synced ${timeago.format(lastSynced!)}',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontFamily: 'Instrument Sans',
+                          fontSize: 13,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
-                        const SizedBox(height: 8),
-                        Expanded(
-                          child: ExamScheduleTabView(
-                            tabController: _tabController,
-                            examSchedule: examScheduleList,
-                          ),
-                        ),
-                      ],
+                      ),
+                    const SizedBox(height: 12),
+                    // Capsule segmented control for CAT-1 / CAT-2 / FAT.
+                    SegmentedTabSwitcher(
+                      controller: _tabController,
+                      labels: const ['CAT - 1', 'CAT - 2', 'FAT'],
                     ),
-                  ),
+                    const SizedBox(height: 8),
+                    Expanded(
+                      child: ExamScheduleTabView(
+                        tabController: _tabController,
+                        examSchedule: examScheduleList,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
       ),
     );
   }

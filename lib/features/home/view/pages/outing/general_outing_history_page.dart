@@ -57,12 +57,7 @@ class _GeneralOutingHistoryPageState
   DateTime? _parseDate(String dateStr) {
     try {
       // Try parsing common date formats
-      final formats = [
-        'dd-MMM-yyyy',
-        'dd/MM/yyyy',
-        'yyyy-MM-dd',
-        'dd-MM-yyyy',
-      ];
+      final formats = ['dd-MMM-yyyy', 'dd/MM/yyyy', 'yyyy-MM-dd', 'dd-MM-yyyy'];
       for (final format in formats) {
         try {
           return DateFormat(format).parse(dateStr);
@@ -75,24 +70,29 @@ class _GeneralOutingHistoryPageState
   }
 
   List<GeneralOutingReport> _getFilteredAndSortedReports(
-      List<GeneralOutingReport> reports) {
+    List<GeneralOutingReport> reports,
+  ) {
     List<GeneralOutingReport> filteredReports = reports.toList();
 
     // Apply search filter
     if (searchQuery.isNotEmpty) {
       filteredReports = filteredReports
-          .where((report) =>
-              report.purposeOfVisit
-                  .toLowerCase()
-                  .contains(searchQuery.toLowerCase()) ||
-              report.placeOfVisit
-                  .toLowerCase()
-                  .contains(searchQuery.toLowerCase()) ||
-              report.status.toLowerCase().contains(searchQuery.toLowerCase()) ||
-              report.fromDate
-                  .toLowerCase()
-                  .contains(searchQuery.toLowerCase()) ||
-              report.toDate.toLowerCase().contains(searchQuery.toLowerCase()))
+          .where(
+            (report) =>
+                report.purposeOfVisit.toLowerCase().contains(
+                  searchQuery.toLowerCase(),
+                ) ||
+                report.placeOfVisit.toLowerCase().contains(
+                  searchQuery.toLowerCase(),
+                ) ||
+                report.status.toLowerCase().contains(
+                  searchQuery.toLowerCase(),
+                ) ||
+                report.fromDate.toLowerCase().contains(
+                  searchQuery.toLowerCase(),
+                ) ||
+                report.toDate.toLowerCase().contains(searchQuery.toLowerCase()),
+          )
           .toList();
     }
 
@@ -114,13 +114,11 @@ class _GeneralOutingHistoryPageState
     final state = ref.watch(generalOutingReportsViewModelProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('General Outing History'),
-        elevation: 0,
-      ),
+      appBar: AppBar(title: const Text('General Outing History'), elevation: 0),
       body: RefreshIndicator(
         onRefresh: _refreshData,
-        child: state?.when(
+        child:
+            state?.when(
               data: (reports) {
                 if (reports.isEmpty) {
                   return const Center(
@@ -139,7 +137,9 @@ class _GeneralOutingHistoryPageState
                     // Search bar with filter button
                     Padding(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
                       child: Row(
                         children: [
                           Expanded(
@@ -155,9 +155,9 @@ class _GeneralOutingHistoryPageState
                                 hintStyle: TextStyle(
                                   fontFamily: 'Instrument Sans',
                                   fontSize: 13,
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onSurfaceVariant,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
                                 ),
                                 suffixIcon: searchQuery.isNotEmpty
                                     ? IconButton(
@@ -172,9 +172,9 @@ class _GeneralOutingHistoryPageState
                                     : null,
                                 isDense: true,
                                 filled: true,
-                                fillColor: Theme.of(context)
-                                    .colorScheme
-                                    .surfaceContainerLow,
+                                fillColor: Theme.of(
+                                  context,
+                                ).colorScheme.surfaceContainerLow,
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(14),
                                   borderSide: BorderSide.none,
@@ -186,13 +186,15 @@ class _GeneralOutingHistoryPageState
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(14),
                                   borderSide: BorderSide(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .outlineVariant,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.outlineVariant,
                                   ),
                                 ),
                                 contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 16, vertical: 12),
+                                  horizontal: 16,
+                                  vertical: 12,
+                                ),
                               ),
                               onChanged: (value) {
                                 setState(() {
@@ -215,9 +217,9 @@ class _GeneralOutingHistoryPageState
                               isRecentFirst
                                   ? Iconsax.arrow_up_2
                                   : Iconsax.arrow_down_2,
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurfaceVariant,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant,
                             ),
                           ),
                         ],
@@ -233,9 +235,9 @@ class _GeneralOutingHistoryPageState
                                   Icon(
                                     Iconsax.search_status,
                                     size: 48,
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurfaceVariant,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
                                   ),
                                   const SizedBox(height: 16),
                                   Text(
@@ -244,9 +246,9 @@ class _GeneralOutingHistoryPageState
                                         .textTheme
                                         .titleMedium
                                         ?.copyWith(
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .onSurfaceVariant,
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.onSurfaceVariant,
                                         ),
                                   ),
                                   const SizedBox(height: 8),
@@ -256,9 +258,9 @@ class _GeneralOutingHistoryPageState
                                         .textTheme
                                         .bodyMedium
                                         ?.copyWith(
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .onSurfaceVariant,
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.onSurfaceVariant,
                                         ),
                                     textAlign: TextAlign.center,
                                   ),
@@ -276,7 +278,8 @@ class _GeneralOutingHistoryPageState
                               itemBuilder: (context, index) {
                                 return Padding(
                                   padding: const EdgeInsets.symmetric(
-                                      vertical: 5),
+                                    vertical: 5,
+                                  ),
                                   child: GeneralOutingCard(
                                     outing: filteredReports[index],
                                   ),

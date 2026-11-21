@@ -38,87 +38,102 @@ class _AuthFieldState extends State<AuthField> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    return AutofillGroup(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            (widget.title ?? widget.hintText).toUpperCase(),
-            style: TextStyle(
+    // No AutofillGroup of its own: the login page wraps both fields in ONE, so
+    // the phone's password manager sees a username and a password together and
+    // can fill the pair and offer to save it.
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          (widget.title ?? widget.hintText).toUpperCase(),
+          style: TextStyle(
+            fontFamily: 'Instrument Sans',
+            fontSize: 10.5,
+            fontWeight: FontWeight.w500,
+            letterSpacing: 0.8,
+            color: colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 6),
+        TextFormField(
+          controller: widget.controller,
+          style: TextStyle(
+            fontFamily: 'Instrument Sans',
+            fontSize: 15.5,
+            fontWeight: FontWeight.w500,
+            color: colorScheme.onSurface,
+          ),
+          decoration: InputDecoration(
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 15,
+            ),
+            hintText: widget.hintText,
+            hintStyle: TextStyle(
               fontFamily: 'Instrument Sans',
-              fontSize: 10.5,
-              fontWeight: FontWeight.w500,
-              letterSpacing: 0.8,
+              fontSize: 13.5,
               color: colorScheme.onSurfaceVariant,
             ),
+            prefixIcon: widget.isObscureText
+                ? Icon(
+                    Iconsax.lock_1,
+                    size: 19,
+                    color: colorScheme.onSurfaceVariant,
+                  )
+                : Icon(
+                    Iconsax.user,
+                    size: 19,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+            suffixIcon: widget.isObscureText
+                ? IconButton(
+                    icon: Icon(
+                      _obscureText ? Iconsax.eye_slash : Iconsax.eye,
+                      size: 19,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                    onPressed: _toggleVisibility,
+                  )
+                : null,
+            filled: true,
+            fillColor: colorScheme.surfaceContainerLow,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide.none,
+            ),
           ),
-          const SizedBox(height: 6),
-          TextFormField(
-            controller: widget.controller,
-            style: TextStyle(
-              fontFamily: 'Instrument Sans',
-              fontSize: 15.5,
-              fontWeight: FontWeight.w500,
-              color: colorScheme.onSurface,
-            ),
-            decoration: InputDecoration(
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 15,
-              ),
-              hintText: widget.hintText,
-              hintStyle: TextStyle(
-                fontFamily: 'Instrument Sans',
-                fontSize: 13.5,
-                color: colorScheme.onSurfaceVariant,
-              ),
-              prefixIcon: widget.isObscureText
-                  ? Icon(Iconsax.lock_1, size: 19, color: colorScheme.onSurfaceVariant)
-                  : Icon(Iconsax.user, size: 19, color: colorScheme.onSurfaceVariant),
-              suffixIcon: widget.isObscureText
-                  ? IconButton(
-                      icon: Icon(
-                        _obscureText ? Iconsax.eye_slash : Iconsax.eye,
-                        size: 19,
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                      onPressed: _toggleVisibility,
-                    )
-                  : null,
-              filled: true,
-              fillColor: colorScheme.surfaceContainerLow,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
-                borderSide: BorderSide.none,
-              ),
-            ),
-            autofillHints: widget.isObscureText
-                ? const [AutofillHints.password]
-                : const [AutofillHints.username],
-            validator: (value) {
-              if (widget.isObscureText) {
-                if (value!.isEmpty) {
-                  return 'Password cannot be empty!';
-                }
-                if (value.length < 8) {
-                  return '${widget.hintText} must be at least 8 characters!';
-                }
-                return null;
-              } else {
-                if (value!.isEmpty) {
-                  return 'Username cannot be empty!';
-                }
-                if (!RegExp(r'^[a-zA-Z0-9 ]+$').hasMatch(value)) {
-                  return 'Username cannot contain special characters';
-                }
-                return null;
+          autofillHints: widget.isObscureText
+              ? const [AutofillHints.password]
+              : const [AutofillHints.username],
+          keyboardType: widget.isObscureText
+              ? TextInputType.visiblePassword
+              : TextInputType.text,
+          textInputAction: widget.isObscureText
+              ? TextInputAction.done
+              : TextInputAction.next,
+          validator: (value) {
+            if (widget.isObscureText) {
+              if (value!.isEmpty) {
+                return 'Password cannot be empty!';
               }
-            },
-            obscureText: _obscureText,
-          ),
-        ],
-      ),
+              if (value.length < 8) {
+                return '${widget.hintText} must be at least 8 characters!';
+              }
+              return null;
+            } else {
+              if (value!.isEmpty) {
+                return 'Username cannot be empty!';
+              }
+              if (!RegExp(r'^[a-zA-Z0-9 ]+$').hasMatch(value)) {
+                return 'Username cannot contain special characters';
+              }
+              return null;
+            }
+          },
+          obscureText: _obscureText,
+        ),
+      ],
     );
   }
 }

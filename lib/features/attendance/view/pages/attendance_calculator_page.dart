@@ -4,10 +4,10 @@ import 'package:vit_ap_student_app/core/models/attendance.dart';
 import 'package:vit_ap_student_app/core/providers/color_theme_notifier.dart';
 import 'package:vit_ap_student_app/core/theme/app_theme.dart';
 import 'package:vit_ap_student_app/features/attendance/model/attendance_projection.dart';
+import 'package:vit_ap_student_app/features/attendance/model/attendance_standing.dart';
 import 'package:vit_ap_student_app/features/attendance/view/widgets/attendance_bottom_sheet.dart';
 import 'package:vit_ap_student_app/features/attendance/view/widgets/attendance_calendar_card.dart';
 import 'package:vit_ap_student_app/features/attendance/viewmodel/detailed_attendance_viewmodel.dart';
-import 'package:vit_ap_student_app/features/calendar/model/calendar_chip.dart';
 import 'package:vit_ap_student_app/features/calendar/viewmodel/calendar_viewmodel.dart';
 import 'package:vit_ap_student_app/features/timetable/viewmodel/timetable_viewmodel.dart';
 
@@ -270,7 +270,7 @@ class _AttendanceCalculatorPageState
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      '${pct.toStringAsFixed(0)}%',
+                      '${vtopPercent(attended, total)}%',
                       style: TextStyle(
                         fontFamily: 'Instrument Sans',
                         fontSize: 32,
@@ -359,32 +359,20 @@ class _AttendanceCalculatorPageState
   ///
   /// The count runs to the next exam VTOP lists - a CAT as readily as a FAT -
   /// because that is the deadline the student is actually working towards.
-  Widget _buildClassesLeftCard(
-    ColorScheme cs,
-    Color cardBg,
-    Color cardBorder,
-  ) {
+  Widget _buildClassesLeftCard(ColorScheme cs, Color cardBg, Color cardBorder) {
     final courseCode = widget.attendance.courseCode.trim();
     final months =
         ref.watch(calendarViewmodelProvider).asData?.value ??
         const <CalendarMonth>[];
     final timetable = ref.watch(timetableViewModelProvider)?.asData?.value;
 
-    // A FAT day is an exam whose text says so; fall back to the next exam of
-    // any kind so the count still appears when VTOP words it differently.
+    // Classes count up to the start of the theory FAT. Lab FAT days are teaching
+    // days, so they are skipped; fall back to the next non-lab exam when VTOP
+    // words the FAT differently.
     final nextExamDate = months.isEmpty
         ? null
-        : (AttendanceProjection.firstDayWhere(
-                months,
-                DateTime.now(),
-                (kind, text) =>
-                    kind == CalendarDayKind.exam && text.contains('fat'),
-              ) ??
-              AttendanceProjection.firstDayWhere(
-                months,
-                DateTime.now(),
-                (kind, _) => kind == CalendarDayKind.exam,
-              ));
+        : (AttendanceProjection.fatStart(months, DateTime.now()) ??
+              AttendanceProjection.examStart(months, DateTime.now()));
 
     final classesLeft =
         (nextExamDate == null || timetable == null || courseCode.isEmpty)
@@ -406,7 +394,10 @@ class _AttendanceCalculatorPageState
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: cardBorder, width: 0.75),
       ),
-      child: ClassesLeftCaption(classesLeft: classesLeft, targetLabel: 'CAT/FAT'),
+      child: ClassesLeftCaption(
+        classesLeft: classesLeft,
+        targetLabel: 'CAT/FAT',
+      ),
     );
   }
 

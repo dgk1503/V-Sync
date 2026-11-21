@@ -9,6 +9,10 @@ pub fn parse_schedule(html: String) -> Vec<PerExamScheduleRecord> {
     let mut off_set = -1;
     for row in document.select(&rows_selector).skip(2) {
         let cells: Vec<_> = row.select(&Selector::parse("td").unwrap()).collect();
+        if cells.is_empty() {
+            // A spacer row with no cells carries nothing.
+            continue;
+        }
         if cells.len() < 3 {
             let n = cells[0]
                 .text()

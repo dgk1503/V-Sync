@@ -19,10 +19,7 @@ class DeveloperInfo {
 class DeveloperBottomSheet extends StatefulWidget {
   final DeveloperInfo developerInfo;
 
-  const DeveloperBottomSheet({
-    super.key,
-    required this.developerInfo,
-  });
+  const DeveloperBottomSheet({super.key, required this.developerInfo});
 
   @override
   State<DeveloperBottomSheet> createState() => _DeveloperBottomSheetState();
@@ -104,14 +101,8 @@ class _DeveloperBottomSheetState extends State<DeveloperBottomSheet> {
                       child: Stack(
                         alignment: Alignment.center,
                         children: [
-                          const SizedBox(
-                            width: 200,
-                            height: 140,
-                          ),
-                          Positioned(
-                            bottom: 10,
-                            child: _buildProfileImage(),
-                          ),
+                          const SizedBox(width: 200, height: 140),
+                          Positioned(bottom: 10, child: _buildProfileImage()),
                         ],
                       ),
                     ),
@@ -154,8 +145,7 @@ class _DeveloperBottomSheetState extends State<DeveloperBottomSheet> {
     if (_imageLoadError || _profileImageUrl == null) {
       return CircleAvatar(
         radius: 55,
-        backgroundColor:
-            Theme.of(context).colorScheme.surfaceContainerHigh,
+        backgroundColor: Theme.of(context).colorScheme.surfaceContainerHigh,
         child: Icon(
           Icons.code_rounded,
           size: 40,
@@ -187,7 +177,8 @@ class _DeveloperBottomSheetState extends State<DeveloperBottomSheet> {
         child: TextButton.icon(
           onPressed: () async {
             await directToWeb(
-                'https://github.com/${widget.developerInfo.githubUsername}');
+              'https://github.com/${widget.developerInfo.githubUsername}',
+            );
           },
           icon: Image.asset(
             'assets/images/icons/github.png',
@@ -218,10 +209,7 @@ class _DeveloperBottomSheetState extends State<DeveloperBottomSheet> {
             onPressed: () async {
               await directToWeb(widget.developerInfo.linkedInUrl!);
             },
-            icon: Image.asset(
-              'assets/images/icons/linkedin.png',
-              height: 28,
-            ),
+            icon: Image.asset('assets/images/icons/linkedin.png', height: 28),
             label: const Text(
               'LinkedIn',
               style: TextStyle(

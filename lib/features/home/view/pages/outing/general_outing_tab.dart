@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:intl/intl.dart';
-import 'package:vit_ap_student_app/core/common/widget/loader.dart';
-import 'package:vit_ap_student_app/core/common/widgets/common_date_picker.dart';
-import 'package:vit_ap_student_app/core/common/widgets/common_time_picker.dart';
 import 'package:vit_ap_student_app/core/services/demo_service.dart';
 import 'package:vit_ap_student_app/core/utils/show_snackbar.dart';
 import 'package:vit_ap_student_app/features/home/view/pages/outing/general_outing_history_page.dart';
+import 'package:vit_ap_student_app/features/home/view/widgets/outing/outing_form.dart';
 import 'package:vit_ap_student_app/features/home/viewmodel/outing_submission_viewmodel.dart';
 
 class GeneralOutingTab extends ConsumerStatefulWidget {
@@ -18,14 +15,15 @@ class GeneralOutingTab extends ConsumerStatefulWidget {
 }
 
 class _GeneralOutingTabState extends ConsumerState<GeneralOutingTab> {
-  String? _fromTime;
-  String? _toTime;
   String? _placeOfVisit;
   String? _purposeOfVisit;
-  DateTime? _selectedFromDate;
-  DateTime? _selectedToDate;
+  DateTime? _fromDate;
+  TimeOfDay? _fromTime;
+  DateTime? _toDate;
+  TimeOfDay? _toTime;
   final _formKey = GlobalKey<FormState>();
 
+  /// VTOP only takes general outings between 6 AM and 10 PM.
   bool _validateTime(TimeOfDay time) {
     final int hour = time.hour;
     final int minute = time.minute;
@@ -43,8 +41,28 @@ class _GeneralOutingTabState extends ConsumerState<GeneralOutingTab> {
     }
   }
 
+  /// A day and a time of day as one moment.
+  static DateTime _moment(DateTime date, TimeOfDay time) =>
+      DateTime(date.year, date.month, date.day, time.hour, time.minute);
+
+  /// The time the way VTOP wants it: `HH:mm`.
+  static String _hhmm(TimeOfDay time) =>
+      '${time.hour.toString().padLeft(2, '0')}:'
+      '${time.minute.toString().padLeft(2, '0')}';
+
   Future<void> _submitForm() async {
     if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    final leaving = _moment(_fromDate!, _fromTime!);
+    final back = _moment(_toDate!, _toTime!);
+    if (!back.isAfter(leaving)) {
+      showSnackBar(
+        context,
+        'You must be back after the time you leave',
+        SnackBarType.warning,
+      );
       return;
     }
 
@@ -53,10 +71,10 @@ class _GeneralOutingTabState extends ConsumerState<GeneralOutingTab> {
         .submitGeneralOuting(
           outPlace: _placeOfVisit!,
           purposeOfVisit: _purposeOfVisit!,
-          outingDate: DateFormat('dd-MMM-yyyy').format(_selectedFromDate!),
-          outTime: _fromTime!,
-          inDate: DateFormat('dd-MMM-yyyy').format(_selectedToDate!),
-          inTime: _toTime!,
+          outingDate: DateFormat('dd-MMM-yyyy').format(_fromDate!),
+          outTime: _hhmm(_fromTime!),
+          inDate: DateFormat('dd-MMM-yyyy').format(_toDate!),
+          inTime: _hhmm(_toTime!),
         );
   }
 
@@ -66,8 +84,8 @@ class _GeneralOutingTabState extends ConsumerState<GeneralOutingTab> {
       _toTime = null;
       _placeOfVisit = null;
       _purposeOfVisit = null;
-      _selectedFromDate = null;
-      _selectedToDate = null;
+      _fromDate = null;
+      _toDate = null;
     });
     _formKey.currentState?.reset();
   }
@@ -78,32 +96,24 @@ class _GeneralOutingTabState extends ConsumerState<GeneralOutingTab> {
       generalOutingSubmissionProvider.select((val) => val?.isLoading == true),
     );
 
-    ref.listen(
-      generalOutingSubmissionProvider,
-      (_, next) {
-        next?.when(
-          data: (message) {
-            showSnackBar(
-              context,
-              message,
-              SnackBarType.success,
-            );
-            _clearForm();
-          },
-          loading: () {},
-          error: (error, st) {
-            showSnackBar(
-              context,
-              error.toString(),
-              SnackBarType.error,
-            );
-          },
-        );
-      },
-    );
+    ref.listen(generalOutingSubmissionProvider, (_, next) {
+      next?.when(
+        data: (message) {
+          showSnackBar(context, message, SnackBarType.success);
+          _clearForm();
+        },
+        loading: () {},
+        error: (error, st) {
+          showSnackBar(context, error.toString(), SnackBarType.error);
+        },
+      );
+    });
+
+    final today = DateTime.now();
 
     return SingleChildScrollView(
       padding: EdgeInsets.only(
+        top: 4,
         bottom: MediaQuery.paddingOf(context).bottom + 16,
       ),
       child: Form(
@@ -111,150 +121,75 @@ class _GeneralOutingTabState extends ConsumerState<GeneralOutingTab> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Place of visit',
-              textAlign: TextAlign.start,
-              style: TextStyle(
-                fontSize: 16,
-                color: Theme.of(context).colorScheme.primary,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            TextFormField(
-              decoration: const InputDecoration(
-                contentPadding:
-                    EdgeInsets.symmetric(vertical: 0.0, horizontal: 0.0),
-                hintStyle: TextStyle(
-                  fontSize: 14,
-                ),
-                hintText: 'Place Of Visit',
-              ),
-              textCapitalization: TextCapitalization.words,
-              onChanged: (value) => setState(() => _placeOfVisit = value),
-              validator: (value) => value == null || value.isEmpty
-                  ? 'Please enter the place of visit'
-                  : null,
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'Purpose of visit',
-              textAlign: TextAlign.start,
-              style: TextStyle(
-                fontSize: 16,
-                color: Theme.of(context).colorScheme.primary,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            TextFormField(
-              decoration: const InputDecoration(
-                contentPadding:
-                    EdgeInsets.symmetric(vertical: 0.0, horizontal: 0.0),
-                hintStyle: TextStyle(
-                  fontSize: 14,
-                ),
-                hintText: 'Purpose Of Visit',
-              ),
-              textCapitalization: TextCapitalization.sentences,
-              onChanged: (value) => setState(() => _purposeOfVisit = value),
-              validator: (value) => value == null || value.isEmpty
-                  ? 'Please enter the purpose of visit'
-                  : null,
-            ),
-            const SizedBox(height: 12),
-            CommonDatePicker(
-              label: 'From date',
-              selectedDate: _selectedFromDate,
-              onDateSelected: (date) {
-                setState(() => _selectedFromDate = date);
-              },
-              validator: (value) =>
-                  _selectedFromDate == null ? 'Please select a date' : null,
-            ),
-            const SizedBox(height: 12),
-            CommonTimePicker(
-              label: 'From time',
-              selectedTime: _fromTime,
-              onTimeSelected: (time) {
-                setState(() => _fromTime = time);
-              },
-              timeValidator: _validateTime,
-              validator: (value) =>
-                  _fromTime == null ? 'Please select a from time' : null,
-            ),
-            const SizedBox(height: 12),
-            CommonDatePicker(
-              label: 'To date',
-              selectedDate: _selectedToDate,
-              onDateSelected: (date) {
-                setState(() => _selectedToDate = date);
-              },
-              validator: (value) =>
-                  _selectedToDate == null ? 'Please select a date' : null,
-            ),
-            const SizedBox(height: 12),
-            CommonTimePicker(
-              label: 'To time',
-              selectedTime: _toTime,
-              onTimeSelected: (time) {
-                setState(() => _toTime = time);
-              },
-              timeValidator: _validateTime,
-              validator: (value) =>
-                  _toTime == null ? 'Please select a to time' : null,
-            ),
-            const SizedBox(height: 24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            OutingSection(
+              title: 'Where to',
               children: [
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: TextButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute<void>(
-                          builder: (context) =>
-                              const GeneralOutingHistoryPage(),
-                        ),
-                      );
-                    },
-                    style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                      minimumSize: Size.zero,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                    child: Text(
-                      'View outing history',
-                      style: TextStyle(
-                        fontFamily: 'Instrument Sans',
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w500,
-                        color: Theme.of(context).colorScheme.primary,
-                        decoration: TextDecoration.underline,
-                        decorationColor: Theme.of(context).colorScheme.primary,
-                      ),
-                    ),
-                  ),
+                OutingTextField(
+                  label: 'Place of visit',
+                  hint: 'Where are you going?',
+                  capitalization: TextCapitalization.words,
+                  onChanged: (value) => _placeOfVisit = value,
+                  validator: (value) => value == null || value.trim().isEmpty
+                      ? 'Please enter the place of visit'
+                      : null,
                 ),
-                // Submitting an outing is a write action to VTOP, disabled for
-                // the demo account. History remains viewable via the button on
-                // the left.
-                if (!DemoService.isDemoMode)
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: isLoading
-                        ? const Loader()
-                        : FilledButton.icon(
-                            icon: const Icon(
-                              Iconsax.arrow_right_3,
-                              size: 18,
-                            ),
-                            iconAlignment: IconAlignment.end,
-                            onPressed: _submitForm,
-                            label: const Text('Apply'),
-                          ),
-                  ),
+                const SizedBox(height: 14),
+                OutingTextField(
+                  label: 'Purpose of visit',
+                  hint: 'Why are you going?',
+                  onChanged: (value) => _purposeOfVisit = value,
+                  validator: (value) => value == null || value.trim().isEmpty
+                      ? 'Please enter the purpose of visit'
+                      : null,
+                ),
               ],
+            ),
+            const SizedBox(height: 12),
+            OutingSection(
+              title: 'When',
+              children: [
+                OutingMomentField(
+                  label: 'Leaving',
+                  date: _fromDate,
+                  time: _fromTime,
+                  timeEnabled: true,
+                  firstDate: today,
+                  onDate: (date) => setState(() => _fromDate = date),
+                  onTime: (time) => setState(() => _fromTime = time),
+                  timeValidator: _validateTime,
+                  validator: () => _fromDate == null || _fromTime == null
+                      ? 'Please pick the day and time you leave'
+                      : null,
+                ),
+                const SizedBox(height: 14),
+                OutingMomentField(
+                  label: 'Back',
+                  date: _toDate,
+                  time: _toTime,
+                  timeEnabled: true,
+                  firstDate: _fromDate ?? today,
+                  onDate: (date) => setState(() => _toDate = date),
+                  onTime: (time) => setState(() => _toTime = time),
+                  timeValidator: _validateTime,
+                  validator: () => _toDate == null || _toTime == null
+                      ? 'Please pick the day and time you are back'
+                      : null,
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            OutingActions(
+              loading: isLoading,
+              // Applying is a write to VTOP, off for the demo account. The
+              // history stays viewable.
+              canApply: !DemoService.isDemoMode,
+              onApply: _submitForm,
+              onHistory: () => Navigator.push(
+                context,
+                MaterialPageRoute<void>(
+                  builder: (context) => const GeneralOutingHistoryPage(),
+                ),
+              ),
             ),
           ],
         ),

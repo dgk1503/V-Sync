@@ -128,7 +128,7 @@ final _entities = <obx_int.ModelEntity>[
   obx_int.ModelEntity(
     id: const obx_int.IdUid(2, 664014106008085534),
     name: 'Day',
-    lastPropertyId: const obx_int.IdUid(10, 1669290927385264664),
+    lastPropertyId: const obx_int.IdUid(11, 4558639453792998440),
     flags: 0,
     properties: <obx_int.ModelProperty>[
       obx_int.ModelProperty(
@@ -182,6 +182,12 @@ final _entities = <obx_int.ModelEntity>[
       obx_int.ModelProperty(
         id: const obx_int.IdUid(10, 1669290927385264664),
         name: 'endTime',
+        type: 9,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(11, 4558639453792998440),
+        name: 'credits',
         type: 9,
         flags: 0,
       ),
@@ -628,7 +634,7 @@ final _entities = <obx_int.ModelEntity>[
   obx_int.ModelEntity(
     id: const obx_int.IdUid(10, 392021300921625254),
     name: 'Timetable',
-    lastPropertyId: const obx_int.IdUid(1, 5020517029224883090),
+    lastPropertyId: const obx_int.IdUid(2, 8000531599585482740),
     flags: 0,
     properties: <obx_int.ModelProperty>[
       obx_int.ModelProperty(
@@ -636,6 +642,12 @@ final _entities = <obx_int.ModelEntity>[
         name: 'id',
         type: 6,
         flags: 1,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(2, 8000531599585482740),
+        name: 'courseTable',
+        type: 9,
+        flags: 0,
       ),
     ],
     relations: <obx_int.ModelRelation>[
@@ -730,7 +742,7 @@ final _entities = <obx_int.ModelEntity>[
   obx_int.ModelEntity(
     id: const obx_int.IdUid(12, 8803805611900482677),
     name: 'UserPreferences',
-    lastPropertyId: const obx_int.IdUid(30, 4969028335929346733),
+    lastPropertyId: const obx_int.IdUid(33, 6388442015237323846),
     flags: 0,
     properties: <obx_int.ModelProperty>[
       obx_int.ModelProperty(
@@ -892,6 +904,18 @@ final _entities = <obx_int.ModelEntity>[
       obx_int.ModelProperty(
         id: const obx_int.IdUid(30, 4969028335929346733),
         name: 'hideCalendarCountdowns',
+        type: 1,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(31, 7840090733736676335),
+        name: 'hideBiometric',
+        type: 1,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(33, 6388442015237323846),
+        name: 'academicsListView',
         type: 1,
         flags: 0,
       ),
@@ -1274,6 +1298,7 @@ obx_int.ModelDefinition getObjectBoxModel() {
       7577332749877002715,
       5120397759199651304,
       5576006293326158511,
+      8590364731677642585,
     ],
     retiredRelationUids: const [],
     modelVersion: 5,
@@ -1426,7 +1451,10 @@ obx_int.ModelDefinition getObjectBoxModel() {
         final endTimeOffset = object.endTime == null
             ? null
             : fbb.writeString(object.endTime!);
-        fbb.startTable(11);
+        final creditsOffset = object.credits == null
+            ? null
+            : fbb.writeString(object.credits!);
+        fbb.startTable(12);
         fbb.addInt64(0, object.id ?? 0);
         fbb.addOffset(2, courseNameOffset);
         fbb.addOffset(3, slotOffset);
@@ -1436,6 +1464,7 @@ obx_int.ModelDefinition getObjectBoxModel() {
         fbb.addOffset(7, courseTypeOffset);
         fbb.addOffset(8, startTimeOffset);
         fbb.addOffset(9, endTimeOffset);
+        fbb.addOffset(10, creditsOffset);
         fbb.finish(fbb.endTable());
         return object.id ?? 0;
       },
@@ -1471,6 +1500,9 @@ obx_int.ModelDefinition getObjectBoxModel() {
         final courseTypeParam = const fb.StringReader(
           asciiOptimization: true,
         ).vTableGetNullable(buffer, rootOffset, 18);
+        final creditsParam = const fb.StringReader(
+          asciiOptimization: true,
+        ).vTableGetNullable(buffer, rootOffset, 24);
         final object = Day(
           id: idParam,
           startTime: startTimeParam,
@@ -1481,6 +1513,7 @@ obx_int.ModelDefinition getObjectBoxModel() {
           faculty: facultyParam,
           courseCode: courseCodeParam,
           courseType: courseTypeParam,
+          credits: creditsParam,
         );
 
         return object;
@@ -2046,8 +2079,12 @@ obx_int.ModelDefinition getObjectBoxModel() {
         object.id = id;
       },
       objectToFB: (Timetable object, fb.Builder fbb) {
-        fbb.startTable(2);
+        final courseTableOffset = object.courseTable == null
+            ? null
+            : fbb.writeString(object.courseTable!);
+        fbb.startTable(3);
         fbb.addInt64(0, object.id ?? 0);
+        fbb.addOffset(1, courseTableOffset);
         fbb.finish(fbb.endTable());
         return object.id ?? 0;
       },
@@ -2066,6 +2103,9 @@ obx_int.ModelDefinition getObjectBoxModel() {
         final fridayParam = obx.ToMany<Day>();
         final saturdayParam = obx.ToMany<Day>();
         final sundayParam = obx.ToMany<Day>();
+        final courseTableParam = const fb.StringReader(
+          asciiOptimization: true,
+        ).vTableGetNullable(buffer, rootOffset, 6);
         final object = Timetable(
           id: idParam,
           monday: mondayParam,
@@ -2075,6 +2115,7 @@ obx_int.ModelDefinition getObjectBoxModel() {
           friday: fridayParam,
           saturday: saturdayParam,
           sunday: sundayParam,
+          courseTable: courseTableParam,
         );
         obx_int.InternalToManyAccess.setRelInfo<Timetable>(
           object.monday,
@@ -2192,7 +2233,7 @@ obx_int.ModelDefinition getObjectBoxModel() {
         final appThemeOffset = object.appTheme == null
             ? null
             : fbb.writeString(object.appTheme!);
-        fbb.startTable(31);
+        fbb.startTable(34);
         fbb.addInt64(0, object.id ?? 0);
         fbb.addOffset(1, pfpPathOffset);
         fbb.addBool(2, object.isTimetableNotificationsEnabled);
@@ -2220,6 +2261,8 @@ obx_int.ModelDefinition getObjectBoxModel() {
         fbb.addBool(27, object.classStackEnabled);
         fbb.addBool(28, object.hideAcademicCalendar);
         fbb.addBool(29, object.hideCalendarCountdowns);
+        fbb.addBool(30, object.hideBiometric);
+        fbb.addBool(32, object.academicsListView);
         fbb.finish(fbb.endTable());
         return object.id ?? 0;
       },
@@ -2344,6 +2387,18 @@ obx_int.ModelDefinition getObjectBoxModel() {
           60,
           false,
         );
+        final hideBiometricParam = const fb.BoolReader().vTableGet(
+          buffer,
+          rootOffset,
+          64,
+          false,
+        );
+        final academicsListViewParam = const fb.BoolReader().vTableGet(
+          buffer,
+          rootOffset,
+          68,
+          false,
+        );
         final hideCalendarCountdownsParam = const fb.BoolReader().vTableGet(
           buffer,
           rootOffset,
@@ -2388,6 +2443,8 @@ obx_int.ModelDefinition getObjectBoxModel() {
           hideFacultyInfo: hideFacultyInfoParam,
           hideOpenVtop: hideOpenVtopParam,
           hideAcademicCalendar: hideAcademicCalendarParam,
+          hideBiometric: hideBiometricParam,
+          academicsListView: academicsListViewParam,
           hideCalendarCountdowns: hideCalendarCountdownsParam,
           liquidGlassNavbar: liquidGlassNavbarParam,
           classStackEnabled: classStackEnabledParam,
@@ -2903,6 +2960,11 @@ class Day_ {
   static final endTime = obx.QueryStringProperty<Day>(
     _entities[1].properties[8],
   );
+
+  /// See [Day.credits].
+  static final credits = obx.QueryStringProperty<Day>(
+    _entities[1].properties[9],
+  );
 }
 
 /// [Detail] entity fields to define ObjectBox queries.
@@ -3229,6 +3291,11 @@ class Timetable_ {
     _entities[9].properties[0],
   );
 
+  /// See [Timetable.courseTable].
+  static final courseTable = obx.QueryStringProperty<Timetable>(
+    _entities[9].properties[1],
+  );
+
   /// see [Timetable.monday]
   static final monday = obx.QueryRelationToMany<Timetable, Day>(
     _entities[9].relations[0],
@@ -3425,6 +3492,16 @@ class UserPreferences_ {
   /// See [UserPreferences.hideCalendarCountdowns].
   static final hideCalendarCountdowns =
       obx.QueryBooleanProperty<UserPreferences>(_entities[11].properties[26]);
+
+  /// See [UserPreferences.hideBiometric].
+  static final hideBiometric = obx.QueryBooleanProperty<UserPreferences>(
+    _entities[11].properties[27],
+  );
+
+  /// See [UserPreferences.academicsListView].
+  static final academicsListView = obx.QueryBooleanProperty<UserPreferences>(
+    _entities[11].properties[28],
+  );
 }
 
 /// [Course] entity fields to define ObjectBox queries.

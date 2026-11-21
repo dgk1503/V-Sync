@@ -38,7 +38,9 @@ class AttendanceViewMode extends _$AttendanceViewMode {
     final Credentials? credentials = await userNotifier.getSavedCredentials();
     if (credentials == null) {
       state = AsyncValue.error(
-          'User not found. Please Logout and Login.', StackTrace.current);
+        'User not found. Please Logout and Login.',
+        StackTrace.current,
+      );
       return;
     }
     final res = await _attendanceRemoteRepository.fetchAttendance(
@@ -53,9 +55,7 @@ class AttendanceViewMode extends _$AttendanceViewMode {
       state = AsyncValue.data(newAttendance);
       if (user != null) {
         await userNotifier.updateUser(
-          user.copyWith(
-            attendance: ToMany<Attendance>(items: newAttendance),
-          ),
+          user.copyWith(attendance: ToMany<Attendance>(items: newAttendance)),
         );
       }
     }

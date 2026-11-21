@@ -18,7 +18,11 @@ void main() {
 
     test('a named Sunday holiday is still a closure', () {
       // Independence Day falling on a Sunday is a real holiday.
-      final sunday = _chip(4, CalendarDayKind.holiday, title: 'Independence Day');
+      final sunday = _chip(
+        4,
+        CalendarDayKind.holiday,
+        title: 'Independence Day',
+      );
       expect(CalendarEventClassifier.isOrdinarySunday(sunday), isFalse);
       expect(
         CalendarEventClassifier.ringKindFor([sunday]),
@@ -49,7 +53,10 @@ void main() {
 
     test('a Sunday that is an exam is still marked', () {
       final sunday = _chip(11, CalendarDayKind.exam, title: 'CAT - I');
-      expect(CalendarEventClassifier.ringKindFor([sunday]), CalendarDayKind.exam);
+      expect(
+        CalendarEventClassifier.ringKindFor([sunday]),
+        CalendarDayKind.exam,
+      );
     });
 
     test('a countdown on a Sunday still wins the ring', () {
@@ -69,7 +76,10 @@ void main() {
         _chip(4, CalendarDayKind.holiday, title: 'Holiday'),
         _chip(4, CalendarDayKind.noClasses, title: 'No Instructional Day'),
       ];
-      expect(CalendarEventClassifier.ringKindFor(chips), CalendarDayKind.noClasses);
+      expect(
+        CalendarEventClassifier.ringKindFor(chips),
+        CalendarDayKind.noClasses,
+      );
     });
   });
 }

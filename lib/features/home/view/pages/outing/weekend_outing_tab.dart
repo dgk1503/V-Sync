@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:intl/intl.dart';
-import 'package:vit_ap_student_app/core/common/widget/loader.dart';
-import 'package:vit_ap_student_app/core/common/widgets/common_date_picker.dart';
 import 'package:vit_ap_student_app/core/constants/app_constants.dart';
 import 'package:vit_ap_student_app/core/providers/user_preferences_notifier.dart';
 import 'package:vit_ap_student_app/core/services/demo_service.dart';
 import 'package:vit_ap_student_app/core/utils/show_snackbar.dart';
 import 'package:vit_ap_student_app/features/home/view/pages/outing/weekend_outing_history_page.dart';
+import 'package:vit_ap_student_app/features/home/view/widgets/outing/outing_form.dart';
 import 'package:vit_ap_student_app/features/home/viewmodel/outing_submission_viewmodel.dart';
 
 class WeekendOutingTab extends ConsumerStatefulWidget {
@@ -61,8 +59,9 @@ class _WeekendOutingTabState extends ConsumerState<WeekendOutingTab> {
       // Monday outing - deadline is Saturday 11:59 PM
       // Find the Monday
       final daysUntilMonday = (DateTime.monday - now.weekday) % 7;
-      final targetMonday =
-          now.add(Duration(days: daysUntilMonday == 0 ? 7 : daysUntilMonday));
+      final targetMonday = now.add(
+        Duration(days: daysUntilMonday == 0 ? 7 : daysUntilMonday),
+      );
 
       // Check if selected Monday matches the target Monday
       if (outingDate.year == targetMonday.year &&
@@ -130,32 +129,22 @@ class _WeekendOutingTabState extends ConsumerState<WeekendOutingTab> {
       weekendOutingSubmissionProvider.select((val) => val?.isLoading == true),
     );
 
-    ref.listen(
-      weekendOutingSubmissionProvider,
-      (_, next) {
-        next?.when(
-          data: (message) {
-            showSnackBar(
-              context,
-              message,
-              SnackBarType.success,
-            );
-            _clearForm();
-          },
-          loading: () {},
-          error: (error, st) {
-            showSnackBar(
-              context,
-              error.toString(),
-              SnackBarType.error,
-            );
-          },
-        );
-      },
-    );
+    ref.listen(weekendOutingSubmissionProvider, (_, next) {
+      next?.when(
+        data: (message) {
+          showSnackBar(context, message, SnackBarType.success);
+          _clearForm();
+        },
+        loading: () {},
+        error: (error, st) {
+          showSnackBar(context, error.toString(), SnackBarType.error);
+        },
+      );
+    });
 
     return SingleChildScrollView(
       padding: EdgeInsets.only(
+        top: 4,
         bottom: MediaQuery.paddingOf(context).bottom + 16,
       ),
       child: Form(
@@ -163,265 +152,108 @@ class _WeekendOutingTabState extends ConsumerState<WeekendOutingTab> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Place Chips
-            Text(
-              'Place of Visit',
-              style: TextStyle(
-                fontSize: 16,
-                color: Theme.of(context).colorScheme.primary,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const SizedBox(height: 8),
-            FormField<String>(
-              initialValue: _selectedPlace,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Please select a place';
-                }
-                return null;
-              },
-              builder: (FormFieldState<String> state) {
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Wrap(
-                      spacing: 8.0,
-                      runSpacing: 8.0,
-                      children: AppConstants.outingPlaces.map((String place) {
-                        final isSelected = _selectedPlace == place;
-                        return ChoiceChip(
-                          label: Text(place),
-                          selected: isSelected,
-                          onSelected: (bool selected) {
-                            setState(() {
-                              _selectedPlace = selected ? place : null;
-                            });
-                            state.didChange(selected ? place : null);
-                          },
-                        );
-                      }).toList(),
-                    ),
-                    if (state.hasError)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8.0),
-                        child: Text(
-                          state.errorText!,
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.error,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                  ],
-                );
-              },
-            ),
-            const SizedBox(height: 16),
-      
-            // Time Slot Chips
-            Text(
-              'Time Slot',
-              style: TextStyle(
-                fontSize: 16,
-                color: Theme.of(context).colorScheme.primary,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const SizedBox(height: 8),
-            FormField<String>(
-              initialValue: _selectedTimeSlot,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Please select a time slot';
-                }
-                return null;
-              },
-              builder: (FormFieldState<String> state) {
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Wrap(
-                      spacing: 8.0,
-                      runSpacing: 8.0,
-                      children: AppConstants.outingTimeSlots.map((String slot) {
-                        final isSelected = _selectedTimeSlot == slot;
-                        return ChoiceChip(
-                          label: Text(slot),
-                          selected: isSelected,
-                          onSelected: (bool selected) {
-                            setState(() {
-                              _selectedTimeSlot = selected ? slot : null;
-                            });
-                            state.didChange(selected ? slot : null);
-                          },
-                        );
-                      }).toList(),
-                    ),
-                    if (state.hasError)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8.0),
-                        child: Text(
-                          state.errorText!,
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.error,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                  ],
-                );
-              },
-            ),
-            const SizedBox(height: 16),
-      
-            // Date Picker
-            CommonDatePicker(
-              label: 'Outing Date',
-              selectedDate: _outingDate,
-              onDateSelected: (date) {
-                setState(() => _outingDate = date);
-              },
-              firstDate: DateTime.now(),
-              lastDate: DateTime.now().add(const Duration(days: 7)),
-              selectableDayPredicate: (DateTime date) {
-                // Only allow Sunday (7) or Monday (1)
-                if (date.weekday != DateTime.sunday &&
-                    date.weekday != DateTime.monday) {
-                  return false;
-                }
-      
-                // Check if deadline has passed (unless bypassed)
-                final prefs = ref.read(userPreferencesProvider);
-                final bypassRestriction = prefs.bypassWeekendOutingRestriction;
-      
-                if (!bypassRestriction && _isDeadlinePassed(date, false)) {
-                  return false;
-                }
-      
-                return true;
-              },
-              validator: (value) =>
-                  _outingDate == null ? 'Please select a date' : null,
-            ),
-      
-            const SizedBox(height: 16),
-      
-            // Purpose
-            Text(
-              'Purpose of Visit',
-              textAlign: TextAlign.start,
-              style: TextStyle(
-                fontSize: 16,
-                color: Theme.of(context).colorScheme.primary,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            TextFormField(
-              decoration: const InputDecoration(
-                hintText: 'Enter purpose',
-                hintStyle: TextStyle(fontSize: 14),
-                contentPadding: EdgeInsets.symmetric(
-                  vertical: 0.0,
-                  horizontal: 0.0,
+            OutingSection(
+              title: 'Where to',
+              children: [
+                OutingChoices(
+                  label: 'Place of visit',
+                  options: AppConstants.outingPlaces,
+                  selected: _selectedPlace,
+                  onSelected: (place) => setState(() => _selectedPlace = place),
+                  validator: (value) => value == null || value.isEmpty
+                      ? 'Please select a place'
+                      : null,
                 ),
-              ),
-              textCapitalization: TextCapitalization.sentences,
-              onChanged: (value) => setState(() => _purpose = value),
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Please enter purpose';
-                }
-                return null;
-              },
+                const SizedBox(height: 14),
+                OutingTextField(
+                  label: 'Purpose of visit',
+                  hint: 'Why are you going?',
+                  onChanged: (value) => _purpose = value,
+                  validator: (value) => value == null || value.trim().isEmpty
+                      ? 'Please enter purpose'
+                      : null,
+                ),
+              ],
             ),
             const SizedBox(height: 12),
-      
-            // Contact Number
-            Text(
-              'Contact Number',
-              textAlign: TextAlign.start,
-              style: TextStyle(
-                fontSize: 16,
-                color: Theme.of(context).colorScheme.primary,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            TextFormField(
-              decoration: const InputDecoration(
-                hintText: 'Enter contact number',
-                hintStyle: TextStyle(fontSize: 14),
-                contentPadding: EdgeInsets.symmetric(
-                  vertical: 0.0,
-                  horizontal: 0.0,
-                ),
-              ),
-              keyboardType: TextInputType.phone,
-              onChanged: (value) => setState(() => _contactNumber = value),
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Please enter contact number';
-                }
-                if (value.length != 10) {
-                  return 'Contact number must be 10 digits';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 24),
-      
-            // Bottom Row: View History + Apply
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            OutingSection(
+              title: 'When',
               children: [
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: TextButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute<void>(
-                          builder: (context) => const WeekendOutingHistoryPage(),
-                        ),
-                      );
-                    },
-                    style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                      minimumSize: Size.zero,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                    child: Text(
-                      'View outing history',
-                      style: TextStyle(
-                        fontFamily: 'Instrument Sans',
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w500,
-                        color: Theme.of(context).colorScheme.primary,
-                        decoration: TextDecoration.underline,
-                        decorationColor: Theme.of(context).colorScheme.primary,
-                      ),
-                    ),
-                  ),
+                OutingMomentField(
+                  label: 'Outing date',
+                  date: _outingDate,
+                  firstDate: DateTime.now(),
+                  lastDate: DateTime.now().add(const Duration(days: 7)),
+                  onDate: (date) => setState(() => _outingDate = date),
+                  selectableDayPredicate: (DateTime date) {
+                    // Only allow Sunday (7) or Monday (1)
+                    if (date.weekday != DateTime.sunday &&
+                        date.weekday != DateTime.monday) {
+                      return false;
+                    }
+
+                    // Check if deadline has passed (unless bypassed)
+                    final prefs = ref.read(userPreferencesProvider);
+                    final bypassRestriction =
+                        prefs.bypassWeekendOutingRestriction;
+
+                    if (!bypassRestriction && _isDeadlinePassed(date, false)) {
+                      return false;
+                    }
+
+                    return true;
+                  },
+                  validator: () =>
+                      _outingDate == null ? 'Please select a date' : null,
                 ),
-                // Submitting an outing is a write action to VTOP, disabled for
-                // the demo account. History remains viewable via the button on
-                // the left.
-                if (!DemoService.isDemoMode)
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: isLoading
-                        ? const Loader()
-                        : FilledButton.icon(
-                            icon: const Icon(
-                              Iconsax.arrow_right_3,
-                              size: 18,
-                            ),
-                            iconAlignment: IconAlignment.end,
-                            onPressed: _submitWeekendOuting,
-                            label: const Text('Apply'),
-                          ),
-                  ),
+                const SizedBox(height: 14),
+                OutingChoices(
+                  label: 'Time slot',
+                  options: AppConstants.outingTimeSlots,
+                  selected: _selectedTimeSlot,
+                  onSelected: (slot) =>
+                      setState(() => _selectedTimeSlot = slot),
+                  validator: (value) => value == null || value.isEmpty
+                      ? 'Please select a time slot'
+                      : null,
+                ),
               ],
+            ),
+            const SizedBox(height: 12),
+            OutingSection(
+              title: 'Contact',
+              children: [
+                OutingTextField(
+                  label: 'Contact number',
+                  hint: '10 digit mobile number',
+                  keyboardType: TextInputType.phone,
+                  maxLength: 10,
+                  onChanged: (value) => _contactNumber = value,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter contact number';
+                    }
+                    if (value.length != 10) {
+                      return 'Contact number must be 10 digits';
+                    }
+                    return null;
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            OutingActions(
+              loading: isLoading,
+              // Applying is a write to VTOP, off for the demo account. The
+              // history stays viewable.
+              canApply: !DemoService.isDemoMode,
+              onApply: _submitWeekendOuting,
+              onHistory: () => Navigator.push(
+                context,
+                MaterialPageRoute<void>(
+                  builder: (context) => const WeekendOutingHistoryPage(),
+                ),
+              ),
             ),
           ],
         ),

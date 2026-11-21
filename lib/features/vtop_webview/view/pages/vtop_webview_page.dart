@@ -59,8 +59,8 @@ class _VtopWebViewPageState extends ConsumerState<VtopWebViewPage> {
       }
 
       // Get credentials from secure storage
-      final credentials =
-          await serviceLocator<SecureStorageService>().getCredentials();
+      final credentials = await serviceLocator<SecureStorageService>()
+          .getCredentials();
 
       if (credentials == null) {
         setState(() {
@@ -149,7 +149,8 @@ class _VtopWebViewPageState extends ConsumerState<VtopWebViewPage> {
             else if (url.contains(ServerConstants.vtopLoginPage) ||
                 url.contains(ServerConstants.vtopPreLoginPage)) {
               debugPrint(
-                  'Detected login/prelogin page - session may have expired');
+                'Detected login/prelogin page - session may have expired',
+              );
               setState(() {
                 _errorMessage =
                     'Session expired. Please go back and try again.';
@@ -183,7 +184,8 @@ class _VtopWebViewPageState extends ConsumerState<VtopWebViewPage> {
       // The authenticated cookies + CSRF from Rust will be used for POST navigation
       await _controller!.loadRequest(
         Uri.parse(
-            '${ServerConstants.vtopBaseUrl}${ServerConstants.vtopOpenPage}'),
+          '${ServerConstants.vtopBaseUrl}${ServerConstants.vtopOpenPage}',
+        ),
       );
 
       // Wait a moment for page load, then navigate to timetable/semester selection page
@@ -230,8 +232,11 @@ class _VtopWebViewPageState extends ConsumerState<VtopWebViewPage> {
       .replaceAll('<', '&lt;')
       .replaceAll('>', '&gt;');
 
-  Future<void> _navigateWithPost(String path,
-      {Map<String, String>? additionalParams, bool verifyMenu = true}) async {
+  Future<void> _navigateWithPost(
+    String path, {
+    Map<String, String>? additionalParams,
+    bool verifyMenu = true,
+  }) async {
     if (_controller == null || _csrfToken == null) {
       return;
     }
@@ -245,11 +250,14 @@ class _VtopWebViewPageState extends ConsumerState<VtopWebViewPage> {
     };
 
     final formFields = params.entries
-        .map((e) =>
-            '<input type="hidden" name="${_htmlAttrEscape(e.key)}" value="${_htmlAttrEscape(e.value)}">')
+        .map(
+          (e) =>
+              '<input type="hidden" name="${_htmlAttrEscape(e.key)}" value="${_htmlAttrEscape(e.value)}">',
+        )
         .join('');
 
-    final jsCode = '''
+    final jsCode =
+        '''
       (function() {
         var form = document.createElement('form');
         form.method = 'POST';
@@ -383,8 +391,8 @@ class _VtopWebViewPageState extends ConsumerState<VtopWebViewPage> {
             Text(
               'Please wait while we log you in',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
             const SizedBox(height: 24),
             if (_loadingProgress > 0)
@@ -420,8 +428,8 @@ class _VtopWebViewPageState extends ConsumerState<VtopWebViewPage> {
               _errorMessage ?? 'An unknown error occurred',
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
             const SizedBox(height: 24),
             FilledButton.icon(

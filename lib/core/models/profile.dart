@@ -76,7 +76,8 @@ class _GradeHistoryRelToOneConverter
   @override
   ToOne<GradeHistory> fromJson(Map<String, dynamic>? json) =>
       ToOne<GradeHistory>(
-          target: json != null ? GradeHistory.fromJson(json) : null);
+        target: json != null ? GradeHistory.fromJson(json) : null,
+      );
 
   @override
   Map<String, dynamic>? toJson(ToOne<GradeHistory> rel) => rel.target?.toJson();
@@ -89,10 +90,10 @@ class _MentorDetailsRelToOneConverter
   @override
   ToOne<MentorDetails> fromJson(Map<String, dynamic>? json) =>
       ToOne<MentorDetails>(
-          target: json != null ? MentorDetails.fromJson(json) : null);
+        target: json != null ? MentorDetails.fromJson(json) : null,
+      );
 
   @override
-  Map<String, dynamic>? toJson(ToOne<MentorDetails> rel) => rel.target?.toJson();
+  Map<String, dynamic>? toJson(ToOne<MentorDetails> rel) =>
+      rel.target?.toJson();
 }
-
-

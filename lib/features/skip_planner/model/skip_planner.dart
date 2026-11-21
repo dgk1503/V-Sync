@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:vit_ap_student_app/features/attendance/model/attendance_standing.dart';
 import 'package:vit_ap_student_app/core/models/attendance.dart';
 import 'package:vit_ap_student_app/core/models/timetable.dart';
 import 'package:vit_ap_student_app/core/utils/parse_class_time.dart';
@@ -14,10 +15,10 @@ const double kSkipPlannerThreshold = 75.0;
 /// Exactly three, deliberately: "safe but tight" and "just above the line" mean
 /// the same thing to a student deciding whether to go.
 enum SkipStatus {
-  /// Above the threshold, and still able to skip at least one more.
+  /// Above the threshold, with room to skip at least one more class.
   safe,
 
-  /// Above the threshold, but one further skip drops it below.
+  /// At or just above the threshold: one further miss drops it below.
   atEdge,
 
   /// Below the threshold.
@@ -32,9 +33,33 @@ class SkipDay {
   final int periods;
 }
 
+/// A day inside the absence that the academic calendar closes.
+///
+/// Shown to the student so they can see *why* a day they will be away costs
+/// nothing: the college is shut, so there is no class to miss.
+class SkipClosure {
+  const SkipClosure({
+    required this.date,
+    required this.reason,
+    required this.classesSaved,
+  });
+
+  final DateTime date;
+
+  /// The calendar's own wording, e.g. "Deepavali" or "No Instructional Day".
+  final String reason;
+
+  /// Periods the timetable would have held that day, inside the absence.
+  final int classesSaved;
+}
+
 /// One subject's projection under a planned absence.
 ///
-/// The three class counts are the whole model:
+/// A theory part and a lab part of the same course are **separate rows**: VTOP
+/// reports their attendance separately, and mixing them would measure the lab
+/// periods against the theory record.
+///
+/// The class counts are the whole model:
 ///
 /// ```text
 /// A   attendance already recorded by VTOP, final up to `now`
@@ -47,8 +72,8 @@ class SkipPlanRow {
   const SkipPlanRow({
     required this.courseCode,
     required this.courseName,
-    required this.missedTheory,
-    required this.missedLab,
+    required this.isLab,
+    required this.missed,
     required this.attended,
     required this.total,
     required this.futureBefore,
@@ -59,9 +84,11 @@ class SkipPlanRow {
   final String courseCode;
   final String courseName;
 
-  /// Periods this plan costs, split by kind.
-  final int missedTheory;
-  final int missedLab;
+  /// Whether this row is the lab part of the course.
+  final bool isLab;
+
+  /// Periods this plan costs.
+  final int missed;
 
   final int attended;
   final int total;
@@ -78,47 +105,83 @@ class SkipPlanRow {
   /// exactly the report this exists to answer.
   final List<SkipDay> days;
 
-  int get missed => missedTheory + missedLab;
+  int get missedTheory => isLab ? 0 : missed;
+  int get missedLab => isLab ? missed : 0;
+
+  /// "Lab" or "Theory".
+  String get kindLabel => isLab ? 'Lab' : 'Theory';
+
+  /// True when the subject has no attendance recorded yet, so the projection
+  /// carries no information and the UI should say so.
+  bool get hasNoHistory => total == 0;
+
+  /// Attended by the end of term: everything so far, plus every class before
+  /// the leave and after the return.
+  int get _endAttended => attended + futureBefore + remainingAfter;
+
+  /// Held by the end of term, including the classes being missed.
+  int get _endTotal => total + futureBefore + missed + remainingAfter;
+
+  double get current => total == 0 ? 0 : attended / total * 100;
 
   /// Straight after the absence: the classes so far, plus everything between
   /// now and the leave, over the same total plus what is being missed.
   ///
   /// `(A + F) / (T + F + M)`
-  double get afterLeave => hasNoHistory
-      ? 0
-      : total + futureBefore + missed == 0
-      ? 0
-      : (attended + futureBefore) / (total + futureBefore + missed) * 100;
+  double get afterLeave {
+    if (hasNoHistory) return 0;
+    final held = total + futureBefore + missed;
+    return held == 0 ? 0 : (attended + futureBefore) / held * 100;
+  }
+
+  /// The three figures above as VTOP would print them: whole numbers, rounded up.
+  int get currentPercent => vtopPercent(attended, total);
+
+  int get afterLeavePercent {
+    if (hasNoHistory) return 0;
+    return vtopPercent(attended + futureBefore, total + futureBefore + missed);
+  }
+
+  int get atEndOfTermPercent {
+    if (hasNoHistory) return 0;
+    return vtopPercent(_endAttended, _endTotal);
+  }
 
   /// By the end of the term, assuming every class after the return is attended.
   ///
   /// `(A + F + R) / (T + F + M + R)`
-  double get atEndOfTerm => hasNoHistory
-      ? 0
-      : total + futureBefore + missed + remainingAfter == 0
-      ? 0
-      : (attended + futureBefore + remainingAfter) /
-            (total + futureBefore + missed + remainingAfter) *
-            100;
+  double get atEndOfTerm {
+    if (hasNoHistory) return 0;
+    return _endTotal == 0 ? 0 : _endAttended / _endTotal * 100;
+  }
 
   /// Where this subject ends up. The end-of-term figure is the one the status
   /// rules are written against, because that is the number that has to stay
   /// above the threshold on the last day of teaching.
   double get projected => atEndOfTerm;
 
-  double get current => total == 0 ? 0 : attended / total * 100;
+  /// How many more of the remaining classes could be skipped on top of this
+  /// plan and still finish at or above the threshold.
+  ///
+  /// Integer arithmetic on purpose, so exactly 75% never flickers between
+  /// "safe" and "below" on floating point rounding. Skipping `k` classes that
+  /// are already counted as attended keeps the total and lowers the attended:
+  ///
+  /// ```text
+  /// 100 * (a - k) >= 75 * t   ->   k <= (4a - 3t) / 4
+  /// ```
+  int get _spareUncapped {
+    final slack = 4 * _endAttended - 3 * _endTotal;
+    return slack < 0 ? -1 : slack ~/ 4;
+  }
 
-  bool get hasTheory => missedTheory > 0;
-  bool get hasLab => missedLab > 0;
-
-  /// Whether this subject carries both kinds of slot.
-  bool get hasBoth => hasTheory && hasLab;
-
-  /// A compact label for the kinds this plan costs, e.g. "Theory + Lab".
-  String get kindLabel {
-    if (hasBoth) return 'Theory + Lab';
-    if (hasLab) return 'Lab';
-    return 'Theory';
+  /// [_spareUncapped], limited to the classes that actually remain.
+  int get canStillSkip {
+    if (hasNoHistory) return 0;
+    final spare = _spareUncapped;
+    if (spare <= 0) return 0;
+    final remaining = futureBefore + remainingAfter;
+    return spare < remaining ? spare : remaining;
   }
 
   SkipStatus get status {
@@ -126,27 +189,16 @@ class SkipPlanRow {
     // as "drops below" would flag every subject at the start of the semester.
     if (hasNoHistory) return SkipStatus.safe;
 
-    final projectedPercent = projected;
-    if (projectedPercent < kSkipPlannerThreshold) return SkipStatus.below;
-
-    // One more miss after the planned ones.
-    final afterOneMore =
-        (attended + futureBefore) /
-            (total + futureBefore + missed + 1) *
-        100;
-    if (afterOneMore < kSkipPlannerThreshold) return SkipStatus.atEdge;
+    final spare = _spareUncapped;
+    if (spare < 0) return SkipStatus.below;
+    if (spare == 0) return SkipStatus.atEdge;
     return SkipStatus.safe;
   }
-
-  /// True when the subject has no attendance recorded yet, so the projection
-  /// carries no information and the UI should say so.
-  bool get hasNoHistory => total == 0;
 
   /// A copy with the counts replaced, so the status rules can be exercised
   /// against a hand-built projection.
   SkipPlanRow copyWith({
-    int? missedTheory,
-    int? missedLab,
+    int? missed,
     int? attended,
     int? total,
     int? futureBefore,
@@ -155,8 +207,8 @@ class SkipPlanRow {
   }) => SkipPlanRow(
     courseCode: courseCode,
     courseName: courseName,
-    missedTheory: missedTheory ?? this.missedTheory,
-    missedLab: missedLab ?? this.missedLab,
+    isLab: isLab,
+    missed: missed ?? this.missed,
     attended: attended ?? this.attended,
     total: total ?? this.total,
     futureBefore: futureBefore ?? this.futureBefore,
@@ -167,11 +219,16 @@ class SkipPlanRow {
 
 /// The whole plan, plus the totals a summary line needs.
 class SkipPlan {
-  const SkipPlan({required this.rows});
+  const SkipPlan({required this.rows, this.closures = const []});
 
-  const SkipPlan.empty() : rows = const [];
+  const SkipPlan.empty() : rows = const [], closures = const [];
 
+  /// Only subjects the absence actually costs a class.
   final List<SkipPlanRow> rows;
+
+  /// Days inside the absence the academic calendar closes, with the classes
+  /// each one saves.
+  final List<SkipClosure> closures;
 
   bool get isEmpty => rows.isEmpty;
 
@@ -181,19 +238,23 @@ class SkipPlan {
 
   int get missedLab => rows.fold(0, (sum, row) => sum + row.missedLab);
 
+  /// Periods the calendar's closures remove from the absence.
+  int get classesSaved =>
+      closures.fold(0, (sum, closure) => sum + closure.classesSaved);
+
   /// Subjects in the order they should be seen: worst first. Equal projections
   /// fall back to the number of classes at stake, so the plan that costs the
   /// most comes first among ties.
   List<SkipPlanRow> get byRisk {
-    final sorted = [...rows]..sort((a, b) {
-      final byProjected = a.projected.compareTo(b.projected);
-      if (byProjected != 0) return byProjected;
-      return b.missed.compareTo(a.missed);
-    });
+    final sorted = [...rows]
+      ..sort((a, b) {
+        final byProjected = a.projected.compareTo(b.projected);
+        if (byProjected != 0) return byProjected;
+        return b.missed.compareTo(a.missed);
+      });
     return sorted;
   }
 }
-
 
 /// Projects attendance over a planned absence.
 ///
@@ -204,9 +265,21 @@ class SkipPlanner {
 
   /// Projects [attendances] over the window [leaveAt, returnAt).
   ///
+  /// The window carries real times: a class is missed when it **starts** at or
+  /// after [leaveAt] and strictly before [returnAt]. That is what makes a half
+  /// day expressible - leave at the start of the third class on a Friday and
+  /// the first two are attended, come back for the second class on Wednesday
+  /// and the first is missed.
+  ///
+  /// [closedDays] are the days the academic calendar says have no classes
+  /// (holiday, no-instructional day), keyed by date with the calendar's own
+  /// wording. No class is held on them, so none is missed, attended or counted
+  /// towards the term.
+  ///
   /// [until] is the end of teaching - the FAT - and is what
-  /// [SkipPlanRow.remainingAfter] counts towards. Without one the terminal
-  /// projection equals the immediate one, which is honest.
+  /// [SkipPlanRow.remainingAfter] counts towards, exclusive: FAT day itself is
+  /// an exam, not a class. Without one the terminal projection equals the
+  /// immediate one, which is honest.
   static SkipPlan compute({
     required Timetable? timetable,
     required List<Attendance> attendances,
@@ -214,61 +287,63 @@ class SkipPlanner {
     required DateTime returnAt,
     required DateTime now,
     DateTime? until,
-    Set<DateTime> holidays = const <DateTime>{},
+    Map<DateTime, String> closedDays = const <DateTime, String>{},
   }) {
-    if (timetable == null || returnAt.isBefore(leaveAt)) {
-      _diagnose(
-        timetable: timetable,
-        periodMinutes: null,
-        daysScanned: 0,
-        skippedNoSlots: 0,
-        skippedHoliday: 0,
-        missed: const {},
-        detail: const {},
-      );
+    if (timetable == null || !returnAt.isAfter(leaveAt)) {
       return const SkipPlan.empty();
     }
+
+    final closed = <DateTime, String>{
+      for (final entry in closedDays.entries) _dateOnly(entry.key): entry.value,
+    };
 
     // Only used when a slot does not name its own periods.
     final periodMinutes = _periodLengthInMinutes(timetable);
 
-    final attendanceByCode = <String, Attendance>{};
+    final byKind = <String, Attendance>{};
+    final byCode = <String, List<Attendance>>{};
     for (final attendance in attendances) {
       final code = attendance.courseCode.trim();
       if (code.isEmpty) continue;
-      // A course can appear twice - once theory, once lab. Attendance is
-      // reported per course, so the first row wins and the rest are ignored.
-      attendanceByCode.putIfAbsent(code, () => attendance);
+      // A course can appear twice - once theory, once lab - and each carries
+      // its own counts. Within one kind the first row wins.
+      byKind.putIfAbsent(
+        _key(code, isLabAttendance(attendance)),
+        () => attendance,
+      );
+      byCode.putIfAbsent(code, () => <Attendance>[]).add(attendance);
     }
 
-    final missedTheory = <String, int>{};
-    final missedLab = <String, int>{};
+    final missed = <String, int>{};
     final futureBefore = <String, int>{};
     final remainingAfter = <String, int>{};
     final names = <String, String>{};
+    final codes = <String, String>{};
+    final labs = <String, bool>{};
     final perDay = <String, Map<DateTime, int>>{};
-
-    var daysScanned = 0;
-    var skippedNoSlots = 0;
-    var skippedHoliday = 0;
+    final closures = <DateTime, _ClosureTally>{};
 
     final today = _dateOnly(now);
-    final lastDay = until == null ? _dateOnly(returnAt) : _dateOnly(until);
+    final lastDayOfWindow = DateTime(
+      returnAt.year,
+      returnAt.month,
+      returnAt.day + 1,
+    );
+    // Teaching stops when the FAT starts: from then on the timetable's slots
+    // are exam days, not classes, so nothing on or after [until] can be missed
+    // or attended. Without this, a trip that reached into the FAT period was
+    // charged for classes that are never held.
+    final endExclusive = until == null ? lastDayOfWindow : _dateOnly(until);
 
-    for (var day = today;
-        !day.isAfter(lastDay);
-        day = DateTime(day.year, day.month, day.day + 1)) {
-      daysScanned++;
-
+    for (
+      var day = today;
+      day.isBefore(endExclusive);
+      day = DateTime(day.year, day.month, day.day + 1)
+    ) {
       final slots = _slotsOn(timetable, day);
-      if (slots.isEmpty) {
-        skippedNoSlots++;
-        continue;
-      }
-      if (holidays.contains(_dateOnly(day))) {
-        skippedHoliday++;
-        continue;
-      }
+      if (slots.isEmpty) continue;
+
+      final closure = closed[day];
 
       for (final slot in slots) {
         final start = _slotStart(day, slot);
@@ -280,95 +355,141 @@ class SkipPlanner {
 
         final code = (slot.courseCode ?? '').trim();
         if (code.isEmpty) continue;
-        names[code] = (slot.courseName ?? code).trim();
 
         final periods = _periodCount(slot, periodMinutes);
-
-        // Missed when it begins inside the absence: on or after the leave, and
-        // strictly before the return, which is the first day the student is
-        // back and therefore attends.
         final inWindow = !start.isBefore(leaveAt) && start.isBefore(returnAt);
 
-        if (inWindow) {
-          if (slot.courseType == 'Lab') {
-            missedLab[code] = (missedLab[code] ?? 0) + periods;
-          } else {
-            missedTheory[code] = (missedTheory[code] ?? 0) + periods;
+        // A closed day holds no class at all. Inside the absence that is worth
+        // telling the student about; outside it, it simply does not exist.
+        if (closure != null) {
+          if (inWindow) {
+            closures.putIfAbsent(day, () => _ClosureTally(closure)).periods +=
+                periods;
           }
-          perDay.putIfAbsent(code, () => <DateTime, int>{})[_dateOnly(day)] =
-              (perDay[code]?[_dateOnly(day)] ?? 0) + periods;
+          continue;
+        }
+
+        final isLab = isLabSlot(slot);
+        final key = _key(code, isLab);
+        codes[key] = code;
+        labs[key] = isLab;
+        names[key] = (slot.courseName ?? code).trim();
+
+        if (inWindow) {
+          missed[key] = (missed[key] ?? 0) + periods;
+          final days = perDay.putIfAbsent(key, () => <DateTime, int>{});
+          days[day] = (days[day] ?? 0) + periods;
         } else if (start.isBefore(leaveAt)) {
           // Between now and the leave: assumed attended.
-          futureBefore[code] = (futureBefore[code] ?? 0) + periods;
+          futureBefore[key] = (futureBefore[key] ?? 0) + periods;
         } else {
           // After the return, up to the end of teaching: assumed attended.
-          remainingAfter[code] = (remainingAfter[code] ?? 0) + periods;
+          remainingAfter[key] = (remainingAfter[key] ?? 0) + periods;
         }
       }
     }
 
-    final codes = <String>{
-      ...missedTheory.keys,
-      ...missedLab.keys,
-      ...futureBefore.keys,
-      ...remainingAfter.keys,
-    };
-
     final rows = <SkipPlanRow>[];
-    for (final code in codes) {
-      final attendance = attendanceByCode[code];
-      final days = perDay[code] ?? const <DateTime, int>{};
+    for (final key in missed.keys) {
+      final code = codes[key]!;
+      final isLab = labs[key]!;
+      final attendance = _attendanceFor(byKind, byCode, code, isLab);
+      final days = perDay[key] ?? const <DateTime, int>{};
       rows.add(
         SkipPlanRow(
           courseCode: code,
-          courseName: names[code] ?? attendance?.courseName ?? code,
-          missedTheory: missedTheory[code] ?? 0,
-          missedLab: missedLab[code] ?? 0,
+          courseName: _firstNonEmpty(attendance?.courseName, names[key], code),
+          isLab: isLab,
+          missed: missed[key] ?? 0,
           attended: int.tryParse(attendance?.attendedClasses.trim() ?? '') ?? 0,
           total: int.tryParse(attendance?.totalClasses.trim() ?? '') ?? 0,
-          futureBefore: futureBefore[code] ?? 0,
-          remainingAfter: remainingAfter[code] ?? 0,
+          futureBefore: futureBefore[key] ?? 0,
+          remainingAfter: remainingAfter[key] ?? 0,
           days: [
             for (final entry in days.entries)
               SkipDay(date: entry.key, periods: entry.value),
-          ],
+          ]..sort((a, b) => a.date.compareTo(b.date)),
         ),
       );
     }
 
-    _diagnose(
-      timetable: timetable,
-      periodMinutes: periodMinutes,
-      daysScanned: daysScanned,
-      skippedNoSlots: skippedNoSlots,
-      skippedHoliday: skippedHoliday,
-      missed: {for (final row in rows) row.courseCode: row.missed},
-      detail: {
-        for (final row in rows)
-          row.courseCode:
-              'A=${row.attended} T=${row.total} F=${row.futureBefore} '
-              'M=${row.missed} R=${row.remainingAfter}',
-      },
-    );
+    final closureList = [
+      for (final entry in closures.entries)
+        SkipClosure(
+          date: entry.key,
+          reason: entry.value.reason,
+          classesSaved: entry.value.periods,
+        ),
+    ]..sort((a, b) => a.date.compareTo(b.date));
 
-    return SkipPlan(rows: rows);
+    _diagnose(rows, closureList);
+    return SkipPlan(rows: rows, closures: closureList);
+  }
+
+  /// Whether a timetable slot is a lab.
+  ///
+  /// The scraper stores the short course-type code (`ELA` for an embedded lab,
+  /// `LO` for lab-only, `ETH`/`TH` for theory) rather than a word, so a plain
+  /// `== 'Lab'` never matches real data.
+  static bool isLabSlot(Day slot) => _looksLikeLab(slot.courseType);
+
+  /// Whether an attendance row is the lab part of its course.
+  static bool isLabAttendance(Attendance attendance) =>
+      _looksLikeLab(attendance.courseTypeCode) ||
+      _looksLikeLab(attendance.courseType);
+
+  static bool _looksLikeLab(String? value) {
+    final text = (value ?? '').trim().toLowerCase();
+    return text == 'ela' || text == 'lo' || text.contains('lab');
+  }
+
+  static String _key(String code, bool isLab) =>
+      '$code|${isLab ? 'lab' : 'th'}';
+
+  /// The attendance row for a course's theory or lab part.
+  ///
+  /// When the exact kind is missing but the course has only one row, that row is
+  /// used: a slot whose type the scraper could not classify should still be
+  /// measured against something rather than against nothing.
+  static Attendance? _attendanceFor(
+    Map<String, Attendance> byKind,
+    Map<String, List<Attendance>> byCode,
+    String code,
+    bool isLab,
+  ) {
+    final exact = byKind[_key(code, isLab)];
+    if (exact != null) return exact;
+    final all = byCode[code];
+    if (all != null && all.length == 1) return all.first;
+    return null;
+  }
+
+  static String _firstNonEmpty(String? a, String? b, String fallback) {
+    if (a != null && a.trim().isNotEmpty) return a.trim();
+    if (b != null && b.trim().isNotEmpty) return b.trim();
+    return fallback;
   }
 
   /// How many attendance periods a slot counts for.
   ///
-  /// VTOP names them in the slot code: "L31+L32" is two periods, "A1" is one.
-  /// That is authoritative and is always used when present - it is the number
-  /// VTOP itself counts, and it survives a timing row padded for a break inside
-  /// a session.
+  /// Labs and theory are read differently, because VTOP names their slots
+  /// differently:
   ///
-  /// The duration is a fallback for a slot whose code names one period but
-  /// whose clock span says otherwise. When no period length could be derived
-  /// the slot counts as one, which is the ordinary case rather than a failure:
-  /// the plan must never come back empty just because the timetable's naming
-  /// was not what was expected.
+  /// * A **lab** slot is the session itself: "L31+L32" is that day's two
+  ///   periods, so the names are authoritative.
+  /// * A **theory** slot string lists every slot the course occupies across the
+  ///   whole week ("A1+TA1"), not just the one on this day. Counting its `+`
+  ///   would charge a single 50 minute class as two or three. Theory is
+  ///   therefore measured by its clock span against the period length.
+  ///
+  /// When no period length could be derived a slot counts as one, the ordinary
+  /// case rather than a failure: the plan must never come back empty just
+  /// because the timetable's naming was not what was expected.
   static int _periodCount(Day slot, int? periodMinutes) {
-    final named = _slotsNamed(slot);
-    if (named > 1) return named;
+    if (isLabSlot(slot)) {
+      final named = _slotsNamed(slot);
+      if (named > 1) return named;
+    }
     if (periodMinutes == null) return 1;
 
     final start = parseClassTime(slot.startTime);
@@ -385,26 +506,30 @@ class SkipPlanner {
   /// The length of one period, in minutes, or null when the timetable does not
   /// say.
   ///
-  /// Read from the **most common** duration among slots that name a single
-  /// period. Never from the shortest slot overall: a lab's span is several
-  /// periods, so treating it as one would set the period length to a whole
-  /// session and make every theory slot count as a fraction of a period.
+  /// Read from the **most common** duration among theory slots, which are one
+  /// period each. Never from the shortest slot overall and never from a lab: a
+  /// lab's span is several periods, so treating it as one would set the period
+  /// length to a whole session and make every theory slot a fraction of one.
+  /// With no theory slot at all, the most common duration of up to an hour is
+  /// the best remaining guess.
   ///
-  /// Null is a legitimate answer. It only means the duration fallback is
-  /// unavailable, and slots that name their periods - every lab - are counted
+  /// Null is a legitimate answer. Labs that name their periods are counted
   /// correctly regardless.
   static int? _periodLengthInMinutes(Timetable timetable) {
-    final durations = <int, int>{};
-    for (final slot in _allSlots(timetable)) {
-      if (_slotsNamed(slot) > 1) continue;
-
-      final start = parseClassTime(slot.startTime);
-      final end = parseClassTime(slot.endTime);
-      if (start == null || end == null) continue;
-      final minutes = end.difference(start).inMinutes;
-      if (minutes <= 0) continue;
-      durations[minutes] = (durations[minutes] ?? 0) + 1;
+    final theory = <int, int>{};
+    final any = <int, int>{};
+    for (var weekday = DateTime.monday; weekday <= DateTime.sunday; weekday++) {
+      for (final slot in _slotsForWeekday(timetable, weekday)) {
+        final start = parseClassTime(slot.startTime);
+        final end = parseClassTime(slot.endTime);
+        if (start == null || end == null) continue;
+        final minutes = end.difference(start).inMinutes;
+        if (minutes <= 0) continue;
+        if (!isLabSlot(slot)) theory[minutes] = (theory[minutes] ?? 0) + 1;
+        if (minutes <= 60) any[minutes] = (any[minutes] ?? 0) + 1;
+      }
     }
+    final durations = theory.isNotEmpty ? theory : any;
     if (durations.isEmpty) return null;
 
     return durations.entries.reduce((a, b) {
@@ -414,41 +539,27 @@ class SkipPlanner {
     }).key;
   }
 
-  /// Everything needed to explain a total, in one line.
+  /// Everything needed to explain a total, in one line per subject.
   ///
   /// The reported failures were an unexplainable number, so the number now
   /// arrives with its working. Debug only, so a release build pays nothing.
-  static void _diagnose({
-    required Timetable? timetable,
-    required int? periodMinutes,
-    required int daysScanned,
-    required int skippedNoSlots,
-    required int skippedHoliday,
-    required Map<String, int> missed,
-    required Map<String, String> detail,
-  }) {
+  static void _diagnose(List<SkipPlanRow> rows, List<SkipClosure> closures) {
     if (!kDebugMode) return;
     debugPrint(
-      '[skip-planner] slots=${timetable == null ? 0 : _allSlots(timetable).length} '
-      'periodMinutes=$periodMinutes daysScanned=$daysScanned '
-      'skippedNoSlots=$skippedNoSlots skippedHoliday=$skippedHoliday '
-      'missed=$missed',
+      '[skip-planner] rows=${rows.length} '
+      'closedInWindow=${closures.map((c) => c.date.toIso8601String().substring(0, 10)).toList()}',
     );
-    detail.forEach((code, values) => debugPrint('[skip-planner]   $code $values'));
+    for (final row in rows) {
+      debugPrint(
+        '[skip-planner]   ${row.courseCode} ${row.kindLabel} '
+        'A=${row.attended} T=${row.total} F=${row.futureBefore} '
+        'M=${row.missed} R=${row.remainingAfter}',
+      );
+    }
   }
 
-  static List<Day> _allSlots(Timetable timetable) => [
-    ..._slotsOn(timetable, DateTime(2026, 1, 5)),
-    ..._slotsOn(timetable, DateTime(2026, 1, 6)),
-    ..._slotsOn(timetable, DateTime(2026, 1, 7)),
-    ..._slotsOn(timetable, DateTime(2026, 1, 8)),
-    ..._slotsOn(timetable, DateTime(2026, 1, 9)),
-    ..._slotsOn(timetable, DateTime(2026, 1, 10)),
-    ..._slotsOn(timetable, DateTime(2026, 1, 11)),
-  ];
-
-  static List<Day> _slotsOn(Timetable timetable, DateTime day) =>
-      switch (day.weekday) {
+  static List<Day> _slotsForWeekday(Timetable timetable, int weekday) =>
+      switch (weekday) {
         DateTime.monday => timetable.monday.toList(),
         DateTime.tuesday => timetable.tuesday.toList(),
         DateTime.wednesday => timetable.wednesday.toList(),
@@ -458,6 +569,9 @@ class SkipPlanner {
         _ => timetable.sunday.toList(),
       };
 
+  static List<Day> _slotsOn(Timetable timetable, DateTime day) =>
+      _slotsForWeekday(timetable, day.weekday);
+
   static DateTime _dateOnly(DateTime value) =>
       DateTime(value.year, value.month, value.day);
 
@@ -466,4 +580,12 @@ class SkipPlanner {
     if (time == null) return null;
     return DateTime(day.year, day.month, day.day, time.hour, time.minute);
   }
+}
+
+/// Running total for one closed day while the window is scanned.
+class _ClosureTally {
+  _ClosureTally(this.reason);
+
+  final String reason;
+  int periods = 0;
 }

@@ -6,6 +6,7 @@ import 'package:vit_ap_student_app/core/models/mark.dart';
 import 'package:vit_ap_student_app/core/models/user.dart';
 import 'package:vit_ap_student_app/core/providers/current_user.dart';
 import 'package:vit_ap_student_app/core/services/demo_service.dart';
+import 'package:vit_ap_student_app/core/utils/keep_saved.dart';
 import 'package:vit_ap_student_app/features/home/repository/home_remote_repository.dart';
 
 part 'marks_viewmodel.g.dart';
@@ -34,13 +35,17 @@ class MarksViewModel extends _$MarksViewModel {
     final userNotifier = ref.read(currentUserProvider.notifier);
     final Credentials? credentials = await userNotifier.getSavedCredentials();
     if (credentials == null) {
-      AsyncValue<List<Mark>>.error(
-        'User not found. Please Logout and Login.',
+      // Assigned and returned: building the error and carrying on used to
+      // dereference the null on the next line, which threw and left the page
+      // on "loading" for good.
+      state = AsyncValue<List<Mark>>.error(
+        'Your saved login could not be read. Please log out and log in again.',
         StackTrace.current,
       );
+      return;
     }
     final res = await _homeRemoteRepository.fetchMarks(
-      registrationNumber: credentials!.registrationNumber,
+      registrationNumber: credentials.registrationNumber,
       password: credentials.password,
       semSubId: credentials.semSubId,
     );
@@ -48,6 +53,20 @@ class MarksViewModel extends _$MarksViewModel {
     if (res case Left(value: final failure)) {
       state = AsyncValue.error(failure.message, StackTrace.current);
     } else if (res case Right(value: final newMarks)) {
+      // VTOP answers a request it could not serve properly with a normal, empty
+      // page, so an empty result is not proof the student has no marks. Never
+      // let it replace marks that are already saved: that is how marks
+      // vanished until the user logged in again.
+      final saved = user?.marks.toList() ?? const <Mark>[];
+      if (shouldKeepSaved(fresh: newMarks, saved: saved)) {
+        state = AsyncValue.error(
+          'VTOP sent no marks this time, so your saved marks are being shown. '
+          'Try again in a little while.',
+          StackTrace.current,
+        );
+        return;
+      }
+
       state = AsyncValue.data(newMarks);
       if (user != null) {
         await userNotifier.updateUser(

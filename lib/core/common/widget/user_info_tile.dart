@@ -29,7 +29,7 @@ class UserInfoTile extends StatelessWidget {
           description == '' ? 'N/A' : description,
           style: Theme.of(context).textTheme.bodyLarge,
         ),
-        SizedBox(height: gap)
+        SizedBox(height: gap),
       ],
     );
   }

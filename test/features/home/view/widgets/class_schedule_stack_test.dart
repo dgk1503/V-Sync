@@ -80,6 +80,61 @@ void main() {
     expect(stackKey.currentState!.currentEntry.classInfo.courseName, 'Current');
     expect(tester.takeException(), isNull);
   });
+  testWidgets('the class on now shows its time, code, lab tag and time left', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: getThemeData(isDarkMode: true),
+        home: Scaffold(
+          body: ClassScheduleStack(
+            now: DateTime(2026, 9, 25, 10, 0),
+            classes: [
+              Day(
+                courseName: 'Operating Systems Lab',
+                courseCode: 'SWE2007',
+                courseType: 'ELA',
+                venue: '101-CB',
+                startTime: '09:30',
+                endTime: '10:40',
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('ONGOING'), findsOneWidget);
+    expect(find.text('Operating Systems Lab'), findsOneWidget);
+    expect(find.text('9:30 – 10:40 AM'), findsOneWidget);
+    expect(find.textContaining('SWE2007'), findsOneWidget);
+    expect(find.text('LAB'), findsOneWidget);
+    expect(find.text('40 min left'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('a class not started yet says when it starts', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: getThemeData(isDarkMode: true),
+        home: Scaffold(
+          body: ClassScheduleStack(
+            now: DateTime(2026, 9, 25, 10, 0),
+            classes: [_class('Upcoming', '11:30', '12:20')],
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('NEXT · IN 1 HR 30 MIN'), findsOneWidget);
+    expect(find.text('Starts at 11:30 AM'), findsOneWidget);
+    // Either side of noon, both suffixes are kept.
+    expect(find.text('11:30 AM – 12:20 PM'), findsOneWidget);
+    expect(find.byType(LinearProgressIndicator), findsNothing);
+    expect(find.text('LAB'), findsNothing);
+  });
 }
 
 Day _class(String name, String start, String end) {

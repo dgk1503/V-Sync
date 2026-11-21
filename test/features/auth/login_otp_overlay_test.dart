@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -5,6 +7,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:vit_ap_student_app/core/theme/app_theme.dart';
 import 'package:vit_ap_student_app/features/auth/view/widgets/login_otp_overlay.dart';
 import 'package:vit_ap_student_app/features/auth/viewmodel/login_otp_challenge.dart';
+import 'package:vit_ap_student_app/features/auth/repository/auth_remote_repository.dart';
+import 'package:vit_ap_student_app/features/auth/services/gmail_otp_reader.dart';
+import 'package:vit_ap_student_app/features/auth/services/otp_auto_fill.dart';
+import 'package:fpdart/fpdart.dart';
+import 'package:vit_ap_student_app/core/error/failure.dart';
+import 'package:vit_ap_student_app/features/thumb_dock/viewmodel/thumb_dock_active.dart';
 
 /// Starts idle so each test can drive the notifier itself.
 class _IdleChallenge extends LoginOtpChallenge {
@@ -45,6 +53,22 @@ void returnToApp(WidgetTester tester) {
   tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
   tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
   tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+}
+
+/// Drags in several small steps, the way a finger does. One large jump is
+/// swallowed as the movement that crosses the drag slop, so nothing would move.
+Future<void> dragInSteps(
+  WidgetTester tester,
+  Finder finder,
+  Offset total,
+) async {
+  final gesture = await tester.startGesture(tester.getCenter(finder));
+  const steps = 10;
+  for (var i = 0; i < steps; i++) {
+    await gesture.moveBy(total / steps.toDouble());
+    await tester.pump(const Duration(milliseconds: 16));
+  }
+  await gesture.up();
 }
 
 /// Every prompt test ends by dismissing the challenge and unmounting.
@@ -107,7 +131,10 @@ void main() {
         message: 'm',
       ).copyWith(errorMessage: 'Invalid OTP');
 
-      expect(withError.copyWith(errorMessage: null).errorMessage, 'Invalid OTP');
+      expect(
+        withError.copyWith(errorMessage: null).errorMessage,
+        'Invalid OTP',
+      );
       expect(withError.copyWith(clearError: true).errorMessage, isNull);
     });
 
@@ -243,10 +270,12 @@ void main() {
 
       // Every box must sit within the card's own horizontal bounds.
       final card = tester.getRect(
-        find.ancestor(
-          of: find.byType(TextField),
-          matching: find.byType(Container),
-        ).first,
+        find
+            .ancestor(
+              of: find.byType(TextField),
+              matching: find.byType(Container),
+            )
+            .first,
       );
       final field = tester.getRect(find.byType(TextField));
       expect(
@@ -271,7 +300,10 @@ void main() {
       container.read(loginOtpChallengeProvider.notifier).requestOtp();
       await tester.pump();
 
-      expect(find.byIcon(Icons.keyboard_double_arrow_down_rounded), findsOneWidget);
+      expect(
+        find.byIcon(Icons.keyboard_double_arrow_down_rounded),
+        findsOneWidget,
+      );
       expect(find.bySemanticsLabel('Minimise'), findsOneWidget);
 
       await tester.tap(find.byKey(const Key('otp-minimise')));
@@ -373,12 +405,11 @@ void main() {
       await unmount(tester, container);
     });
 
-    testWidgets('leaving the app collapses the prompt to the capsule',
-        (tester) async {
-      // The card cannot keep its keyboard while the app is away, and coming
-      // back to a card with no keyboard reads as "the prompt disappeared". The
-      // capsule is the state that survives the trip: no keyboard needed, the
-      // countdown still visible, one tap back to the boxes.
+    testWidgets('leaving the app does not collapse the prompt on its own', (
+      tester,
+    ) async {
+      // Collapsing is the user's choice. Going to Gmail for the code must bring
+      // them back to the same card, not to a capsule they have to find.
       final container = await mountApp(tester);
       container.read(loginOtpChallengeProvider.notifier).requestOtp();
       await tester.pump();
@@ -386,27 +417,136 @@ void main() {
 
       leaveApp(tester);
       await tester.pump();
-
-      expect(tester.takeException(), isNull);
-      expect(find.text('Verification'), findsNothing);
-      expect(find.byIcon(Icons.shield_outlined), findsOneWidget);
-
-      // And it is still there on the way back, ready to be reopened.
       returnToApp(tester);
       await tester.pump();
 
       expect(tester.takeException(), isNull);
-      expect(find.byIcon(Icons.shield_outlined), findsOneWidget);
-      expect(
-        find.textContaining('OTP '),
-        findsOneWidget,
-        reason: 'the capsule carries the countdown',
-      );
+      expect(find.text('Verification'), findsOneWidget);
+      expect(find.byIcon(Icons.shield_outlined), findsNothing);
       await unmount(tester, container);
     });
 
-    testWidgets('tapping the capsule brings the card and the keyboard back',
-        (tester) async {
+    testWidgets('a minimised prompt leaves the app underneath usable', (
+      tester,
+    ) async {
+      var taps = 0;
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            loginOtpChallengeProvider.overrideWith(_IdleChallenge.new),
+          ],
+          child: MaterialApp(
+            theme: getThemeData(isDarkMode: false),
+            home: Scaffold(
+              body: Align(
+                alignment: Alignment.topLeft,
+                child: TextButton(
+                  onPressed: () => taps++,
+                  child: const Text('Back'),
+                ),
+              ),
+            ),
+            builder: (context, child) =>
+                LoginOtpOverlay(child: SizedBox.expand(child: child!)),
+          ),
+        ),
+      );
+      await tester.pump();
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(LoginOtpOverlay)),
+      );
+      container.read(loginOtpChallengeProvider.notifier).requestOtp();
+      await tester.pump();
+
+      await tester.tap(find.byKey(const Key('otp-minimise')));
+      await tester.pump();
+      expect(find.byIcon(Icons.shield_outlined), findsOneWidget);
+
+      await tester.tap(find.text('Back'));
+      await tester.pump();
+
+      expect(taps, 1, reason: 'the collapsed prompt must not swallow touches');
+      await unmount(tester, container);
+    });
+
+    testWidgets('the capsule starts bottom-right, not over the header', (
+      tester,
+    ) async {
+      final container = await mountApp(tester);
+      container.read(loginOtpChallengeProvider.notifier).requestOtp();
+      await tester.pump();
+      await tester.tap(find.byKey(const Key('otp-minimise')));
+      await tester.pump();
+
+      final rect = tester.getRect(find.byIcon(Icons.shield_outlined));
+      final screen = tester.view.physicalSize / tester.view.devicePixelRatio;
+      expect(rect.center.dx, greaterThan(screen.width / 2));
+      expect(rect.center.dy, greaterThan(screen.height / 2));
+      await unmount(tester, container);
+    });
+
+    testWidgets('released mid-screen the capsule settles on the nearer side', (
+      tester,
+    ) async {
+      final container = await mountApp(tester);
+      container.read(loginOtpChallengeProvider.notifier).requestOtp();
+      await tester.pump();
+      await tester.tap(find.byKey(const Key('otp-minimise')));
+      await tester.pump();
+
+      final screen = tester.view.physicalSize / tester.view.devicePixelRatio;
+      final capsule = find.byIcon(Icons.shield_outlined);
+      final body = find.ancestor(
+        of: capsule,
+        matching: find.byType(AnimatedPositioned),
+      );
+
+      // Dragged to just left of the middle and let go: it docks on the left.
+      await dragInSteps(
+        tester,
+        capsule,
+        Offset(screen.width * 0.4 - tester.getCenter(body).dx, 0),
+      );
+      await tester.pumpAndSettle();
+      var rect = tester.getRect(body);
+      expect(rect.center.dx, lessThan(screen.width / 2));
+      expect(rect.left, closeTo(16, 1), reason: 'it docks against the left');
+
+      // And just right of the middle goes back to the right.
+      await dragInSteps(
+        tester,
+        capsule,
+        Offset(screen.width * 0.6 - tester.getCenter(body).dx, 0),
+      );
+      await tester.pumpAndSettle();
+      rect = tester.getRect(body);
+      expect(rect.center.dx, greaterThan(screen.width / 2));
+      expect(rect.right, closeTo(screen.width - 16, 1));
+      await unmount(tester, container);
+    });
+
+    testWidgets('the capsule keeps the height it was left at', (tester) async {
+      final container = await mountApp(tester);
+      container.read(loginOtpChallengeProvider.notifier).requestOtp();
+      await tester.pump();
+      await tester.tap(find.byKey(const Key('otp-minimise')));
+      await tester.pump();
+
+      final capsule = find.byIcon(Icons.shield_outlined);
+      final before = tester.getCenter(capsule);
+      await dragInSteps(tester, capsule, const Offset(-30, -150));
+      await tester.pumpAndSettle();
+
+      // Most of the drag arrives; the first stretch is the drag slop, which
+      // Flutter does not count as movement.
+      final moved = before.dy - tester.getCenter(capsule).dy;
+      expect(moved, inInclusiveRange(100, 150));
+      await unmount(tester, container);
+    });
+
+    testWidgets('tapping the capsule brings the card and the keyboard back', (
+      tester,
+    ) async {
       final calls = <MethodCall>[];
       tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
         SystemChannels.textInput,
@@ -421,8 +561,7 @@ void main() {
       container.read(loginOtpChallengeProvider.notifier).requestOtp();
       await tester.pump();
 
-      leaveApp(tester);
-      returnToApp(tester);
+      await tester.tap(find.byKey(const Key('otp-minimise')));
       await tester.pump();
       calls.clear();
 
@@ -444,46 +583,52 @@ void main() {
       await unmount(tester, container);
     });
 
-    testWidgets('a transient interruption keeps the prompt expanded and focused',
-        (tester) async {
-      // Android reports `inactive` for the notification shade, a permission
-      // dialog, the app switcher. Only a real trip away collapses the prompt —
-      // and for the interruptions that do not, the card stays up and has to
-      // keep its keyboard.
-      final calls = <MethodCall>[];
-      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
-        SystemChannels.textInput,
-        (call) async {
-          calls.add(call);
-          return null;
-        },
-      );
-      addTearDown(tester.testTextInput.register);
+    testWidgets(
+      'a transient interruption keeps the prompt expanded and focused',
+      (tester) async {
+        // Android reports `inactive` for the notification shade, a permission
+        // dialog, the app switcher. Only a real trip away collapses the prompt —
+        // and for the interruptions that do not, the card stays up and has to
+        // keep its keyboard.
+        final calls = <MethodCall>[];
+        tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.textInput,
+          (call) async {
+            calls.add(call);
+            return null;
+          },
+        );
+        addTearDown(tester.testTextInput.register);
 
-      final container = await mountApp(tester);
-      container.read(loginOtpChallengeProvider.notifier).requestOtp();
-      await tester.pump();
+        final container = await mountApp(tester);
+        container.read(loginOtpChallengeProvider.notifier).requestOtp();
+        await tester.pump();
 
-      calls.clear();
-      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
-      await tester.pump();
-      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
-      await tester.pump();
+        calls.clear();
+        tester.binding.handleAppLifecycleStateChanged(
+          AppLifecycleState.inactive,
+        );
+        await tester.pump();
+        tester.binding.handleAppLifecycleStateChanged(
+          AppLifecycleState.resumed,
+        );
+        await tester.pump();
 
-      expect(tester.takeException(), isNull);
-      expect(find.text('Verification'), findsOneWidget);
-      expect(find.byIcon(Icons.shield_outlined), findsNothing);
-      expect(
-        tester.widget<TextField>(find.byType(TextField)).focusNode!.hasFocus,
-        isTrue,
-      );
-      expect(
-        calls.where((call) => call.method == 'TextInput.show'),
-        isNotEmpty,
-        reason: 'the card that stayed up must keep its keyboard',
-      );
-      await unmount(tester, container);
-    });
+        expect(tester.takeException(), isNull);
+        expect(find.text('Verification'), findsOneWidget);
+        expect(find.byIcon(Icons.shield_outlined), findsNothing);
+        expect(
+          tester.widget<TextField>(find.byType(TextField)).focusNode!.hasFocus,
+          isTrue,
+        );
+        expect(
+          calls.where((call) => call.method == 'TextInput.show'),
+          isNotEmpty,
+          reason: 'the card that stayed up must keep its keyboard',
+        );
+        await unmount(tester, container);
+      },
+    );
 
     testWidgets('the code typed so far survives the collapse', (tester) async {
       // Collapsing must not cost the user the digits they already entered:
@@ -497,8 +642,7 @@ void main() {
       await tester.pump();
       expect(find.text('1'), findsOneWidget);
 
-      leaveApp(tester);
-      returnToApp(tester);
+      await tester.tap(find.byKey(const Key('otp-minimise')));
       await tester.pump();
       await tester.tap(find.byIcon(Icons.shield_outlined));
       await tester.pump();
@@ -510,4 +654,185 @@ void main() {
       await unmount(tester, container);
     });
   });
+
+  group('with the Thumb Dock carrying the collapsed prompt', () {
+    Future<ProviderContainer> mountWithDock(
+      WidgetTester tester, {
+      required bool dockActive,
+    }) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            loginOtpChallengeProvider.overrideWith(_IdleChallenge.new),
+            thumbDockActiveProvider.overrideWithValue(dockActive),
+          ],
+          child: MaterialApp(
+            theme: getThemeData(isDarkMode: false),
+            home: const Scaffold(body: SizedBox.expand()),
+            builder: (context, child) =>
+                LoginOtpOverlay(child: SizedBox.expand(child: child!)),
+          ),
+        ),
+      );
+      await tester.pump();
+      return ProviderScope.containerOf(
+        tester.element(find.byType(LoginOtpOverlay)),
+      );
+    }
+
+    testWidgets('the floating capsule stays away, so nothing overlaps', (
+      tester,
+    ) async {
+      final c = await mountWithDock(tester, dockActive: true);
+      c.read(loginOtpChallengeProvider.notifier).requestOtp();
+      await tester.pump();
+      c.read(loginOtpChallengeProvider.notifier).minimize();
+      await tester.pump();
+
+      expect(c.read(loginOtpChallengeProvider).isMinimized, isTrue);
+      expect(find.textContaining('OTP'), findsNothing);
+      c.read(loginOtpChallengeProvider.notifier).dismiss();
+      await tester.pump();
+    });
+
+    testWidgets('the expanded card is unchanged', (tester) async {
+      final c = await mountWithDock(tester, dockActive: true);
+      c.read(loginOtpChallengeProvider.notifier).requestOtp();
+      await tester.pump();
+
+      expect(find.textContaining('OTP'), findsWidgets);
+      c.read(loginOtpChallengeProvider.notifier).dismiss();
+      await tester.pump();
+    });
+
+    testWidgets('without the dock the capsule is still there', (tester) async {
+      final c = await mountWithDock(tester, dockActive: false);
+      c.read(loginOtpChallengeProvider.notifier).requestOtp();
+      await tester.pump();
+      c.read(loginOtpChallengeProvider.notifier).minimize();
+      await tester.pump();
+
+      expect(find.textContaining('OTP'), findsOneWidget);
+      c.read(loginOtpChallengeProvider.notifier).dismiss();
+      await tester.pump();
+    });
+  });
+
+  group('the automatic reader on the card', () {
+    Future<ProviderContainer> mountWith(
+      WidgetTester tester, {
+      required bool ready,
+      Future<OtpFound?> Function()? looksUp,
+    }) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            authRemoteRepositoryProvider.overrideWithValue(_AcceptsAll()),
+            otpAutoFillProvider.overrideWithValue(
+              _ScriptedAutoFill(ready, looksUp),
+            ),
+          ],
+          child: MaterialApp(
+            theme: getThemeData(isDarkMode: true),
+            home: const Scaffold(body: SizedBox.expand()),
+            builder: (context, child) =>
+                LoginOtpOverlay(child: SizedBox.expand(child: child!)),
+          ),
+        ),
+      );
+      await tester.pump();
+      return ProviderScope.containerOf(
+        tester.element(find.byType(LoginOtpOverlay)),
+      );
+    }
+
+    testWidgets('says plainly when automatic fetching is not enabled', (
+      tester,
+    ) async {
+      final c = await mountWith(tester, ready: false);
+      c.read(loginOtpChallengeProvider.notifier).requestOtp();
+      await tester.pump();
+      await tester.pump();
+
+      expect(
+        find.text('Automatic OTP fetching is not enabled.'),
+        findsOneWidget,
+      );
+      expect(find.text('Verify'), findsOneWidget, reason: 'typing still works');
+      c.read(loginOtpChallengeProvider.notifier).dismiss();
+      await tester.pump();
+    });
+
+    testWidgets('shows that it is fetching while it looks', (tester) async {
+      final wait = Completer<OtpFound?>();
+      final c = await mountWith(
+        tester,
+        ready: true,
+        looksUp: () => wait.future,
+      );
+      c.read(loginOtpChallengeProvider.notifier).requestOtp();
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.text('Fetching OTP automatically...'), findsOneWidget);
+      expect(find.byType(LinearProgressIndicator), findsOneWidget);
+      c.read(loginOtpChallengeProvider.notifier).dismiss();
+      wait.complete(null);
+      await tester.pump();
+    });
+
+    testWidgets('shows the green tick and the words, then closes by itself', (
+      tester,
+    ) async {
+      final c = await mountWith(
+        tester,
+        ready: true,
+        looksUp: () async => const OtpFound(code: '488245', uid: 1),
+      );
+      c.read(loginOtpChallengeProvider.notifier).requestOtp();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+      await tester.pump(const Duration(milliseconds: 800));
+
+      expect(find.text('OTP fetched successfully'), findsOneWidget);
+      expect(find.byKey(const ValueKey('otp-success-tick')), findsOneWidget);
+      expect(find.text('Verify'), findsNothing, reason: 'the form is replaced');
+
+      await tester.pump(kOtpSuccessHold);
+      await tester.pump(const Duration(milliseconds: 200));
+      expect(find.text('OTP fetched successfully'), findsNothing);
+      expect(find.text('Verification'), findsNothing);
+      expect(c.read(loginOtpChallengeProvider).isActive, isFalse);
+    });
+  });
+}
+
+/// VTOP accepts any code.
+class _AcceptsAll implements AuthRemoteRepository {
+  @override
+  Future<Either<Failure, void>> submitLoginOtp(String otpCode) async =>
+      const Right(null);
+
+  @override
+  Future<Either<Failure, void>> resendLoginOtp() async => const Right(null);
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError();
+}
+
+class _ScriptedAutoFill implements OtpAutoFill {
+  _ScriptedAutoFill(this.ready, this._find);
+
+  final bool ready;
+  final Future<OtpFound?> Function()? _find;
+
+  @override
+  Future<bool> isReady() async => ready;
+
+  @override
+  Future<OtpFound?> find({
+    required DateTime issuedAfter,
+    Set<int> ignoreUids = const {},
+    required OtpCancel cancel,
+  }) async => _find == null ? null : _find();
 }

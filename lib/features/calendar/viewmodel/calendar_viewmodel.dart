@@ -20,13 +20,33 @@ import 'package:vit_ap_student_app/src/rust/api/vtop/types/academic_calendar.dar
 part 'calendar_viewmodel.g.dart';
 
 const List<String> _monthNames = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
 ];
 
 const Map<String, int> _monthNumbers = {
-  'JAN': 1, 'FEB': 2, 'MAR': 3, 'APR': 4, 'MAY': 5, 'JUN': 6,
-  'JUL': 7, 'AUG': 8, 'SEP': 9, 'OCT': 10, 'NOV': 11, 'DEC': 12,
+  'JAN': 1,
+  'FEB': 2,
+  'MAR': 3,
+  'APR': 4,
+  'MAY': 5,
+  'JUN': 6,
+  'JUL': 7,
+  'AUG': 8,
+  'SEP': 9,
+  'OCT': 10,
+  'NOV': 11,
+  'DEC': 12,
 };
 
 /// A month ready to render: its chips, date-ordered, with the most
@@ -48,10 +68,12 @@ class CalendarMonth {
 
   /// Chips falling on [date], strongest kind first.
   List<CalendarChip> chipsOn(DateTime date) => chips
-      .where((chip) =>
-          chip.date.year == date.year &&
-          chip.date.month == date.month &&
-          chip.date.day == date.day)
+      .where(
+        (chip) =>
+            chip.date.year == date.year &&
+            chip.date.month == date.month &&
+            chip.date.day == date.day,
+      )
       .toList(growable: false);
 
   /// The single chip to draw on [date], or null when nothing applies.
@@ -75,7 +97,9 @@ class CalendarViewmodel extends _$CalendarViewmodel {
   /// un-suffixed key is the one written before this was keyed, and is still
   /// read as a fallback so an existing install is not left with nothing.
   static String cacheKeyFor(String? semesterId) =>
-      semesterId == null || semesterId.isEmpty ? cacheKey : '$_prefix$semesterId';
+      semesterId == null || semesterId.isEmpty
+      ? cacheKey
+      : '$_prefix$semesterId';
 
   /// How stale a cached calendar may get before VTOP is asked again.
   ///
@@ -151,9 +175,7 @@ class CalendarViewmodel extends _$CalendarViewmodel {
 
     final cached = _readCache();
     if (cached == null) return const AsyncValue.data(<CalendarMonth>[]);
-    return AsyncValue.data(
-      withCountdowns ? _applyCountdowns(cached) : cached,
-    );
+    return AsyncValue.data(withCountdowns ? _applyCountdowns(cached) : cached);
   }
 
   /// The cached months, or null when there is no cache or it cannot be read.
@@ -209,8 +231,7 @@ class CalendarViewmodel extends _$CalendarViewmodel {
   /// Forces a re-read from VTOP, e.g. pull to refresh. Concurrent callers share
   /// one request rather than each starting their own.
   Future<void> refresh() {
-    return _inFlight ??= _refresh()
-            .whenComplete(() {
+    return _inFlight ??= _refresh().whenComplete(() {
       _inFlight = null;
     });
   }
@@ -236,12 +257,13 @@ class CalendarViewmodel extends _$CalendarViewmodel {
       return;
     }
 
-    final Either<Failure, CalendarSnapshot> result =
-        await ref.read(calendarRemoteRepositoryProvider).fetchAcademicCalendar(
-              registrationNumber: credentials.registrationNumber,
-              password: credentials.password,
-              semSubId: credentials.semSubId,
-            );
+    final Either<Failure, CalendarSnapshot> result = await ref
+        .read(calendarRemoteRepositoryProvider)
+        .fetchAcademicCalendar(
+          registrationNumber: credentials.registrationNumber,
+          password: credentials.password,
+          semSubId: credentials.semSubId,
+        );
 
     result.fold(
       (failure) {
@@ -262,9 +284,7 @@ class CalendarViewmodel extends _$CalendarViewmodel {
           ..write(key, _wrap(snapshot.rawJson, credentials.semSubId))
           // Bound the table: one row per semester a student has ever opened is
           // small, but there is no reason to keep the ones they have left.
-          ..removeWhere(
-            (other) => other.startsWith(_prefix) && other != key,
-          );
+          ..removeWhere((other) => other.startsWith(_prefix) && other != key);
         _lastSemesterId = credentials.semSubId;
         final months = _toMonths(snapshot.calendar);
         state = AsyncValue.data(
@@ -281,9 +301,7 @@ class CalendarViewmodel extends _$CalendarViewmodel {
   void _paintFromCache() {
     final months = _readCache();
     if (months == null) return;
-    state = AsyncValue.data(
-      _countdownsOn ? _applyCountdowns(months) : months,
-    );
+    state = AsyncValue.data(_countdownsOn ? _applyCountdowns(months) : months);
   }
 
   /// The cached payload carries the semester it belongs to, so a semester
@@ -336,8 +354,11 @@ class CalendarViewmodel extends _$CalendarViewmodel {
   List<CalendarMonth> _withCountdowns(
     List<CalendarMonth> months,
     List<Milestone> milestones,
-  ) =>
-      _withOutings(months, milestones, ref.read(generalOutingReportsViewModelProvider)?.asData?.value);
+  ) => _withOutings(
+    months,
+    milestones,
+    ref.read(generalOutingReportsViewModelProvider)?.asData?.value,
+  );
 
   /// Folds the student's approved outings into the grid, one chip per day of
   /// each trip.
@@ -409,9 +430,11 @@ class CalendarViewmodel extends _$CalendarViewmodel {
       final range = _outingRange(outing);
       if (range == null) continue;
       final (from, to) = range;
-      for (var day = from;
-          !day.isAfter(to);
-          day = DateTime(day.year, day.month, day.day + 1)) {
+      for (
+        var day = from;
+        !day.isAfter(to);
+        day = DateTime(day.year, day.month, day.day + 1)
+      ) {
         if (day.year != month.year || day.month != month.month) continue;
         chips.add(
           CalendarChip(
@@ -453,7 +476,8 @@ class CalendarViewmodel extends _$CalendarViewmodel {
 
   /// "Leaving", "Returning" or the day count, for the event list under a day.
   String _outingDayLabel(DateTime from, DateTime to, DateTime day) {
-    if (day.isAtSameMomentAs(from) && day.isAtSameMomentAs(to)) return 'Day trip';
+    if (day.isAtSameMomentAs(from) && day.isAtSameMomentAs(to))
+      return 'Day trip';
     if (day.isAtSameMomentAs(from)) return 'Leaving';
     if (day.isAtSameMomentAs(to)) return 'Returning';
     return 'Outing';

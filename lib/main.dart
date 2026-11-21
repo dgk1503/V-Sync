@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:vit_ap_student_app/features/auth/viewmodel/semester_viewmodel.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vit_ap_student_app/core/common/widget/bottom_navigation_bar.dart';
@@ -15,6 +16,7 @@ import 'package:vit_ap_student_app/features/auth/view/widgets/auth_failure_botto
 import 'package:vit_ap_student_app/features/auth/view/widgets/login_otp_overlay.dart';
 import 'package:vit_ap_student_app/features/auth/viewmodel/login_otp_challenge.dart';
 import 'package:vit_ap_student_app/features/onboarding/view/pages/onboarding_page.dart';
+import 'package:vit_ap_student_app/features/thumb_dock/view/thumb_dock_host.dart';
 import 'package:vit_ap_student_app/init_dependencies.dart';
 
 void main() async {
@@ -47,6 +49,16 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     unawaited(AppUpdateService.checkForUpdate());
+    // Settles the selected semester before anything reads it. A selection that
+    // an earlier build erased is put back from the login (see
+    // AuthLocalRepository.healSelection).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (ref.read(currentUserProvider.notifier).isLoggedIn) {
+        unawaited(
+          ref.read(semesterViewModelProvider.notifier).getSelectedSemester(),
+        );
+      }
+    });
     _otpSubscription = serviceLocator<VtopClientService>().onOtpRequired.listen(
       (_) => _showGlobalOtpSheet(),
     );
@@ -144,7 +156,13 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
           child: AnnotatedRegion<SystemUiOverlayStyle>(
             value: systemOverlayStyle,
             child: LoginOtpOverlay(
-              child: Stack(children: [child!]),
+              // The Thumb Dock floats over every page, below the OTP prompt.
+              child: Stack(
+                children: [
+                  child!,
+                  ThumbDockHost(navigatorKey: _navigatorKey),
+                ],
+              ),
             ),
           ),
         );

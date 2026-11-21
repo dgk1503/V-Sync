@@ -23,9 +23,11 @@ typedef VtopClientFactory =
     });
 typedef VtopLoginCall = Future<void> Function({required VtopClient client});
 typedef VtopOtpSubmitCall =
-    Future<void> Function({required VtopClient client, required String otpCode});
-typedef VtopOtpResendCall =
-    Future<void> Function({required VtopClient client});
+    Future<void> Function({
+      required VtopClient client,
+      required String otpCode,
+    });
+typedef VtopOtpResendCall = Future<void> Function({required VtopClient client});
 
 /// Singleton service for managing VTOP client instances
 /// Maintains a single VtopClient instance per session and persists login state
@@ -46,6 +48,10 @@ class VtopClientService {
   String? _currentUsername;
   String? _currentPasswordDigest;
   DateTime? _sessionCreatedAt;
+
+  /// When the session was last handed out for a request. Idle time, not age, is
+  /// what VTOP's timeout counts.
+  DateTime? _lastActivityAt;
   Completer<void>? _otpCompleter;
 
   /// The login currently in flight, if there is one. Every caller that arrives
@@ -70,7 +76,13 @@ class VtopClientService {
   final StreamController<String> _authFailureController =
       StreamController<String>.broadcast();
 
-  // VTOP sessions expire after 15 minutes, we'll refresh at 14 minutes to be safe
+  // A VTOP session is dropped after 15 minutes without use, so it is renewed
+  // after 14 minutes of *idleness*, to be safe. It is measured from the last
+  // time the session was used, not from when it was created: renewing a session
+  // that is in active use is a credentials POST, and VTOP mails an OTP for those
+  // from an IP it has not verified. A session that does die early is still
+  // caught by the scraper (a redirect to the sign-in page, or a bare 404), which
+  // reports SessionExpired and is retried once.
   static const Duration _sessionExpiryDuration = Duration(minutes: 15);
   static const Duration _sessionRefreshThreshold = Duration(minutes: 14);
 
@@ -165,6 +177,9 @@ class VtopClientService {
     final String passwordDigest = _digestOf(password);
 
     if (!_needsNewClient(username, passwordDigest)) {
+      // Handing the session out counts as using it: that is what keeps VTOP's
+      // idle timer from running down while the app is in use.
+      _lastActivityAt = _now();
       return Future<VtopClient>.value(_client!);
     }
 
@@ -225,20 +240,18 @@ class VtopClientService {
 
   /// Check if session is near expiry (within refresh threshold)
   bool _isSessionNearExpiry() {
-    if (_sessionCreatedAt == null) return true;
+    final lastUsed = _lastActivityAt ?? _sessionCreatedAt;
+    if (lastUsed == null) return true;
 
-    final sessionAge = _now().difference(_sessionCreatedAt!);
-    final isNearExpiry = sessionAge >= _sessionRefreshThreshold;
-
-    return isNearExpiry;
+    return _now().difference(lastUsed) >= _sessionRefreshThreshold;
   }
 
   /// Check if session is completely expired
   bool _isSessionExpired() {
-    if (_sessionCreatedAt == null) return true;
+    final lastUsed = _lastActivityAt ?? _sessionCreatedAt;
+    if (lastUsed == null) return true;
 
-    final sessionAge = _now().difference(_sessionCreatedAt!);
-    return sessionAge >= _sessionExpiryDuration;
+    return _now().difference(lastUsed) >= _sessionExpiryDuration;
   }
 
   /// Get session age as human-readable string
@@ -289,6 +302,7 @@ class VtopClientService {
       _currentUsername = username;
       _currentPasswordDigest = _digestOf(password);
       _sessionCreatedAt = _now();
+      _lastActivityAt = _sessionCreatedAt;
       _isInitialized = true;
     } on VtopError_AuthenticationFailed catch (e) {
       _clearSessionIfCurrent(generation);
@@ -346,6 +360,7 @@ class VtopClientService {
     _currentUsername = null;
     _currentPasswordDigest = null;
     _sessionCreatedAt = null;
+    _lastActivityAt = null;
     return true;
   }
 
@@ -460,6 +475,7 @@ class VtopClientService {
     _otpPending = false;
     _isInitialized = true;
     _sessionCreatedAt = _now();
+    _lastActivityAt = _sessionCreatedAt;
     final completer = _otpCompleter;
     _otpCompleter = null;
     completer?.complete();
@@ -519,6 +535,7 @@ class VtopClientService {
     _client = null;
     _isInitialized = false;
     _sessionCreatedAt = null;
+    _lastActivityAt = null;
   }
 
   /// Reset the client (for logout or credential changes).
@@ -537,6 +554,7 @@ class VtopClientService {
     _currentUsername = null;
     _currentPasswordDigest = null;
     _sessionCreatedAt = null;
+    _lastActivityAt = null;
     _loginFlight.clear();
   }
 
@@ -569,9 +587,10 @@ class VtopClientService {
 
   /// Get time remaining until session expiry
   Duration? getTimeUntilExpiry() {
-    if (_sessionCreatedAt == null) return null;
+    final lastUsed = _lastActivityAt ?? _sessionCreatedAt;
+    if (lastUsed == null) return null;
 
-    final expiryTime = _sessionCreatedAt!.add(_sessionExpiryDuration);
+    final expiryTime = lastUsed.add(_sessionExpiryDuration);
     final timeRemaining = expiryTime.difference(_now());
 
     return timeRemaining.isNegative ? Duration.zero : timeRemaining;

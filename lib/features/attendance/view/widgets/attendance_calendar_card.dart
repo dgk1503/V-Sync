@@ -85,11 +85,7 @@ class _AttendanceMonthCardState extends State<AttendanceMonthCard> {
               ),
               const SizedBox(width: 10),
             ] else if (widget.emptyReason == EmptyReason.failed) ...[
-              Icon(
-                Icons.cloud_off_rounded,
-                size: 15,
-                color: status.danger,
-              ),
+              Icon(Icons.cloud_off_rounded, size: 15, color: status.danger),
               const SizedBox(width: 10),
             ],
             Expanded(
@@ -232,7 +228,10 @@ class _AttendanceMonthCardState extends State<AttendanceMonthCard> {
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            _Legend(color: AppStatusColors.of(context).success, label: 'Attended'),
+            _Legend(
+              color: AppStatusColors.of(context).success,
+              label: 'Attended',
+            ),
             const SizedBox(width: 16),
             _Legend(color: colors.error, label: 'Missed'),
             if (keys.length > 1) ...[
@@ -269,8 +268,18 @@ class _AttendanceMonthCardState extends State<AttendanceMonthCard> {
 
   static String _monthLabel(int year, int month) {
     const names = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December',
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
     ];
     return '${names[month - 1]} $year';
   }
@@ -286,8 +295,18 @@ class _AttendanceMonthCardState extends State<AttendanceMonthCard> {
   /// is read as 2 March. When the first number cannot be a day (>12) the field
   /// is obviously month-first, and that is handled rather than guessed.
   static const List<String> _months = [
-    'january', 'february', 'march', 'april', 'may', 'june',
-    'july', 'august', 'september', 'october', 'november', 'december',
+    'january',
+    'february',
+    'march',
+    'april',
+    'may',
+    'june',
+    'july',
+    'august',
+    'september',
+    'october',
+    'november',
+    'december',
   ];
 
   static DateTime? _parseDate(String raw) {
@@ -377,6 +396,7 @@ class _NavButton extends StatelessWidget {
 
 class _MonthGrid extends StatelessWidget {
   final int year;
+
   /// How many week-rows a month needs, Monday-first.
   static int weeksIn(int year, int month) {
     final leading = DateTime(year, month).weekday - 1;
@@ -387,7 +407,6 @@ class _MonthGrid extends StatelessWidget {
   /// Height the grid needs for a month: its rows plus the container's padding.
   static double heightFor(int year, int month) =>
       34 + weeksIn(year, month) * 40;
-
 
   final int month;
   final List<DateTime> days;

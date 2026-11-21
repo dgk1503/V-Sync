@@ -97,16 +97,18 @@ class _MilestonesSectionState extends ConsumerState<MilestonesSection> {
               AccentGradientText(
                 'Countdowns',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w500,
-                      fontSize: 22,
-                    ),
+                  fontWeight: FontWeight.w500,
+                  fontSize: 22,
+                ),
               ),
               const Spacer(),
               TextButton(
                 onPressed: _openManagePage,
                 style: TextButton.styleFrom(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                 ),
                 child: Text(
                   'Manage',
@@ -198,10 +200,7 @@ class _EmptyHint extends StatelessWidget {
         width: double.infinity,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: colorScheme.outlineVariant,
-            width: 1.2,
-          ),
+          border: Border.all(color: colorScheme.outlineVariant, width: 1.2),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

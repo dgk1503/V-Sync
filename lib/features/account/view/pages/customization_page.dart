@@ -6,10 +6,15 @@ import 'package:vit_ap_student_app/core/common/widget/app_card.dart';
 import 'package:vit_ap_student_app/core/providers/user_preferences_notifier.dart';
 import 'package:vit_ap_student_app/core/services/app_icon_service.dart';
 import 'package:vit_ap_student_app/core/utils/show_snackbar.dart';
+import 'package:vit_ap_student_app/features/thumb_dock/model/dock_shortcut.dart';
+import 'package:vit_ap_student_app/features/thumb_dock/viewmodel/thumb_dock_settings.dart';
 
-/// Per-entry visibility toggles for the Academics hub and Home, plus the
-/// experimental Liquid Glass navbar. Everything is visible by default, so
-/// users who never open this page get the full app.
+/// Per-entry visibility toggles for the Academics hub and Home, the navbar, the
+/// Thumb Dock and the app icon. Everything is visible by default, so users who
+/// never open this page get the full app.
+///
+/// The Academics page has the most switches, so its per-page toggles fold into
+/// one dropdown row.
 class CustomizationPage extends ConsumerWidget {
   const CustomizationPage({super.key});
 
@@ -17,35 +22,58 @@ class CustomizationPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final userPreferences = ref.watch(userPreferencesProvider);
     final userPreferencesNotifier = ref.read(userPreferencesProvider.notifier);
+    final dock = ref.watch(thumbDockProvider);
+    final dockNotifier = ref.read(thumbDockProvider.notifier);
     final colorScheme = Theme.of(context).colorScheme;
 
-    Widget sectionHeading(String text) => Padding(
+    Widget sectionHeading(String text, {String? tag}) => Padding(
       padding: const EdgeInsets.only(left: 4.0, bottom: 8.0),
-      child: Text(
-        text,
-        style: TextStyle(
-          fontFamily: 'Instrument Sans',
-          fontSize: 13,
-          letterSpacing: 0.2,
-          color: colorScheme.onSurfaceVariant,
-        ),
+      child: Row(
+        children: [
+          Text(
+            text,
+            style: TextStyle(
+              fontFamily: 'Instrument Sans',
+              fontSize: 13,
+              letterSpacing: 0.2,
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
+          if (tag != null) ...[
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
+              decoration: BoxDecoration(
+                color: colorScheme.surfaceContainerHigh,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                tag,
+                style: TextStyle(
+                  fontFamily: 'Instrument Sans',
+                  fontSize: 10.5,
+                  letterSpacing: 0.3,
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ),
+          ],
+        ],
       ),
+    );
+
+    Widget divider() => Divider(
+      height: 1,
+      thickness: 0.5,
+      indent: 16,
+      color: colorScheme.outlineVariant.withValues(alpha: 0.5),
     );
 
     Widget sectionCard({required List<Widget> children}) {
       final tiles = <Widget>[];
       for (var i = 0; i < children.length; i++) {
         tiles.add(children[i]);
-        if (i < children.length - 1) {
-          tiles.add(
-            Divider(
-              height: 1,
-              thickness: 0.5,
-              indent: 16,
-              color: colorScheme.outlineVariant.withValues(alpha: 0.5),
-            ),
-          );
-        }
+        if (i < children.length - 1) tiles.add(divider());
       }
       return AppCard(borderRadius: 16, child: Column(children: tiles));
     }
@@ -81,6 +109,18 @@ class CustomizationPage extends ConsumerWidget {
       ),
     );
 
+    // Attendance, Marks and Exam Schedule always stay; these are the rest.
+    final optionalPages = [
+      !userPreferences.hideGrades,
+      !userPreferences.hideBiometric,
+      !userPreferences.hideDigitalAssignments,
+      !userPreferences.hideOuting,
+      !userPreferences.hideFacultyInfo,
+      !userPreferences.hideOpenVtop,
+      !userPreferences.hideAcademicCalendar,
+    ];
+    final shownCount = optionalPages.where((shown) => shown).length;
+
     return Scaffold(
       appBar: AppBar(
         title: AccentGradientText(
@@ -97,54 +137,84 @@ class CustomizationPage extends ConsumerWidget {
           sectionCard(
             children: [
               tile(
-                title: 'Grades',
-                value: !userPreferences.hideGrades,
+                title: 'Grid layout',
+                subtitle: 'Show the options two per row instead of a list',
+                value: !userPreferences.academicsListView,
                 onChanged: (value) => userPreferencesNotifier.updatePreferences(
-                  userPreferences.copyWith(hideGrades: !value),
+                  userPreferences.copyWith(academicsListView: !value),
                 ),
               ),
-              tile(
-                title: 'Digital Assignments',
-                value: !userPreferences.hideDigitalAssignments,
-                onChanged: (value) => userPreferencesNotifier.updatePreferences(
-                  userPreferences.copyWith(hideDigitalAssignments: !value),
-                ),
-              ),
-              tile(
-                title: 'Outing',
-                value: !userPreferences.hideOuting,
-                onChanged: (value) => userPreferencesNotifier.updatePreferences(
-                  userPreferences.copyWith(hideOuting: !value),
-                ),
-              ),
-              tile(
-                title: 'Faculty Info',
-                value: !userPreferences.hideFacultyInfo,
-                onChanged: (value) => userPreferencesNotifier.updatePreferences(
-                  userPreferences.copyWith(hideFacultyInfo: !value),
-                ),
-              ),
-              tile(
-                title: 'Open VTOP',
-                value: !userPreferences.hideOpenVtop,
-                onChanged: (value) => userPreferencesNotifier.updatePreferences(
-                  userPreferences.copyWith(hideOpenVtop: !value),
-                ),
-              ),
-              tile(
-                title: 'Academic Calendar',
-                value: !userPreferences.hideAcademicCalendar,
-                onChanged: (value) => userPreferencesNotifier.updatePreferences(
-                  userPreferences.copyWith(hideAcademicCalendar: !value),
-                ),
-              ),
-              tile(
-                title: 'Calendar countdowns',
-                subtitle: 'Merge your countdowns into the calendar',
-                value: !userPreferences.hideCalendarCountdowns,
-                onChanged: (value) => userPreferencesNotifier.updatePreferences(
-                  userPreferences.copyWith(hideCalendarCountdowns: !value),
-                ),
+              _Dropdown(
+                title: 'Pages shown',
+                summary: '$shownCount of ${optionalPages.length}',
+                children: [
+                  tile(
+                    title: 'Grades',
+                    value: !userPreferences.hideGrades,
+                    onChanged: (value) =>
+                        userPreferencesNotifier.updatePreferences(
+                          userPreferences.copyWith(hideGrades: !value),
+                        ),
+                  ),
+                  divider(),
+                  tile(
+                    title: 'Biometric Log',
+                    value: !userPreferences.hideBiometric,
+                    onChanged: (value) =>
+                        userPreferencesNotifier.updatePreferences(
+                          userPreferences.copyWith(hideBiometric: !value),
+                        ),
+                  ),
+                  divider(),
+                  tile(
+                    title: 'Digital Assignments',
+                    value: !userPreferences.hideDigitalAssignments,
+                    onChanged: (value) =>
+                        userPreferencesNotifier.updatePreferences(
+                          userPreferences.copyWith(
+                            hideDigitalAssignments: !value,
+                          ),
+                        ),
+                  ),
+                  divider(),
+                  tile(
+                    title: 'Outing',
+                    value: !userPreferences.hideOuting,
+                    onChanged: (value) =>
+                        userPreferencesNotifier.updatePreferences(
+                          userPreferences.copyWith(hideOuting: !value),
+                        ),
+                  ),
+                  divider(),
+                  tile(
+                    title: 'Faculty Info',
+                    value: !userPreferences.hideFacultyInfo,
+                    onChanged: (value) =>
+                        userPreferencesNotifier.updatePreferences(
+                          userPreferences.copyWith(hideFacultyInfo: !value),
+                        ),
+                  ),
+                  divider(),
+                  tile(
+                    title: 'Open VTOP',
+                    value: !userPreferences.hideOpenVtop,
+                    onChanged: (value) =>
+                        userPreferencesNotifier.updatePreferences(
+                          userPreferences.copyWith(hideOpenVtop: !value),
+                        ),
+                  ),
+                  divider(),
+                  tile(
+                    title: 'Academic Calendar',
+                    value: !userPreferences.hideAcademicCalendar,
+                    onChanged: (value) =>
+                        userPreferencesNotifier.updatePreferences(
+                          userPreferences.copyWith(
+                            hideAcademicCalendar: !value,
+                          ),
+                        ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -177,9 +247,219 @@ class CustomizationPage extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 24),
+          sectionHeading('Thumb Dock', tag: 'beta'),
+          sectionCard(
+            children: [
+              tile(
+                title: 'Thumb Dock',
+                subtitle:
+                    'A handle on the screen edge. Hold it and slide to any page',
+                value: dock.enabled,
+                onChanged: dockNotifier.setEnabled,
+              ),
+              if (dock.enabled)
+                tile(
+                  title: 'Liquid Glass',
+                  subtitle:
+                      'Glass look for the dock. Turn off on slower phones',
+                  value: dock.glass,
+                  onChanged: dockNotifier.setGlass,
+                ),
+              if (dock.enabled)
+                _DockShortcutPicker(
+                  selected: dock.shortcuts,
+                  onToggle: dockNotifier.toggleShortcut,
+                ),
+            ],
+          ),
+          const SizedBox(height: 24),
           sectionHeading('App icon'),
           const _AppIconPicker(),
           const SizedBox(height: 24),
+        ],
+      ),
+    );
+  }
+}
+
+/// A row that unfolds to show more switches. Folded to start with.
+class _Dropdown extends StatefulWidget {
+  const _Dropdown({
+    required this.title,
+    required this.summary,
+    required this.children,
+  });
+
+  final String title;
+
+  /// What is currently chosen, shown on the right while folded.
+  final String summary;
+  final List<Widget> children;
+
+  @override
+  State<_Dropdown> createState() => _DropdownState();
+}
+
+class _DropdownState extends State<_Dropdown> {
+  bool _open = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () => setState(() => _open = !_open),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    widget.title,
+                    style: TextStyle(
+                      fontSize: 15.5,
+                      fontWeight: FontWeight.w500,
+                      color: colorScheme.onSurface,
+                    ),
+                  ),
+                ),
+                Text(
+                  widget.summary,
+                  style: TextStyle(
+                    fontFamily: 'Instrument Sans',
+                    fontSize: 12.5,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                AnimatedRotation(
+                  turns: _open ? 0.5 : 0,
+                  duration: const Duration(milliseconds: 200),
+                  child: Icon(
+                    LucideIcons.chevronDown,
+                    size: 20,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        AnimatedSize(
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOutCubic,
+          alignment: Alignment.topCenter,
+          child: _open
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Divider(
+                      height: 1,
+                      thickness: 0.5,
+                      indent: 16,
+                      color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+                    ),
+                    ...widget.children,
+                  ],
+                )
+              : const SizedBox(width: double.infinity),
+        ),
+      ],
+    );
+  }
+}
+
+/// Chooses which pages sit in the dock's Academics row, in the order tapped.
+class _DockShortcutPicker extends StatelessWidget {
+  const _DockShortcutPicker({required this.selected, required this.onToggle});
+
+  final List<String> selected;
+  final ValueChanged<String> onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final full = selected.length >= ThumbDockSettings.maxShortcuts;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Academics shortcuts',
+            style: TextStyle(
+              fontFamily: 'Instrument Sans',
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: colorScheme.onSurface,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            'Attendance and Marks always stay. Choose up to '
+            '${ThumbDockSettings.customSlots} more, shown in the order you '
+            'pick them',
+            style: TextStyle(
+              fontFamily: 'Instrument Sans',
+              fontSize: 12,
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final shortcut in DockShortcuts.all)
+                FilterChip(
+                  label: Text(shortcut.label),
+                  avatar: Icon(shortcut.icon, size: 16),
+                  selected: selected.contains(shortcut.id),
+                  showCheckmark: false,
+                  // The locked pair is shown chosen but cannot be changed.
+                  onSelected:
+                      (ThumbDockSettings.lockedShortcuts.contains(
+                            shortcut.id,
+                          ) ||
+                          (!selected.contains(shortcut.id) && full))
+                      ? null
+                      : (_) => onToggle(shortcut.id),
+                  disabledColor: selected.contains(shortcut.id)
+                      ? colorScheme.primary.withValues(alpha: 0.6)
+                      : colorScheme.surfaceContainerHigh.withValues(alpha: 0.5),
+                  labelStyle: TextStyle(
+                    fontFamily: 'Instrument Sans',
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w500,
+                    color: selected.contains(shortcut.id)
+                        ? colorScheme.onPrimary
+                        : colorScheme.onSurface,
+                  ),
+                  selectedColor: colorScheme.primary,
+                  backgroundColor: colorScheme.surfaceContainerHigh,
+                  side: BorderSide.none,
+                  iconTheme: IconThemeData(
+                    color: selected.contains(shortcut.id)
+                        ? colorScheme.onPrimary
+                        : colorScheme.onSurfaceVariant,
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Drag the handle to move it to either edge.',
+            style: TextStyle(
+              fontFamily: 'Instrument Sans',
+              fontSize: 11.5,
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
         ],
       ),
     );

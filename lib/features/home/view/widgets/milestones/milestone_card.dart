@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:vit_ap_student_app/core/common/widget/app_card.dart';
 import 'package:vit_ap_student_app/features/home/model/milestone.dart';
+
 class MilestoneCard extends StatelessWidget {
   final Milestone milestone;
 
@@ -14,9 +15,7 @@ class MilestoneCard extends StatelessWidget {
     // Countdown card text stays neutral in every accent theme — only
     // the card edges carry the theme color.
     final foreground = isDark ? Colors.white : Colors.black;
-    final muted = isDark
-        ? const Color(0xFFB3B3B3)
-        : const Color(0xFF4D4D4D);
+    final muted = isDark ? const Color(0xFFB3B3B3) : const Color(0xFF4D4D4D);
 
     final daysLeft = milestone.daysLeft();
     final hoursLeft = milestone.hoursLeft();

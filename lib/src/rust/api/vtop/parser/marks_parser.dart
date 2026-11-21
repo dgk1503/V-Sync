@@ -3,11 +3,21 @@
 
 // ignore_for_file: invalid_use_of_internal_member, unused_import, unnecessary_import
 
+import '../../../frb_generated.dart';
+import '../types/marks.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:meta/meta.dart' as meta;
 
-import '../../../frb_generated.dart';
-import '../types/marks.dart';
+// These functions are ignored because they are not marked as `pub`: `cell_text`
 
+/// Parses the marks page.
+///
+/// The page is a table whose rows come in two kinds: a **course row** (serial
+/// number, code, title, type, faculty, slot) and, after it, a **details row**
+/// that holds a nested table of that course's individual marks. The two used to
+/// be told apart purely by position (course, details, course, details...), so a
+/// course with no details row shifted every row after it onto the wrong kind,
+/// and a short row panicked on an out-of-range index. A row is now classified by
+/// what it contains, and a missing cell reads as empty rather than aborting.
 Future<List<Marks>> parseMarks({required String html}) =>
     RustLib.instance.api.crateApiVtopParserMarksParserParseMarks(html: html);

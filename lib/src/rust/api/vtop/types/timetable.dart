@@ -3,16 +3,14 @@
 
 // ignore_for_file: invalid_use_of_internal_member, unused_import, unnecessary_import
 
+import '../../../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:freezed_annotation/freezed_annotation.dart' hide protected;
 import 'package:meta/meta.dart' as meta;
-
-import '../../../frb_generated.dart';
-
 part 'timetable.freezed.dart';
 part 'timetable.g.dart';
 
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `fmt`, `fmt`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`
 
 @freezed
 @meta.immutable
@@ -25,6 +23,7 @@ sealed class Timetable with _$Timetable {
     required List<TimetableClass> friday,
     required List<TimetableClass> saturday,
     required List<TimetableClass> sunday,
+    required List<TimetableCourse> courses,
   }) = _Timetable;
 
   factory Timetable.fromJson(Map<String, dynamic> json) =>
@@ -43,8 +42,31 @@ sealed class TimetableClass with _$TimetableClass {
     required String faculty,
     required String courseCode,
     required String courseType,
+    required String credits,
   }) = _TimetableClass;
 
   factory TimetableClass.fromJson(Map<String, dynamic> json) =>
       _$TimetableClassFromJson(json);
+}
+
+/// One row of VTOP's course table: a course the student is registered for, or
+/// one *part* of it (a course with a theory and a lab part has a row for each).
+///
+/// This is the whole list of registered courses with their credits, whether or
+/// not a part has a weekly slot. The weekly grid only has courses that meet at
+/// set times, so a project, an online course or anything else without a slot is
+/// in this table and nowhere in the grid.
+@freezed
+@meta.immutable
+sealed class TimetableCourse with _$TimetableCourse {
+  const factory TimetableCourse({
+    required String courseCode,
+    required String courseName,
+    required String courseType,
+    required String typeCode,
+    required String credits,
+  }) = _TimetableCourse;
+
+  factory TimetableCourse.fromJson(Map<String, dynamic> json) =>
+      _$TimetableCourseFromJson(json);
 }

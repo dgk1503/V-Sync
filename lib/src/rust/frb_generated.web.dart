@@ -6,12 +6,6 @@
 // Static analysis wrongly picks the IO variant, thus ignore this
 // ignore_for_file: argument_type_not_assignable
 
-import 'dart:async';
-import 'dart:convert';
-
-import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_web.dart';
-import 'package:meta/meta.dart' as meta;
-
 import 'api/simple.dart';
 import 'api/vtop/captcha_solver.dart';
 import 'api/vtop/client/academic.dart';
@@ -70,8 +64,12 @@ import 'api/vtop/vtop_client.dart';
 import 'api/vtop/vtop_config.dart';
 import 'api/vtop/vtop_errors.dart';
 import 'api/vtop_get_client.dart';
+import 'dart:async';
+import 'dart:convert';
 import 'frb_generated.dart';
 import 'lib.dart';
+import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_web.dart';
+import 'package:meta/meta.dart' as meta;
 
 abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   RustLibApiImplPlatform({
@@ -932,6 +930,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<TimetableClass> dco_decode_list_timetable_class(dynamic raw);
 
   @protected
+  List<TimetableCourse> dco_decode_list_timetable_course(dynamic raw);
+
+  @protected
   List<WeekendOutingRecord> dco_decode_list_weekend_outing_record(dynamic raw);
 
   @protected
@@ -992,6 +993,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   TimetableClass dco_decode_timetable_class(dynamic raw);
+
+  @protected
+  TimetableCourse dco_decode_timetable_course(dynamic raw);
 
   @protected
   int dco_decode_u_32(dynamic raw);
@@ -1770,6 +1774,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  List<TimetableCourse> sse_decode_list_timetable_course(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   List<WeekendOutingRecord> sse_decode_list_weekend_outing_record(
     SseDeserializer deserializer,
   );
@@ -1838,6 +1847,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   TimetableClass sse_decode_timetable_class(SseDeserializer deserializer);
+
+  @protected
+  TimetableCourse sse_decode_timetable_course(SseDeserializer deserializer);
 
   @protected
   int sse_decode_u_32(SseDeserializer deserializer);
@@ -2795,6 +2807,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_timetable_course(
+    List<TimetableCourse> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_weekend_outing_record(
     List<WeekendOutingRecord> self,
     SseSerializer serializer,
@@ -2878,6 +2896,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_timetable_class(
     TimetableClass self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_timetable_course(
+    TimetableCourse self,
     SseSerializer serializer,
   );
 

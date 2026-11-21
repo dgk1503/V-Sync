@@ -66,22 +66,15 @@ class _DigitalAssignmentPageState extends ConsumerState<DigitalAssignmentPage>
     final asyncAssignments = ref.watch(digitalAssignmentViewModelProvider);
     final isLoading = asyncAssignments?.isLoading == true;
 
-    ref.listen(
-      digitalAssignmentViewModelProvider,
-      (_, next) {
-        next?.when(
-          data: (data) {},
-          loading: () {},
-          error: (error, st) {
-            showSnackBar(
-              context,
-              error.toString(),
-              SnackBarType.error,
-            );
-          },
-        );
-      },
-    );
+    ref.listen(digitalAssignmentViewModelProvider, (_, next) {
+      next?.when(
+        data: (data) {},
+        loading: () {},
+        error: (error, st) {
+          showSnackBar(context, error.toString(), SnackBarType.error);
+        },
+      );
+    });
 
     // Extract unique course categories from the fetched assignments
     List<String> categories = [];
@@ -104,10 +97,9 @@ class _DigitalAssignmentPageState extends ConsumerState<DigitalAssignmentPage>
           children: [
             Text(
               'Digital Assignments',
-              style: Theme.of(context)
-                  .textTheme
-                  .headlineSmall
-                  ?.copyWith(fontWeight: FontWeight.w500),
+              style: Theme.of(
+                context,
+              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w500),
             ),
             if (lastSynced != null)
               Text(
@@ -136,7 +128,8 @@ class _DigitalAssignmentPageState extends ConsumerState<DigitalAssignmentPage>
               // Inside the TabBarView the per-tab scrollables report depth 1
               // (notifications bubble through the horizontal page view);
               // without tabs the single scrollable reports depth 0.
-              notificationPredicate: (notification) => notification.depth ==
+              notificationPredicate: (notification) =>
+                  notification.depth ==
                   ((_tabController != null && _courseCategories.isNotEmpty)
                       ? 1
                       : 0),
@@ -144,8 +137,10 @@ class _DigitalAssignmentPageState extends ConsumerState<DigitalAssignmentPage>
                   ? TabBarView(
                       controller: _tabController,
                       children: _courseCategories
-                          .map((category) =>
-                              _buildBody(asyncAssignments, category))
+                          .map(
+                            (category) =>
+                                _buildBody(asyncAssignments, category),
+                          )
                           .toList(),
                     )
                   : _buildBody(asyncAssignments, ''),
@@ -178,7 +173,9 @@ class _DigitalAssignmentPageState extends ConsumerState<DigitalAssignmentPage>
         final filtered = assignments.where((a) {
           if (courseTypeFilter.isEmpty) return true;
           return CourseTypeHelper.matchesCategory(
-              a.courseType, courseTypeFilter);
+            a.courseType,
+            courseTypeFilter,
+          );
         }).toList();
 
         if (filtered.isEmpty) {

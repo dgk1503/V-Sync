@@ -70,11 +70,11 @@ class CommonTimePicker extends StatelessWidget {
             child: TextFormField(
               decoration: InputDecoration(
                 suffixIcon: const Icon(Icons.access_alarms),
-                contentPadding:
-                    const EdgeInsets.symmetric(vertical: 0.0, horizontal: 0.0),
-                labelStyle: const TextStyle(
-                  fontSize: 14,
+                contentPadding: const EdgeInsets.symmetric(
+                  vertical: 0.0,
+                  horizontal: 0.0,
                 ),
+                labelStyle: const TextStyle(fontSize: 14),
                 labelText: selectedTime ?? 'Select time',
               ),
               validator: validator,

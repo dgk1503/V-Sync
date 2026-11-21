@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:vit_ap_student_app/core/common/widget/accent_gradient_text.dart';
 import 'package:vit_ap_student_app/core/common/widget/app_card.dart';
 import 'package:vit_ap_student_app/core/models/timetable.dart';
@@ -78,6 +79,27 @@ String _formatTimeUntil(int minutes) {
   final hourLabel = hours == 1 ? 'HR' : 'HRS';
   if (remainingMinutes == 0) return '$hours $hourLabel';
   return '$hours $hourLabel $remainingMinutes MIN';
+}
+
+/// "23 min left", "1 hr 5 min left". Rounded up, so a class never reads "0 min
+/// left" while it is still on.
+String _formatTimeLeft(Duration remaining) {
+  final minutes = (remaining.inSeconds / 60).ceil().clamp(0, 24 * 60);
+  if (minutes < 60) return '$minutes min left';
+  final hours = minutes ~/ 60;
+  final rest = minutes % 60;
+  return rest == 0 ? '$hours hr left' : '$hours hr $rest min left';
+}
+
+/// "9:50 – 10:40 AM", or "11:30 AM – 12:20 PM" when the two sit either side of
+/// noon, where dropping the first suffix would be ambiguous.
+String _formatRange(DateTime start, DateTime end) {
+  final first = DateFormat('h:mm').format(start);
+  final last = DateFormat('h:mm a').format(end);
+  final samePeriod = (start.hour < 12) == (end.hour < 12);
+  return samePeriod
+      ? '$first – $last'
+      : '${DateFormat('h:mm a').format(start)} – $last';
 }
 
 DateTime? _dateFromTime(DateTime date, String? value) {
@@ -190,7 +212,7 @@ class ClassScheduleStack extends StatefulWidget {
 
 class ClassScheduleStackState extends State<ClassScheduleStack>
     with WidgetsBindingObserver {
-  static const _cardHeight = 148.0;
+  static const _cardHeight = 176.0;
   static const _dotsHeight = 18.0;
 
   late final PageController _pageController;
@@ -371,6 +393,12 @@ class _FreeDayCard extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            Icon(
+              Icons.wb_twilight_rounded,
+              size: 26,
+              color: colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(height: 10),
             Text(
               'Free for the rest of the day',
               textAlign: TextAlign.center,
@@ -461,6 +489,7 @@ class _AnimatedClassProgressBarState extends State<_AnimatedClassProgressBar>
         return LinearProgressIndicator(
           value: _value,
           minHeight: 4,
+          borderRadius: BorderRadius.circular(4),
           color: widget.color,
           backgroundColor: widget.backgroundColor,
         );
@@ -480,11 +509,17 @@ class _ClassScheduleCard extends StatelessWidget {
   final DateTime now;
   final bool animateProgress;
 
+  bool get _isLab {
+    final type = (entry.classInfo.courseType ?? '').trim().toLowerCase();
+    return type == 'ela' || type == 'lo' || type.contains('lab');
+  }
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final venue = entry.classInfo.venue?.trim();
     final locationLabel = venue == null || venue.isEmpty ? 'N/A' : venue;
+    final code = entry.classInfo.courseCode?.trim() ?? '';
     final totalSeconds = entry.end.difference(entry.start).inSeconds;
     final elapsedSeconds = now.difference(entry.start).inSeconds;
     final progress = totalSeconds <= 0
@@ -495,80 +530,140 @@ class _ClassScheduleCard extends StatelessWidget {
         ? 'ONGOING'
         : 'NEXT · IN ${_formatTimeUntil(minutesUntil)}';
 
+    TextStyle caption([Color? color]) => TextStyle(
+      fontFamily: 'Instrument Sans',
+      fontSize: 13,
+      color: color ?? colorScheme.onSurfaceVariant,
+    );
+
     return AppCard(
-      padding: EdgeInsets.zero,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (entry.isOngoing)
-              _AnimatedClassProgressBar(
-                progress: progress,
-                animate: animateProgress,
-                color: colorScheme.tertiary,
-                backgroundColor: colorScheme.surfaceContainerHighest,
-              )
-            else
-              const SizedBox(height: 4),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(22, 16, 22, 18),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              // The class on now is the selected state, so it wears the same
+              // filled pill as every other selected control; the next one is
+              // the quiet version.
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: entry.isOngoing
+                      ? colorScheme.primary
+                      : colorScheme.surfaceContainerHigh,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: colorScheme.surfaceContainerHigh,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        statusLabel,
-                        style: TextStyle(
-                          fontFamily: 'Instrument Sans',
-                          fontSize: 10,
-                          fontWeight: FontWeight.w500,
-                          letterSpacing: 0.8,
-                          color: colorScheme.onSurfaceVariant,
+                    if (entry.isOngoing) ...[
+                      Container(
+                        width: 6,
+                        height: 6,
+                        decoration: BoxDecoration(
+                          color: colorScheme.onPrimary,
+                          shape: BoxShape.circle,
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 14),
+                      const SizedBox(width: 6),
+                    ],
                     Text(
-                      entry.classInfo.courseName?.trim().isNotEmpty == true
-                          ? entry.classInfo.courseName!.trim()
-                          : 'Class',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                      statusLabel,
                       style: TextStyle(
                         fontFamily: 'Instrument Sans',
-                        fontSize: 19,
+                        fontSize: 10,
                         fontWeight: FontWeight.w500,
-                        letterSpacing: -0.2,
-                        color: colorScheme.onSurface,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      locationLabel,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontFamily: 'Instrument Sans',
-                        fontSize: 14,
-                        color: colorScheme.onSurfaceVariant,
+                        letterSpacing: 0.8,
+                        color: entry.isOngoing
+                            ? colorScheme.onPrimary
+                            : colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ],
                 ),
               ),
+              const Spacer(),
+              Text(_formatRange(entry.start, entry.end), style: caption()),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            entry.classInfo.courseName?.trim().isNotEmpty == true
+                ? entry.classInfo.courseName!.trim()
+                : 'Class',
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontFamily: 'Instrument Sans',
+              fontSize: 20,
+              height: 1.2,
+              fontWeight: FontWeight.w500,
+              letterSpacing: -0.3,
+              color: colorScheme.onSurface,
             ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Icon(
+                Icons.place_outlined,
+                size: 15,
+                color: colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 4),
+              Flexible(
+                child: Text(
+                  code.isEmpty ? locationLabel : '$locationLabel  ·  $code',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: caption(),
+                ),
+              ),
+              if (_isLab) ...[
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 7,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: colorScheme.surfaceContainerHigh,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    'LAB',
+                    style: TextStyle(
+                      fontFamily: 'Instrument Sans',
+                      fontSize: 10,
+                      fontWeight: FontWeight.w500,
+                      letterSpacing: 0.6,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+          const Spacer(),
+          if (entry.isOngoing) ...[
+            _AnimatedClassProgressBar(
+              progress: progress,
+              animate: animateProgress,
+              color: colorScheme.primary,
+              backgroundColor: colorScheme.surfaceContainerHighest,
+            ),
+            const SizedBox(height: 8),
+            Text(_formatTimeLeft(entry.end.difference(now)), style: caption()),
+          ] else
+            Text(
+              'Starts at ${DateFormat('h:mm a').format(entry.start)}',
+              style: caption(),
+            ),
+        ],
       ),
     );
   }

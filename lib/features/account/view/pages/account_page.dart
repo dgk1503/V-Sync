@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:vit_ap_student_app/core/constants/legal_links.dart';
+import 'package:vit_ap_student_app/features/calendar/viewmodel/calendar_viewmodel.dart';
+import 'package:vit_ap_student_app/core/providers/user_preferences_notifier.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:vit_ap_student_app/core/common/widget/app_card.dart';
@@ -9,12 +12,14 @@ import 'package:vit_ap_student_app/core/utils/launch_web.dart';
 import 'package:vit_ap_student_app/core/utils/show_snackbar.dart';
 import 'package:vit_ap_student_app/features/account/view/pages/customization_page.dart';
 import 'package:vit_ap_student_app/features/account/view/pages/manage_credentials_page.dart';
-import 'package:vit_ap_student_app/features/account/view/pages/otp_information_page.dart';
+import 'package:vit_ap_student_app/core/services/gmail_otp_store.dart';
+import 'package:vit_ap_student_app/features/account/view/pages/otp_autofetch_page.dart';
 import 'package:vit_ap_student_app/features/account/view/pages/settings_page.dart';
 import 'package:vit_ap_student_app/features/account/view/widgets/settings_tile.dart';
 import 'package:vit_ap_student_app/features/account/viewmodel/account_viewmodel.dart';
 import 'package:vit_ap_student_app/features/auth/view/pages/login_page.dart';
 import 'package:vit_ap_student_app/features/auth/viewmodel/auth_viewmodel.dart';
+import 'package:vit_ap_student_app/features/auth/view/widgets/semester_year_list.dart';
 import 'package:vit_ap_student_app/features/auth/viewmodel/semester_viewmodel.dart';
 import 'package:vit_ap_student_app/src/rust/api/vtop/types/semester.dart';
 
@@ -23,7 +28,8 @@ import 'package:vit_ap_student_app/src/rust/api/vtop/types/semester.dart';
 /// >>> PLACE YOUR WEBSITE LINK HERE <<<
 /// Replace the placeholder URL with your real site (keep the https://
 /// scheme). This single constant feeds the account-page tile; the Terms
-/// of Use / Privacy Policy tiles below point at their own URLs.
+/// of Use / Privacy Policy pages still live at their own URLs, but are no longer
+/// listed here.
 const String kWebsiteUrl = 'https://v-sync-minimallabs.vercel.app';
 
 class AccountPage extends ConsumerStatefulWidget {
@@ -54,13 +60,69 @@ class _AccountPageState extends ConsumerState<AccountPage> {
     }
   }
 
-  void _showSemesterPicker() {
-    showModalBottomSheet<void>(
+  /// The selected semester's name, resolved once and kept. It used to be read
+  /// inside the build, so every rebuild started a new lookup and showed
+  /// "Select semester" until it finished.
+  String? _semesterName;
+  bool _semesterLoaded = false;
+
+  Future<void> _loadSemesterName() async {
+    final semester = await ref
+        .read(semesterViewModelProvider.notifier)
+        .getSelectedSemester();
+    if (!mounted) return;
+    setState(() {
+      _semesterName = semester?.name;
+      _semesterLoaded = true;
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSemesterName();
+  }
+
+  /// True while "Refresh all data" is running, so it cannot be started twice.
+  bool _refreshing = false;
+
+  /// Pulls everything the app shows from VTOP in one go: profile, attendance,
+  /// timetable, exams and marks, then the academic calendar. Each part also
+  /// refreshes on its own page; this is the one button for "make it all current".
+  Future<void> _refreshAll() async {
+    if (_refreshing) return;
+    setState(() => _refreshing = true);
+    try {
+      final account = ref.read(accountViewModelProvider.notifier);
+      await account.sync();
+      final failed = ref.read(accountViewModelProvider)?.hasError == true;
+
+      // The calendar is a separate request; it reports its own failure on its
+      // own page, so a miss here does not undo the sync above.
+      try {
+        await ref.read(calendarViewmodelProvider.notifier).refresh();
+      } catch (_) {}
+
+      if (!failed && mounted) {
+        final prefs = ref.read(userPreferencesProvider);
+        await ref
+            .read(userPreferencesProvider.notifier)
+            .updatePreferences(prefs.copyWith(lastSync: DateTime.now()));
+      }
+    } finally {
+      if (mounted) setState(() => _refreshing = false);
+    }
+  }
+
+  Future<void> _showSemesterPicker() async {
+    await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => const _SemesterPickerSheet(),
     );
+    // The choice may have changed in the sheet.
+    if (mounted) await _loadSemesterName();
   }
 
   @override
@@ -117,8 +179,7 @@ class _AccountPageState extends ConsumerState<AccountPage> {
             16,
             0,
             16,
-            kFloatingNavBarClearance +
-                MediaQuery.paddingOf(context).bottom,
+            kFloatingNavBarClearance + MediaQuery.paddingOf(context).bottom,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -149,24 +210,21 @@ class _AccountPageState extends ConsumerState<AccountPage> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      FutureBuilder<String>(
-                        future: ref
-                            .read(semesterViewModelProvider.notifier)
-                            .getSelectedSemester()
-                            .then((s) => s?.name ?? 'Select semester'),
-                        builder: (context, snapshot) {
-                          return Text(
-                            snapshot.data ?? 'Select semester',
-                            style: const TextStyle(
-                              fontFamily: 'Instrument Sans',
-                              fontSize: 14,
-                              // Keep the interactive semester shortcut blue;
-                              // it was previously changed to the monochrome
-                              // primary colour and disappeared in light mode.
-                              color: Colors.blue,
-                            ),
-                          );
-                        },
+                      Text(
+                        // Nothing until the lookup has finished, so the header
+                        // never claims "Select semester" while it is merely
+                        // still reading the answer.
+                        !_semesterLoaded
+                            ? ''
+                            : _semesterName ?? 'Select semester',
+                        style: const TextStyle(
+                          fontFamily: 'Instrument Sans',
+                          fontSize: 14,
+                          // Keep the interactive semester shortcut blue;
+                          // it was previously changed to the monochrome
+                          // primary colour and disappeared in light mode.
+                          color: Colors.blue,
+                        ),
                       ),
                       const SizedBox(width: 6),
                       const Icon(
@@ -227,9 +285,32 @@ class _AccountPageState extends ConsumerState<AccountPage> {
                   SettingTile(
                     isFirst: false,
                     isLast: false,
+                    title: 'Refresh all data',
+                    leadingIcon: const Icon(LucideIcons.refreshCw),
+                    // A command, not a link: no chevron, a spinner while it runs.
+                    trailingWidget: _refreshing
+                        ? const Padding(
+                            padding: EdgeInsets.only(right: 4),
+                            child: SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          )
+                        : const SizedBox.shrink(),
+                    onTap: _refreshing ? null : _refreshAll,
+                  ),
+                  SettingTile(
+                    isFirst: false,
+                    isLast: false,
                     title: 'Automatic OTP Fetching',
-                    leadingIcon: const Icon(LucideIcons.circleHelp),
-                    onTap: () => showOtpInformationSheet(context),
+                    subtitle: _otpSubtitle(ref.watch(gmailOtpSettingsProvider)),
+                    leadingIcon: const Icon(LucideIcons.mailCheck),
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const OtpAutofetchPage(),
+                      ),
+                    ),
                   ),
                   SettingTile(
                     isFirst: false,
@@ -243,23 +324,10 @@ class _AccountPageState extends ConsumerState<AccountPage> {
                   SettingTile(
                     isFirst: false,
                     isLast: false,
-                    title: 'Terms of Use',
-                    leadingIcon: const Icon(LucideIcons.fileText),
-                    onTap: () async {
-                      await directToWeb(
-                        'https://v-sync-minimallabs.vercel.app/terms',
-                      );
-                    },
-                  ),
-                  SettingTile(
-                    isFirst: false,
-                    isLast: false,
                     title: 'Privacy Policy',
                     leadingIcon: const Icon(LucideIcons.shieldCheck),
                     onTap: () async {
-                      await directToWeb(
-                        'https://v-sync-minimallabs.vercel.app/privacypolicy',
-                      );
+                      await directToWeb(kPrivacyPolicyUrl);
                     },
                   ),
                   SettingTile(
@@ -296,6 +364,13 @@ class _AccountPageState extends ConsumerState<AccountPage> {
 }
 
 /// Rounded monochrome container that groups setting tiles.
+/// What the tile says under its name: whether the Gmail reader is on.
+String? _otpSubtitle(GmailOtpSettings settings) {
+  if (!settings.loaded) return null;
+  if (!settings.isConnected) return 'Read your VTOP code from Gmail';
+  return settings.enabled ? 'On \u00b7 ${settings.email}' : 'Off';
+}
+
 class _SettingsGroup extends StatelessWidget {
   final List<Widget> children;
 
@@ -504,56 +579,11 @@ class _SemesterPickerSheetState extends ConsumerState<_SemesterPickerSheet> {
                 )
               else if (semesterState.hasValue)
                 Flexible(
-                  child: ListView.separated(
+                  child: SemesterYearList(
                     shrinkWrap: true,
-                    itemCount: semesterState.value!.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 6),
-                    itemBuilder: (context, index) {
-                      final semester = semesterState.value![index];
-                      final isCurrent = semester.id == _currentSemesterId;
-
-                      return GestureDetector(
-                        onTap: () => _select(semester),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 13,
-                          ),
-                          decoration: BoxDecoration(
-                            color: isCurrent
-                                ? colorScheme.surfaceContainerHigh
-                                : colorScheme.surfaceContainerLow,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: isCurrent
-                                  ? colorScheme.primary
-                                  : colorScheme.outlineVariant,
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  semester.name,
-                                  style: TextStyle(
-                                    fontFamily: 'Instrument Sans',
-                                    fontSize: 14.5,
-                                    fontWeight: FontWeight.w500,
-                                    color: colorScheme.onSurface,
-                                  ),
-                                ),
-                              ),
-                              if (isCurrent)
-                                Icon(
-                                  LucideIcons.check,
-                                  size: 18,
-                                  color: colorScheme.onSurface,
-                                ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
+                    semesters: semesterState.value!,
+                    currentId: _currentSemesterId,
+                    onSelect: _select,
                   ),
                 ),
             ],

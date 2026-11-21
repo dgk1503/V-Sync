@@ -102,8 +102,7 @@ class CalendarRemoteRepository {
 
   static AcademicCalendar _parseCalendar(Map<String, dynamic> json) {
     List<Map<String, dynamic>> objects(String key) =>
-        (json[key] as List<dynamic>? ?? const [])
-            .cast<Map<String, dynamic>>();
+        (json[key] as List<dynamic>? ?? const []).cast<Map<String, dynamic>>();
 
     String text(Object? value) => value?.toString() ?? '';
 

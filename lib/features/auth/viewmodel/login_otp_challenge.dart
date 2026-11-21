@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:fpdart/fpdart.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:vit_ap_student_app/features/auth/repository/auth_remote_repository.dart';
+import 'package:vit_ap_student_app/features/auth/services/gmail_otp_reader.dart';
+import 'package:vit_ap_student_app/features/auth/services/otp_auto_fill.dart';
 
 part 'login_otp_challenge.g.dart';
 
@@ -15,6 +17,27 @@ const int kOtpChallengeWindowSeconds = 180;
 /// One enum rather than a set of booleans, so "submitting and resending at the
 /// same time" is not a state the type system allows.
 enum OtpActivity { idle, waiting, submitting, resending }
+
+/// What the automatic Gmail reader is doing, as the prompt shows it.
+enum OtpAutoPhase {
+  /// Not set up, or switched off: the code has to be typed.
+  notEnabled,
+
+  /// Looking in Gmail for the code.
+  fetching,
+
+  /// A code was found and is being checked with VTOP.
+  verifying,
+
+  /// VTOP accepted it: the prompt shows a tick, then closes by itself.
+  succeeded,
+
+  /// The reader stopped ([OtpChallenge.autoStatus] says why).
+  failed,
+}
+
+/// How long the success tick is shown before the prompt closes.
+const Duration kOtpSuccessHold = Duration(milliseconds: 1700);
 
 /// Whether the prompt covers the app or has collapsed to the floating capsule.
 enum OtpPresentation { expanded, minimized }
@@ -31,6 +54,8 @@ class OtpChallenge {
     this.remainingSeconds = 0,
     this.message = '',
     this.errorMessage,
+    this.autoStatus,
+    this.autoPhase,
   });
 
   /// No challenge. Nothing is rendered.
@@ -40,7 +65,9 @@ class OtpChallenge {
       presentation = OtpPresentation.expanded,
       remainingSeconds = 0,
       message = '',
-      errorMessage = null;
+      errorMessage = null,
+      autoStatus = null,
+      autoPhase = null;
 
   factory OtpChallenge.active({
     required String message,
@@ -73,6 +100,16 @@ class OtpChallenge {
   final String message;
   final String? errorMessage;
 
+  /// What the automatic Gmail reader is doing ("Looking for the code in your
+  /// Gmail..."), or why it stopped; null when it is not set up.
+  final String? autoStatus;
+
+  /// Where the automatic reader is; null until it has said (it takes a moment to
+  /// find out whether it is set up).
+  final OtpAutoPhase? autoPhase;
+
+  bool get isSucceeded => autoPhase == OtpAutoPhase.succeeded;
+
   bool get isMinimized => presentation == OtpPresentation.minimized;
   bool get isSubmitting => activity == OtpActivity.submitting;
   bool get isResending => activity == OtpActivity.resending;
@@ -90,6 +127,9 @@ class OtpChallenge {
     String? message,
     String? errorMessage,
     bool clearError = false,
+    String? autoStatus,
+    bool clearAutoStatus = false,
+    OtpAutoPhase? autoPhase,
   }) {
     if (!isActive) {
       throw StateError('An idle OTP challenge cannot be updated.');
@@ -101,6 +141,8 @@ class OtpChallenge {
       remainingSeconds: remainingSeconds ?? this.remainingSeconds,
       message: message ?? this.message,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
+      autoStatus: clearAutoStatus ? null : (autoStatus ?? this.autoStatus),
+      autoPhase: autoPhase ?? this.autoPhase,
     );
   }
 
@@ -122,7 +164,11 @@ class LoginOtpChallenge extends _$LoginOtpChallenge {
   @override
   OtpChallenge build() {
     _repository = ref.watch(authRemoteRepositoryProvider);
-    ref.onDispose(_stopTicker);
+    ref.onDispose(() {
+      _stopTicker();
+      _auto?.cancel();
+      _successTimer?.cancel();
+    });
     return const OtpChallenge.idle();
   }
 
@@ -147,11 +193,27 @@ class LoginOtpChallenge extends _$LoginOtpChallenge {
       message: 'Additional verification required. OTP sent to your email.',
     );
     _startTicker();
+    _startAutoRead(DateTime.now());
   }
 
   void minimize() {
     if (!state.isActive) return;
+    // Nothing left to show once the code has worked: just close.
+    if (state.isSucceeded) {
+      _finish();
+      return;
+    }
     state = state.copyWith(presentation: OtpPresentation.minimized);
+  }
+
+  Timer? _successTimer;
+
+  void _finish() {
+    _successTimer?.cancel();
+    _successTimer = null;
+    _stopTicker();
+    _auto?.cancel();
+    state = const OtpChallenge.idle();
   }
 
   void reopen() {
@@ -164,11 +226,12 @@ class LoginOtpChallenge extends _$LoginOtpChallenge {
   /// whatever was waiting on it fails instead of hanging.
   void dismiss() {
     if (!state.isActive) return;
-    _stopTicker();
-    state = const OtpChallenge.idle();
+    _finish();
   }
 
-  Future<void> submitOtp(String code) async {
+  /// [automatic] is true when the code came from Gmail: then a success is shown
+  /// (a tick) before the prompt closes, instead of it vanishing at once.
+  Future<void> submitOtp(String code, {bool automatic = false}) async {
     if (!state.isActive || state.isBusy) return;
 
     final sanitized = code.replaceAll(RegExp(r'\D'), '');
@@ -191,17 +254,29 @@ class LoginOtpChallenge extends _$LoginOtpChallenge {
         );
       case Right():
         _stopTicker();
-        state = const OtpChallenge.idle();
+        _auto?.cancel();
+        if (automatic && !state.isMinimized) {
+          // Show the tick, then close. The login carries on behind it.
+          state = state.copyWith(
+            activity: OtpActivity.waiting,
+            clearError: true,
+            clearAutoStatus: true,
+            autoPhase: OtpAutoPhase.succeeded,
+          );
+          _successTimer?.cancel();
+          _successTimer = Timer(kOtpSuccessHold, () {
+            if (ref.mounted && state.isActive) _finish();
+          });
+        } else {
+          state = const OtpChallenge.idle();
+        }
     }
   }
 
   Future<void> resendOtp() async {
     if (!state.canResend) return;
 
-    state = state.copyWith(
-      activity: OtpActivity.resending,
-      clearError: true,
-    );
+    state = state.copyWith(activity: OtpActivity.resending, clearError: true);
 
     final result = await _repository.resendLoginOtp();
     switch (result) {
@@ -218,6 +293,88 @@ class LoginOtpChallenge extends _$LoginOtpChallenge {
           clearError: true,
         );
         _startTicker();
+        // A new code means the old one is dead: look for the new mail.
+        _startAutoRead(DateTime.now());
+    }
+  }
+
+  // --- automatic reading from Gmail ----------------------------------------
+
+  OtpCancel? _auto;
+
+  void _startAutoRead(DateTime issuedAfter) {
+    _auto?.cancel();
+    final cancel = _auto = OtpCancel();
+    unawaited(_autoRead(issuedAfter, cancel));
+  }
+
+  /// Looks for the code in the student's Gmail and enters it, if they have set
+  /// that up. Typing the code by hand always still works, and a code that is
+  /// refused (an older mail) is skipped in favour of a newer one.
+  Future<void> _autoRead(DateTime issuedAfter, OtpCancel cancel) async {
+    try {
+      await _autoReadLoop(issuedAfter, cancel);
+    } catch (_) {
+      // The automatic reader is a convenience on top of typing the code. Whatever
+      // goes wrong inside it (storage that cannot be read, say) must leave the
+      // prompt exactly as it is, never crash it.
+    }
+  }
+
+  Future<void> _autoReadLoop(DateTime issuedAfter, OtpCancel cancel) async {
+    final autoFill = ref.read(otpAutoFillProvider);
+    final tried = <int>{};
+
+    bool stopped() => cancel.isCancelled || !ref.mounted || !state.isActive;
+
+    if (!await autoFill.isReady()) {
+      if (!stopped()) {
+        state = state.copyWith(autoPhase: OtpAutoPhase.notEnabled);
+      }
+      return;
+    }
+    if (stopped()) return;
+
+    while (!stopped()) {
+      OtpFound? found;
+      try {
+        state = state.copyWith(
+          autoPhase: OtpAutoPhase.fetching,
+          clearAutoStatus: true,
+        );
+        found = await autoFill.find(
+          issuedAfter: issuedAfter,
+          ignoreUids: tried,
+          cancel: cancel,
+        );
+      } on OtpReaderException catch (e) {
+        if (stopped()) return;
+        if (e.problem == OtpReaderProblem.cancelled) return;
+        state = state.copyWith(
+          autoPhase: OtpAutoPhase.failed,
+          autoStatus: e.message,
+        );
+        return;
+      } catch (_) {
+        if (stopped()) return;
+        state = state.copyWith(
+          autoPhase: OtpAutoPhase.failed,
+          autoStatus: 'Could not read your Gmail.',
+        );
+        return;
+      }
+      if (stopped()) return;
+      if (found == null) {
+        state = state.copyWith(autoPhase: OtpAutoPhase.notEnabled);
+        return;
+      }
+
+      state = state.copyWith(autoPhase: OtpAutoPhase.verifying);
+      await submitOtp(found.code, automatic: true);
+      if (stopped()) return; // it worked, or the prompt was closed
+
+      // Refused: that mail was an older code. Look for a newer one.
+      tried.add(found.uid);
     }
   }
 

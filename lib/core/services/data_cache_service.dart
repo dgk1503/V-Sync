@@ -38,10 +38,7 @@ class DataCacheService {
 
   /// The cached row for [key], or null when nothing has been stored yet.
   CacheEntry? readEntry(String key) {
-    final row = _box
-        .query(DataCache_.cacheKey.equals(key))
-        .build()
-        .findFirst();
+    final row = _box.query(DataCache_.cacheKey.equals(key)).build().findFirst();
     if (row == null) return null;
     return CacheEntry(payload: row.payload, updatedAt: row.updatedAt);
   }

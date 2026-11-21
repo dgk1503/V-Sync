@@ -5,6 +5,7 @@ import 'package:vit_ap_student_app/core/common/widget/empty_content_view.dart';
 import 'package:vit_ap_student_app/core/common/widget/error_content_view.dart';
 import 'package:vit_ap_student_app/core/models/grade_history.dart';
 import 'package:vit_ap_student_app/core/providers/current_user.dart';
+import 'package:vit_ap_student_app/features/home/view/pages/gpa_planner_page.dart';
 import 'package:vit_ap_student_app/features/home/view/widgets/grade_card.dart';
 
 class GradeHistoryPage extends ConsumerStatefulWidget {
@@ -86,204 +87,248 @@ class _GradeHistoryPageState extends ConsumerState<GradeHistoryPage> {
         child: user == null
             ? const ErrorContentView(error: 'User not found!')
             : gradeHistory == null || gradeHistory.courses.isEmpty
-                ? const EmptyContentView(
-                    primaryText: 'No grades available',
-                    secondaryText:
-                        'Your grade history will appear here once available.',
-                  )
-                : CustomScrollView(
-                    physics: const BouncingScrollPhysics(),
-                    slivers: [
-                      // Search bar + filter button
-                      SliverToBoxAdapter(
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: TextField(
-                                  controller: _searchController,
-                                  onChanged: (value) {
+            ? const EmptyContentView(
+                primaryText: 'No grades available',
+                secondaryText:
+                    'Your grade history will appear here once available.',
+              )
+            : CustomScrollView(
+                physics: const BouncingScrollPhysics(),
+                slivers: [
+                  // Entry to the GPA planner, in the same shape as the
+                  // course cards below it.
+                  const SliverToBoxAdapter(child: _GpaPlannerEntry()),
+
+                  // Search bar + filter button
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: _searchController,
+                              onChanged: (value) {
+                                setState(() {
+                                  searchQuery = value;
+                                });
+                              },
+                              style: TextStyle(
+                                fontFamily: 'Instrument Sans',
+                                fontSize: 15,
+                                color: colorScheme.onSurface,
+                              ),
+                              decoration: InputDecoration(
+                                hintText: 'Search $filteredCount courses...',
+                                hintStyle: TextStyle(
+                                  fontFamily: 'Instrument Sans',
+                                  fontSize: 14,
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                                prefixIcon: Icon(
+                                  Iconsax.search_normal_copy,
+                                  size: 18,
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                                filled: true,
+                                fillColor: colorScheme.surfaceContainerLow,
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(30),
+                                  borderSide: BorderSide.none,
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 12,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                showFilters = !showFilters;
+                              });
+                            },
+                            child: Container(
+                              width: 46,
+                              height: 46,
+                              decoration: BoxDecoration(
+                                color: showFilters
+                                    ? colorScheme.primary
+                                    : colorScheme.surfaceContainerLow,
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Iconsax.setting_4_copy,
+                                size: 20,
+                                color: showFilters
+                                    ? colorScheme.onPrimary
+                                    : colorScheme.onSurface,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  // Month filter chips
+                  if (showFilters)
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        child: SizedBox(
+                          height: 52,
+                          child: ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: _getUniqueExamMonths(
+                              gradeHistory,
+                            ).length,
+                            itemBuilder: (context, index) {
+                              final filter = _getUniqueExamMonths(
+                                gradeHistory,
+                              )[index];
+                              final isSelected = selectedFilter == filter;
+
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 4,
+                                ),
+                                child: GestureDetector(
+                                  onTap: () {
                                     setState(() {
-                                      searchQuery = value;
+                                      selectedFilter = filter;
                                     });
                                   },
-                                  style: TextStyle(
-                                    fontFamily: 'Instrument Sans',
-                                    fontSize: 15,
-                                    color: colorScheme.onSurface,
-                                  ),
-                                  decoration: InputDecoration(
-                                    hintText:
-                                        'Search $filteredCount courses...',
-                                    hintStyle: TextStyle(
-                                      fontFamily: 'Instrument Sans',
-                                      fontSize: 14,
-                                      color: colorScheme.onSurfaceVariant,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 14,
                                     ),
-                                    prefixIcon: Icon(
-                                      Iconsax.search_normal_copy,
-                                      size: 18,
-                                      color: colorScheme.onSurfaceVariant,
+                                    alignment: Alignment.center,
+                                    decoration: BoxDecoration(
+                                      color: isSelected
+                                          ? colorScheme.primary
+                                          : colorScheme.surfaceContainerLow,
+                                      borderRadius: BorderRadius.circular(20),
                                     ),
-                                    filled: true,
-                                    fillColor:
-                                        colorScheme.surfaceContainerLow,
-                                    border: OutlineInputBorder(
-                                      borderRadius:
-                                          BorderRadius.circular(30),
-                                      borderSide: BorderSide.none,
-                                    ),
-                                    contentPadding:
-                                        const EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                      vertical: 12,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              GestureDetector(
-                                onTap: () {
-                                  setState(() {
-                                    showFilters = !showFilters;
-                                  });
-                                },
-                                child: Container(
-                                  width: 46,
-                                  height: 46,
-                                  decoration: BoxDecoration(
-                                    color: showFilters
-                                        ? colorScheme.primary
-                                        : colorScheme.surfaceContainerLow,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Icon(
-                                    Iconsax.setting_4_copy,
-                                    size: 20,
-                                    color: showFilters
-                                        ? colorScheme.onPrimary
-                                        : colorScheme.onSurface,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-
-                      // Month filter chips
-                      if (showFilters)
-                        SliverToBoxAdapter(
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
-                            ),
-                            child: SizedBox(
-                              height: 52,
-                              child: ListView.builder(
-                              scrollDirection: Axis.horizontal,
-                              itemCount:
-                                  _getUniqueExamMonths(gradeHistory).length,
-                              itemBuilder: (context, index) {
-                                final filter =
-                                    _getUniqueExamMonths(gradeHistory)[index];
-                                final isSelected = selectedFilter == filter;
-
-                                return Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 4),
-                                  child: GestureDetector(
-                                    onTap: () {
-                                      setState(() {
-                                        selectedFilter = filter;
-                                      });
-                                    },
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 14,
-                                      ),
-                                      alignment: Alignment.center,
-                                      decoration: BoxDecoration(
+                                    child: Text(
+                                      filter,
+                                      style: TextStyle(
+                                        fontFamily: 'Instrument Sans',
+                                        fontSize: 12.5,
+                                        fontWeight: FontWeight.w500,
                                         color: isSelected
-                                            ? colorScheme.primary
-                                            : colorScheme
-                                                .surfaceContainerLow,
-                                        borderRadius:
-                                            BorderRadius.circular(20),
-                                      ),
-                                      child: Text(
-                                        filter,
-                                        style: TextStyle(
-                                          fontFamily: 'Instrument Sans',
-                                          fontSize: 12.5,
-                                          fontWeight: FontWeight.w500,
-                                          color: isSelected
-                                              ? colorScheme.onPrimary
-                                              : colorScheme
-                                                  .onSurfaceVariant,
-                                        ),
+                                            ? colorScheme.onPrimary
+                                            : colorScheme.onSurfaceVariant,
                                       ),
                                     ),
                                   ),
-                                );
-                              },
-                            ),
-                          ),
-                          ),
-                        ),
-
-                      // Course list
-                      SliverPadding(
-                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                        sliver: SliverList(
-                          delegate: SliverChildBuilderDelegate(
-                            (context, index) {
-                              final courses = _getFilteredCourses(gradeHistory);
-                              if (courses.isEmpty) {
-                                return Padding(
-                                  padding: const EdgeInsets.all(32.0),
-                                  child: Column(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.center,
-                                    children: [
-                                      Icon(
-                                        Icons.search_off,
-                                        size: 44,
-                                        color: colorScheme.onSurfaceVariant,
-                                      ),
-                                      const SizedBox(height: 12),
-                                      Text(
-                                        'No courses found',
-                                        style: TextStyle(
-                                          fontFamily: 'Instrument Sans',
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.w500,
-                                          color:
-                                              colorScheme.onSurfaceVariant,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              }
-                              final course = courses[index];
-                              return Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 5.0),
-                                child: GradeCard(course: course),
+                                ),
                               );
                             },
-                            childCount: _getFilteredCourses(gradeHistory)
-                                    .isEmpty
-                                ? 1
-                                : _getFilteredCourses(gradeHistory).length,
                           ),
                         ),
                       ),
-                    ],
+                    ),
+
+                  // Course list
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) {
+                          final courses = _getFilteredCourses(gradeHistory);
+                          if (courses.isEmpty) {
+                            return Padding(
+                              padding: const EdgeInsets.all(32.0),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.search_off,
+                                    size: 44,
+                                    color: colorScheme.onSurfaceVariant,
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    'No courses found',
+                                    style: TextStyle(
+                                      fontFamily: 'Instrument Sans',
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w500,
+                                      color: colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }
+                          final course = courses[index];
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 5.0),
+                            child: GradeCard(course: course),
+                          );
+                        },
+                        childCount: _getFilteredCourses(gradeHistory).isEmpty
+                            ? 1
+                            : _getFilteredCourses(gradeHistory).length,
+                      ),
+                    ),
                   ),
+                ],
+              ),
+      ),
+    );
+  }
+}
+
+/// Entry point for the GPA planner, at the top of the grades.
+///
+/// A [ListTile] with the tile colour and corner radius of the course cards, so
+/// it reads as one of them, the same way the skip planner's entry does on the
+/// attendance page.
+class _GpaPlannerEntry extends StatelessWidget {
+  const _GpaPlannerEntry();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      child: ListTile(
+        onTap: () => Navigator.of(
+          context,
+        ).push(MaterialPageRoute<void>(builder: (_) => const GpaPlannerPage())),
+        tileColor: colors.surfaceContainerLow,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        leading: Icon(Icons.school_outlined, color: colors.onSurfaceVariant),
+        title: Text(
+          'Plan your GPA',
+          style: TextStyle(
+            fontFamily: 'Instrument Sans',
+            fontSize: 15,
+            fontWeight: FontWeight.w500,
+            color: colors.onSurface,
+          ),
+        ),
+        subtitle: Text(
+          'Project your CGPA',
+          style: TextStyle(
+            fontFamily: 'Instrument Sans',
+            fontSize: 12.5,
+            color: colors.onSurfaceVariant,
+          ),
+        ),
+        trailing: Icon(
+          Icons.arrow_forward_rounded,
+          size: 20,
+          color: colors.onSurfaceVariant,
+        ),
       ),
     );
   }

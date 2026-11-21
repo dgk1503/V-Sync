@@ -52,7 +52,9 @@ void main() {
       expect(UserPreferences().hideCalendarCountdowns, isFalse);
     });
 
-    testWidgets('the calendar page no longer offers the toggle', (tester) async {
+    testWidgets('the calendar page no longer offers the toggle', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         _host(
           UserPreferences(),
@@ -79,7 +81,10 @@ void main() {
         kind: CalendarDayKind.countdown,
         title: 'Exam 2',
       );
-      expect(CalendarEventClassifier.isMarked(CalendarDayKind.countdown), isTrue);
+      expect(
+        CalendarEventClassifier.isMarked(CalendarDayKind.countdown),
+        isTrue,
+      );
       expect(
         CalendarEventClassifier.ringKindFor([countdown]),
         CalendarDayKind.countdown,

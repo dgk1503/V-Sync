@@ -9,8 +9,8 @@ import 'package:vit_ap_student_app/features/home/model/milestone.dart';
 
 final milestonesProvider =
     NotifierProvider<MilestonesNotifier, List<Milestone>>(
-  MilestonesNotifier.new,
-);
+      MilestonesNotifier.new,
+    );
 
 class MilestonesNotifier extends Notifier<List<Milestone>> {
   static const _storageKey = 'milestones_v1';
@@ -91,8 +91,7 @@ class MilestonesNotifier extends Notifier<List<Milestone>> {
   /// Drops countdowns that finished more than 10 minutes ago.
   Future<void> removeExpired() async {
     final cutoff = DateTime.now().subtract(const Duration(minutes: 10));
-    final filtered =
-        state.where((m) => m.targetDate.isAfter(cutoff)).toList();
+    final filtered = state.where((m) => m.targetDate.isAfter(cutoff)).toList();
     if (filtered.length == state.length) return;
     state = filtered;
     await _persist();

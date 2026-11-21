@@ -62,13 +62,22 @@ class MyGradesTileState extends ConsumerState<GradeHistoryCarousel> {
               children: [
                 if (index == 0)
                   _buildTileContent(
-                      context, cgpa.toString(), 'Overall CGPA earned')
+                    context,
+                    cgpa.toString(),
+                    'Overall CGPA earned',
+                  )
                 else if (index == 1)
-                  _buildTileContent(context, creditsEarned.toString(),
-                      'Overall credits earned')
+                  _buildTileContent(
+                    context,
+                    creditsEarned.toString(),
+                    'Overall credits earned',
+                  )
                 else if (index == 2)
-                  _buildTileContent(context, creditsRegistered.toString(),
-                      'Overall credits registered'),
+                  _buildTileContent(
+                    context,
+                    creditsRegistered.toString(),
+                    'Overall credits registered',
+                  ),
               ],
             ),
           );

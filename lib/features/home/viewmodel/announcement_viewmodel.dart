@@ -28,8 +28,10 @@ class AnnouncementViewModel extends _$AnnouncementViewModel {
     final result = await _announcementRepository.fetchAnnouncements();
 
     state = switch (result) {
-      Left(value: final failure) =>
-        AsyncValue.error(failure.message, StackTrace.current),
+      Left(value: final failure) => AsyncValue.error(
+        failure.message,
+        StackTrace.current,
+      ),
       Right(value: final announcements) => AsyncValue.data(announcements),
     };
   }

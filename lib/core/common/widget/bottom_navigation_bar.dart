@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:vit_ap_student_app/core/common/app_route_transition_state.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:vit_ap_student_app/core/common/widget/liquid_glass_navigation_bar.dart';
 import 'package:vit_ap_student_app/core/common/widget/static_capsule_nav_bar.dart';
@@ -36,6 +37,30 @@ class BottomNavBar extends ConsumerStatefulWidget {
 }
 
 class BottomNavBarState extends ConsumerState<BottomNavBar> {
+  late final StateController<bool> _shellVisible = ref.read(
+    mainShellVisibleProvider.notifier,
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _shellVisible.state = true;
+    });
+  }
+
+  @override
+  void dispose() {
+    // Deferred: providers must not change while the tree is being torn down.
+    Future.microtask(() {
+      try {
+        _shellVisible.state = false;
+      } catch (_) {}
+    });
+    super.dispose();
+  }
+
   List<Widget> _buildPages() => const [
     HomePage(),
     TimetablePage(),

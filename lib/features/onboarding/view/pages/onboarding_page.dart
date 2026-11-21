@@ -58,10 +58,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                 controller: _pageController,
                 physics: const NeverScrollableScrollPhysics(),
                 onPageChanged: (index) => setState(() => _currentPage = index),
-                children: const [
-                  _WelcomeScreen(),
-                  _HowItWorksScreen(),
-                ],
+                children: const [_WelcomeScreen(), _HowItWorksScreen()],
               ),
             ),
             Padding(
@@ -134,11 +131,7 @@ class _WelcomeScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 2),
-          const VSyncLogo(
-            label: 'vsync',
-            fontSize: 34,
-            letterSpacing: 0.5,
-          ),
+          const VSyncLogo(label: 'vsync', fontSize: 34, letterSpacing: 0.5),
           const SizedBox(height: 24),
           RichText(
             text: TextSpan(
@@ -160,7 +153,7 @@ class _WelcomeScreen extends StatelessWidget {
                 const TextSpan(
                   text:
                       ' is a minimal, lightweight, unopinionated, highly '
-                  'customizable app built to browse VTOP.',
+                      'customizable app built to browse VTOP.',
                 ),
               ],
             ),
@@ -216,7 +209,7 @@ class _HowItWorksScreen extends StatelessWidget {
                 const TextSpan(
                   text:
                       ' just connect your college portal once and vsync takes '
-                  'it from there.',
+                      'it from there.',
                 ),
               ],
             ),

@@ -45,6 +45,17 @@ class UserPreferences {
   // Academic calendar card on the Academics hub.
   bool hideAcademicCalendar;
 
+  // Biometric log on the Academics hub. A hide flag for the same reason as the
+  // others: a new bool column reads as false on existing rows, so it starts
+  // visible for every current install.
+  bool hideBiometric;
+
+  // Academics hub laid out as a list instead of the default two-per-row grid.
+  // Stored as the exception (default false = grid) like the hide* flags: a new
+  // bool column reads as false on existing rows, so every install, old or new,
+  // starts on the grid.
+  bool academicsListView;
+
   // Whether the academic calendar merges the user's own countdowns into its day
   // chips. Stored inverted for the same reason as the hide* flags above: a new
   // bool column reads as false on existing ObjectBox rows, so a positive
@@ -86,6 +97,8 @@ class UserPreferences {
     this.hideFacultyInfo = false,
     this.hideOpenVtop = false,
     this.hideAcademicCalendar = false,
+    this.hideBiometric = false,
+    this.academicsListView = false,
     this.hideCalendarCountdowns = false,
     this.liquidGlassNavbar = true,
     this.classStackEnabled = false,
@@ -116,6 +129,8 @@ class UserPreferences {
     bool? hideFacultyInfo,
     bool? hideOpenVtop,
     bool? hideAcademicCalendar,
+    bool? hideBiometric,
+    bool? academicsListView,
     bool? hideCalendarCountdowns,
     bool? liquidGlassNavbar,
     bool? classStackEnabled,
@@ -153,7 +168,10 @@ class UserPreferences {
       hideFacultyInfo: hideFacultyInfo ?? this.hideFacultyInfo,
       hideOpenVtop: hideOpenVtop ?? this.hideOpenVtop,
       hideAcademicCalendar: hideAcademicCalendar ?? this.hideAcademicCalendar,
-      hideCalendarCountdowns: hideCalendarCountdowns ?? this.hideCalendarCountdowns,
+      hideBiometric: hideBiometric ?? this.hideBiometric,
+      academicsListView: academicsListView ?? this.academicsListView,
+      hideCalendarCountdowns:
+          hideCalendarCountdowns ?? this.hideCalendarCountdowns,
       liquidGlassNavbar: liquidGlassNavbar ?? this.liquidGlassNavbar,
       classStackEnabled: classStackEnabled ?? this.classStackEnabled,
     );
